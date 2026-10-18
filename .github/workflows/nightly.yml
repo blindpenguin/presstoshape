@@ -4,9 +4,6 @@
 name: Nightly
 
 on:
-  # TEMPORARY for trial runs before this workflow exists on main; remove before merging.
-  push:
-    branches: [nightly-builds]
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:

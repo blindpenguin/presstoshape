@@ -32,7 +32,7 @@
   - _Requirements: 4.1, 4.3, 4.4, 8.1, 8.2_
   - _Prompt: Implement the task for spec nightly-builds, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python packaging engineer | Task: Write the PyInstaller spec and linux subcommand per design.md; build locally, run the AppImage self-test offscreen and under xcb, then start it on the desktop (GL), draw, save SVG, export PNG; check bundle size and trim unused Qt modules | Restrictions: onedir only; generated files gitignored; appimagetool checksum-verified; no system-specific paths | Success: local AppImage passes self-test and runs on the desktop. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 5. Windows portable ZIP and MSI
+- [x] 5. Windows portable ZIP and MSI
   - Files: packaging/windows/PressToShape.wxs, scripts/build_package.py
   - `windows` subcommand: freeze, portable ZIP, `wix build -acceptEula wix7` with Files harvesting, MajorUpgrade (same-version allowed), Start menu shortcut, ARP icon/link, WixUI_Minimal with GPL page
   - Purpose: Windows packages (Req 3)
@@ -40,7 +40,7 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.5, 7.3_
   - _Prompt: Implement the task for spec nightly-builds, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Windows installer engineer | Task: Write the WiX v7 source and windows subcommand per design.md; validate on CI only (no local Windows) in task 6 | Restrictions: fixed UpgradeCode; per-machine; no custom actions | Success: CI builds both, self-test of the portable folder passes, msiexec install → installed exe self-test → uninstall passes. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 6. Nightly workflow, tested against a test tag
+- [x] 6. Nightly workflow, tested against a test tag
   - Files: .github/workflows/nightly.yml
   - Jobs check / test / windows / linux / source / publish per design.md; actions pinned by SHA; minimal permissions; concurrency; draft-then-swap publish; tag name as an input defaulting to `nightly`, first runs from a branch with `nightly-test`
   - Purpose: automated, all-or-nothing nightly (Req 1, 2, 6)
@@ -48,7 +48,7 @@
   - _Requirements: 1.1–1.4, 2.1–2.4, 6.1–6.3, NFR Security, Reliability_
   - _Prompt: Implement the task for spec nightly-builds, first run spec-workflow-guide to get the workflow guide then implement the task: Role: CI/CD engineer | Task: Write nightly.yml per design.md; push a branch (ask the user before pushing), run via workflow_dispatch against tag nightly-test until green; verify SHA256SUMS, notes and assets; test the unchanged-skip path; delete the test release and tag one command each | Restrictions: no inline packaging logic; no unpinned actions or tools; never publish to `nightly` from the test runs | Success: green run produces a complete nightly-test release; skip path verified. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 7. Docs and first real nightly
+- [-] 7. Docs and first real nightly
   - Files: README.md, FAQ.md, CLAUDE.md, .spec-workflow/steering/tech.md, .spec-workflow/steering/structure.md
   - README "Nightly builds" section with link and which file to pick; FAQ installer answers (hedged, unsigned, SmartScreen); CLAUDE.md packaging notes (build_package.py, build group, version module); steering updates; after merge to main, trigger the first real nightly and check it
   - Purpose: truthful docs, first public nightly (Req 6.5)

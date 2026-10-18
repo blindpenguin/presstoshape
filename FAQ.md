@@ -24,9 +24,13 @@ It's currently a one-person project.
 
 ### What can PressToShape do today?
 
-Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and installers.
+Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and stable releases.
 
 ## Using PressToShape
+
+### Where can I download it?
+
+There are no stable releases yet, but [nightly builds](https://github.com/blindpenguin/presstoshape/releases/tag/nightly) are published automatically when the code changed: a Windows installer (MSI), a portable Windows ZIP, a Linux AppImage and the matching source code. They pass the automated tests and a start-up check on the build machines, but aren't tried by hand, so expect rough edges. The builds aren't code-signed yet, which is why Windows may show a SmartScreen warning.
 
 ### Which platforms does it run on?
 

@@ -15,7 +15,7 @@ Desktop application for Linux and Windows (macOS not a target for now): a profes
 - **skia-pathops (0.9.2)**: boolean path operations (union, difference, intersection, XOR; divide and region splitting built on them) in `presstoshape/geometry/booleans.py`. Works in float32; results are rounded on conversion.
 - **svgelements (1.9.6)**: parsing SVG path data, colors, lengths and transform strings only. Its `SVG.parse` document reader is not used — it drops `display:none` groups (hidden layers) and `<text>`. Document traversal uses `xml.etree.ElementTree`.
 - **skia-python (==144.0.post2)**: canvas and PNG export renderer (`presstoshape/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
-- **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker, `pyinstaller`.
+- **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker. **Build only** (`build` group): `pyinstaller`, `pillow` (icon rendering).
 
 ### Application Architecture
 Session / operations / tools / views, as in professional editors (Blender's operators, Krita's commands, Inkscape's verbs), with Elm-like state ownership inside Qt's retained-mode widgets:
@@ -45,7 +45,7 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 ## Development Environment
 
 ### Build & Development Tools
-- **Build System**: none for development — `uv run python main.py`. Packaging via **PyInstaller** (planned) for per-OS bundles.
+- **Build System**: none for development — `uv run python main.py`. Packaging: **PyInstaller** onedir bundles, WiX v7 MSI and portable ZIP on Windows, AppImage (appimagetool) on Linux, all driven by `scripts/build_package.py` and the `build` dependency group.
 - **Package Management**: `uv` with committed `uv.lock`.
 - **Development workflow**:
   - `uv run pytest` — logic tests.
@@ -69,7 +69,7 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 
 ## Deployment & Distribution (if applicable)
 - **Target Platform(s)**: desktop — Linux and Windows. Development and testing happen on Linux; Windows is untested until CI or a Windows machine is available. macOS is not a target for now (it may run, with limitations: no Metal backend in skia-python, deprecated OpenGL).
-- **Distribution Method**: packaged builds (PyInstaller bundles per OS) published as release downloads; running from source with `uv` for developers.
+- **Distribution Method**: nightly builds from `main` (GitHub Actions, `.github/workflows/nightly.yml`), published as one rolling `nightly` pre-release: Windows MSI + portable ZIP, Linux AppImage, source tarball, `SHA256SUMS`. Unsigned so far. Stable releases come later. Running from source with `uv` for developers.
 - **Installation Requirements**: none beyond the bundle for end users; for source: `uv` and a supported CPython.
 - **Update Mechanism**: manual download of new releases (no auto-updater planned yet).
 - **License**: GPL-3.0 (compatible with PySide6 LGPL and BSD-licensed Skia libraries).
@@ -118,4 +118,4 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 - **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; skew on text is dropped.
 - **Text**: single-line, single font; rendered with Skia using a generic sans-serif font.
 - **Shape model**: no groups. Each shape has an affine `transform`, kept canonical: rect/ellipse/text store unrotated geometry plus a rotation about their center (a full matrix only when skewed); paths always have the transform baked into their segments. Handle scaling changes geometry, so strokes don't scale.
-- **No native format, no packaging or CI yet**.
+- **No native format yet; CI covers nightlies only** (no per-push checks, no code signing, no macOS/ARM builds, no Linux formats besides AppImage).

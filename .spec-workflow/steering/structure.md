@@ -11,11 +11,14 @@ presstoshape/                   # repo root
 ├── .python-version             # CPython floor for uv
 ├── .mcp.json                   # spec-workflow MCP server (pinned version)
 ├── .spec-workflow/             # steering docs, specs, templates (committed)
+├── .github/workflows/          # nightly.yml: nightly builds and the rolling "nightly" pre-release
+├── packaging/                  # static packaging inputs: PyInstaller spec, WiX source, AppImage files, licenses
 ├── README.md / CLAUDE.md       # user-facing overview / contributor + agent rules
 ├── scripts/                    # dev tools, never imported by the app
 │   ├── screenshot_app.py       # offscreen window render -> dev-screenshots/app.png
 │   ├── bench_canvas.py         # canvas frame times on a 10k-shape document
 │   ├── generate_icons.py       # copies Tabler SVGs from pytablericons into presstoshape/assets/icons
+│   ├── build_package.py        # builds nightly packages (AppImage, MSI, portable ZIP, source), locally and in CI
 │   └── spec_dashboard.sh       # starts the spec-workflow dashboard
 ├── tests/                      # pytest, Qt-free code only; mirrors the package layout
 │   ├── conftest.py / helpers.py   # `session` fixture; ToolDriver, all_shapes, bbox, …
@@ -23,7 +26,8 @@ presstoshape/                   # repo root
 │   └── geometry/ formats/ render/ editing/ tools/ views/   # test_<module>.py per module
 └── presstoshape/               # application package
     ├── app.py                  # App: creates the Session + MainWindow, owns QApplication
-    ├── icons.py                # semantic icon path constants (views only)
+    ├── icons.py                # semantic icon path constants (views only; app for the window icon)
+    ├── version.py              # app version: build stamp (_build_info.py, generated) or pyproject.toml
     ├── assets/icons/*.svg      # generated Tabler outline icons (currentColor)
     ├── models/                 # plain dataclasses, no logic beyond defaults
     │   ├── app_state.py        # AppState, Document, Layer, Tool

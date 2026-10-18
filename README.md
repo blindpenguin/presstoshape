@@ -2,6 +2,15 @@
 
 An experimental open-source vector drawing application for artists, built on PySide6. Early stage — see `.spec-workflow/steering/product.md` for where it is heading. Questions? See the [FAQ](FAQ.md).
 
+## Try it
+
+**Nightly builds** of the newest code are on the [nightly release page](https://github.com/blindpenguin/presstoshape/releases/tag/nightly), rebuilt every night when something changed. They're automatic development builds: they pass the tests and a start-up check, but nobody tried them by hand.
+
+- Windows 10/11: the `.msi` installs PressToShape; the `-portable.zip` runs without installing. The builds aren't signed yet, so SmartScreen may warn (*More info* → *Run anyway*). Windows builds are only checked automatically, not by hand.
+- Linux: download the `.AppImage`, make it executable, run it.
+
+From source (needs [uv](https://docs.astral.sh/uv/)):
+
 ```
 uv sync
 uv run python main.py
@@ -34,6 +43,7 @@ uv run python scripts/screenshot_app.py                # offscreen screenshot ->
 uv run python scripts/bench_canvas.py                  # canvas frame times, 10k shapes (PRESSTOSHAPE_RENDERER=cpu|gl)
 uv run --group dev python scripts/generate_icons.py    # re-copy Tabler SVG icons
 scripts/spec_dashboard.sh                              # spec-workflow approval dashboard (http://localhost:5000)
+uv run --group build python scripts/build_package.py linux   # AppImage -> dist/release/ (see --help; CI: .github/workflows/nightly.yml)
 ```
 
 ## License
