@@ -8,7 +8,7 @@
 | File | For |
 |---|---|
 | `$msi` | Windows 10/11, 64-bit: installs PressToShape (Start menu, uninstall via Installed apps). Installing a newer nightly replaces the old one. |
-| `$portable` | Windows, no installation: unzip anywhere, run `PressToShape.exe`. |
+| `$portable` | Windows, no installation: unzip anywhere, run `PressToShape.exe`. Settings stay in that folder (`settings.ini`), nothing goes into the registry. |
 | `$appimage` | Linux x86_64: make it executable (`chmod +x`, or Properties → allow executing), then run it. |
 | `$source` | Source code of exactly this build: `uv sync`, then `uv run python main.py`. |
 | `SHA256SUMS` | Checksums: `sha256sum -c SHA256SUMS --ignore-missing`. |

@@ -22,6 +22,7 @@ import sys
 import sysconfig
 import tempfile
 import urllib.request
+import zipfile
 from importlib.metadata import distribution
 from pathlib import Path
 
@@ -41,6 +42,12 @@ BUILD_INFO = ROOT / "presstoshape" / "_build_info.py"
 ICON_SVG = ROOT / "presstoshape" / "assets" / "app" / "presstoshape.svg"
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
 SELF_TEST_TIMEOUT = 120
+# Must match presstoshape/views/app_settings.py (this script doesn't import the app).
+PORTABLE_MARKER = "portable.txt"
+PORTABLE_NOTE = (
+    "This file makes PressToShape portable: its settings are stored in settings.ini in this folder\n"
+    "instead of the Windows registry. Delete this file to use the normal per-user settings.\n"
+)
 # Pinned downloads: (url, sha256). appimagetool would otherwise fetch an unpinned runtime at build time.
 APPIMAGETOOL = (
     "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",
@@ -370,8 +377,20 @@ def _command_windows(args: argparse.Namespace) -> None:
     names = asset_names(version)
     RELEASE_DIR.mkdir(parents=True, exist_ok=True)
 
-    portable = RELEASE_DIR / names["portable"]
-    archive = shutil.make_archive(str(portable.with_suffix("")), "zip", root_dir=frozen.parent, base_dir=frozen.name)
+    # The marker makes the app keep its settings in the extracted folder instead of the registry; only the ZIP
+    # gets it, the MSI is built from the same folder afterwards.
+    marker = frozen / PORTABLE_MARKER
+    marker.write_text(PORTABLE_NOTE, encoding="utf-8")
+    try:
+        portable = RELEASE_DIR / names["portable"]
+        archive = shutil.make_archive(
+            str(portable.with_suffix("")), "zip", root_dir=frozen.parent, base_dir=frozen.name
+        )
+    finally:
+        marker.unlink()
+    with zipfile.ZipFile(archive) as contents:
+        if f"{frozen.name}/{PORTABLE_MARKER}" not in contents.namelist():
+            raise SystemExit(f"{PORTABLE_MARKER} missing from {archive}")
     print(archive)
 
     license_rtf = GENERATED / "license.rtf"
@@ -398,6 +417,8 @@ def _command_test_msi(args: argparse.Namespace) -> None:
     try:
         if not (installed / f"{NAME}.exe").is_file():
             raise SystemExit(f"{installed / NAME}.exe missing after install (log: {log})")
+        if (installed / PORTABLE_MARKER).exists():
+            raise SystemExit(f"the installed app has {PORTABLE_MARKER}, so it would act like the portable build")
         _self_tests([str(installed / f"{NAME}.exe")])
     finally:
         subprocess.run(["msiexec", "/x", str(msi), "/qn", "/norestart"], check=True)

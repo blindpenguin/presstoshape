@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from presstoshape.views.app_settings import PORTABLE_MARKER
+
 _SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "build_package.py"
 _spec = importlib.util.spec_from_file_location("build_package", _SCRIPT)
 build_package = importlib.util.module_from_spec(_spec)
@@ -71,3 +73,7 @@ def test_text_to_rtf_escapes_rtf_syntax_and_non_ascii():
     assert "a \\{b\\} \\\\ c\\par" in rtf
     assert "Pawe\\u322?" in rtf
     rtf.encode("ascii")
+
+
+def test_portable_marker_name_matches_the_app():
+    assert build_package.PORTABLE_MARKER == PORTABLE_MARKER

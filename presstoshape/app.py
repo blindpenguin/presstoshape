@@ -14,11 +14,10 @@ from presstoshape.editing.operations import composites, documents, selection, sh
 from presstoshape.editing.session import Session
 from presstoshape.models.shapes import CompositeShape
 from presstoshape.version import app_version
-from presstoshape.views import theme
+from presstoshape.views import theme, window_placement
+from presstoshape.views.app_settings import open_settings
 from presstoshape.views.icon_engine import icon
 from presstoshape.views.main_window import MainWindow
-
-_WINDOW_SIZE = (1100, 700)
 
 
 def _set_surface_format() -> None:
@@ -46,9 +45,14 @@ class App:
         app.setWindowIcon(icon(icons.APP))
         theme.apply(app)
 
-        window = MainWindow(self.session)
-        window.resize(*_WINDOW_SIZE)
-        window.show()
+        if self_test or screenshot_path is not None:
+            window = MainWindow(self.session)
+            window.resize(*window_placement.DEFAULT_SIZE)
+            window.show()
+        else:
+            settings = open_settings()
+            window = MainWindow(self.session, settings)
+            window_placement.show(window, settings)
 
         if self_test:
             return _run_self_test(app, self.session, window)

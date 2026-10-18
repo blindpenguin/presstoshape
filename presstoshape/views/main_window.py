@@ -1,13 +1,13 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from presstoshape.editing.operations import documents
 from presstoshape.editing.session import Session
 from presstoshape.version import app_version
-from presstoshape.views import menu_bar_view
+from presstoshape.views import menu_bar_view, window_placement
 from presstoshape.views.actions import AppActions
 from presstoshape.views.canvas_view import CanvasView
 from presstoshape.views.edit_bar_view import EditBar
@@ -27,8 +27,10 @@ _TOOL_DOCK_WIDTH = 200
 class MainWindow(QMainWindow):
     """Top view: assembles the panels and re-renders all of them from state after every session change."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, settings: QSettings | None = None) -> None:
+        """`settings` stores the window placement; None (screenshots, self-test) leaves the user's untouched."""
         super().__init__()
+        self._settings = settings
         self._state = session.state
         self._session = session
         self._force_close = False
@@ -179,5 +181,7 @@ class MainWindow(QMainWindow):
         if not self._force_close and not self._confirm_discard():
             event.ignore()
             return
+        if self._settings is not None:
+            window_placement.save(self, self._settings)
         self.canvas.shutdown()
         super().closeEvent(event)
