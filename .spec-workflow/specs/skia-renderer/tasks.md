@@ -48,7 +48,7 @@
   - _Requirements: 4.1, 4.4, 4.9, NFR Performance (hit test < 10 ms)_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer with computational geometry experience | Task: Implement hit_test.py per design.md: top-most visible shape wins, fill hit only if fill set, stroke hit via stroked outline of width max(stroke_width, 2*tolerance), text hit on glyph area, hidden layers ignored, rect intersection for rubber band; tests including a 10,000-shape click under 10 ms | Restrictions: No Qt; no state mutation | Success: tests pass including timing. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 7. Implement PNG export in render and controller
+- [x] 7. Implement PNG export in render and controller
   - Files: veccy/render/export.py, veccy/controllers/app_controller.py, tests/test_export.py
   - `export_size(doc, scale)`, `render_png(doc, scale) -> bytes | None` (transparent, no overlays); `AppController.export_png(path, scale) -> bool` storing `state.export.scale`, status message, no checkpoint/dirty change, OSError handled
   - Purpose: Raster export using the canvas renderer
@@ -56,7 +56,7 @@
   - _Requirements: 5.2, 5.3, 5.4, 5.6, 5.7_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement render/export.py and AppController.export_png per design.md; tests: size per scale, transparent corner pixel, PNG decodes via skia.Image.MakeFromEncoded with expected dimensions, controller writes file, sets status, leaves undo stack and dirty unchanged, failure on unwritable path returns False with "Export failed" status | Restrictions: No Qt in controllers/render; follow existing controller method shape (status message, _notify) | Success: tests pass, full suite green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 8. Implement Skia surface widgets and GL format setup
+- [-] 8. Implement Skia surface widgets and GL format setup
   - Files: veccy/views/skia_surface.py, veccy/app.py
   - `SkiaGLWidget` (QOpenGLWidget, GrDirectContext.MakeGL, wraps default FBO, flushAndSubmit/resetContext, release on aboutToBeDestroyed, `gl_failed` signal), `SkiaRasterWidget` (CPU surface → QImage blit with DPR), `create_surface(paint_cb, parent)` honoring offscreen platform and `VECCY_RENDERER`; default QSurfaceFormat (stencil 8, macOS 4.1 core) set in App before QApplication
   - Purpose: GPU drawing with CPU fallback behind one paint-callback interface

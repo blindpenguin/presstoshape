@@ -7,6 +7,7 @@ from veccy.controllers import geometry, svg_io
 from veccy.controllers.geometry import Point
 from veccy.models.app_state import AppState, Document, Layer, Tool
 from veccy.models.shapes import EllipseShape, PathShape, RectShape, Shape, TextShape
+from veccy.render import export
 
 _UNDO_LIMIT = 200
 _MIN_ZOOM, _MAX_ZOOM = 10, 800
@@ -383,6 +384,24 @@ class AppController:
         self.state.file_path = target
         self.state.dirty = False
         self.state.status_message = f"Saved {Path(target).name}"
+        self._notify()
+        return True
+
+    def export_png(self, path: str, scale: float) -> bool:
+        """Writes the artboard as PNG. Not an edit: undo history and the dirty flag are untouched."""
+        self.state.export.scale = scale
+        name = Path(path).name
+        data = export.render_png(self.state.document, scale)
+        try:
+            if data is None:
+                raise ValueError("image too large to render")
+            Path(path).write_bytes(data)
+        except (OSError, ValueError) as e:
+            self.state.status_message = f"Export failed: {e}"
+            self._notify()
+            return False
+        width, height = export.export_size(self.state.document, scale)
+        self.state.status_message = f"Exported {name} ({width} × {height} px)"
         self._notify()
         return True
 
