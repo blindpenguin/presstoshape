@@ -57,14 +57,15 @@ class CanvasGestures:
     def overlay(self) -> Overlay:
         selection = set(self._state.selection) if self._state else set()
         rubber_band = None
-        overrides: dict[int, Shape] = {}
+        moving: frozenset[int] = frozenset()
+        offset = (0.0, 0.0)
         if self._band_base is not None and self._drag_start and self._drag_end:
             rubber_band = self._box(self._drag_start, self._drag_end)
             selection = self._band_base | self._band_hits()
         elif self._moving and self._drag_start and self._drag_end:
-            dx, dy = self._delta()
-            overrides = {s.id: geometry.translate(s, dx, dy) for s in self._moving}
-        return Overlay(frozenset(selection), rubber_band, self._preview, overrides)
+            moving = frozenset(s.id for s in self._moving)
+            offset = self._delta()
+        return Overlay(frozenset(selection), rubber_band, self._preview, moving, offset)
 
     # --- events ---------------------------------------------------------------
 

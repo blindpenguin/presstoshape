@@ -68,7 +68,7 @@ def test_drag_moves_selection_in_one_undo_step():
     undo_depth = len(c._undo_stack)
     g.press((25, 25), False, False)
     g.move((35, 45), False)
-    assert g.overlay.overrides[sid].x == 10
+    assert g.overlay.moving == {sid} and g.overlay.offset == (10, 20)
     assert _shapes(c)[0].x == 0
     g.release((35, 45), False)
     assert (_shapes(c)[0].x, _shapes(c)[0].y) == (10, 20)

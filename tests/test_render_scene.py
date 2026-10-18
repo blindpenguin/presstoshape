@@ -10,13 +10,13 @@ COLORS = CanvasColors("#101010", "#ffffff", "#808080", "#0000ff", "#00ff00")
 TRANSPARENT = (0, 0, 0, 0)
 
 
-def _render(doc: Document, overrides=None, background: bool = False) -> skia.Surface:
+def _render(doc: Document, moving=frozenset(), offset=(0.0, 0.0), background: bool = False) -> skia.Surface:
     surface = skia.Surface(int(doc.width), int(doc.height))
     canvas = surface.getCanvas()
     canvas.clear(skia.ColorTRANSPARENT)
     if background:
         draw_background(canvas, doc, COLORS)
-    draw_document(canvas, doc, PathCache(), overrides)
+    draw_document(canvas, doc, PathCache(), moving, offset)
     return surface
 
 
@@ -66,10 +66,9 @@ def test_later_shape_paints_on_top():
     assert _pixel(surface, 5, 5) == (255, 0, 0, 255)
 
 
-def test_overrides_draw_at_live_position():
+def test_moving_shapes_draw_at_offset():
     shape = RectShape(1, 0, 0, 20, 20, Style(fill="#ff0000", stroke=None))
-    moved = RectShape(1, 60, 60, 20, 20, shape.style)
-    surface = _render(_doc(shape), overrides={1: moved})
+    surface = _render(_doc(shape), moving=frozenset({1}), offset=(60, 60))
     assert _pixel(surface, 10, 10) == TRANSPARENT
     assert _pixel(surface, 70, 70) == (255, 0, 0, 255)
 

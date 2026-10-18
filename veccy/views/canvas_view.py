@@ -9,7 +9,8 @@ from veccy.controllers.app_controller import AppController
 from veccy.models.app_state import AppState, Tool
 from veccy.render.overlay import CanvasColors
 from veccy.render.paths import PathCache
-from veccy.render.scene import draw_background, draw_document, draw_overlays, parse_color
+from veccy.render.picture import DocumentPicture
+from veccy.render.scene import draw_background, draw_overlays, parse_color
 from veccy.render.viewport import Viewport, scene_rect
 from veccy.views import theme
 from veccy.views.canvas_gestures import CanvasGestures
@@ -46,6 +47,7 @@ class CanvasView(QAbstractScrollArea):
         self._controller = controller
         self._state: AppState | None = None
         self._cache = PathCache()
+        self._picture = DocumentPicture(self._cache)
         self._gestures = CanvasGestures(controller, self._cache, self._repaint, self._ask_text)
         self._vp = Viewport()
         self._residual = (0.0, 0.0)
@@ -147,7 +149,7 @@ class CanvasView(QAbstractScrollArea):
         canvas.setMatrix(self._vp.matrix(dpr))
         overlay = self._gestures.overlay
         draw_background(canvas, state.document, _COLORS)
-        draw_document(canvas, state.document, self._cache, overlay.overrides)
+        self._picture.draw(canvas, state.document, overlay.moving, overlay.offset)
         draw_overlays(canvas, state.document, overlay, self._cache, self._vp.zoom, _COLORS)
 
     # --- view navigation ----------------------------------------------------

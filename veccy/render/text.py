@@ -24,6 +24,13 @@ def _font(size: float) -> skia.Font:
     return font
 
 
+def text_blob(shape: TextShape) -> skia.TextBlob | None:
+    """Same glyphs and layout as `text_path`, for drawing through Skia's glyph cache."""
+    if not shape.text or shape.font_size <= 0:
+        return None
+    return skia.TextBlob.MakeFromText(shape.text, _font(shape.font_size))
+
+
 def text_path(shape: TextShape) -> skia.Path:
     """Glyph outlines at `font_size`, baseline starting at (x, y)."""
     path = skia.Path()

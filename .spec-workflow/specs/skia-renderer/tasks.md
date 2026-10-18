@@ -88,7 +88,7 @@
   - _Requirements: 5.1, 5.5, Usability_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Implement the export UI per design.md; dialog pre-filled from state.export.scale; check with screenshot of the dialog (offscreen) and an end-to-end scratch run exporting the demo document | Restrictions: Dialogs live in views; controller receives plain path + scale; connect action via the existing lambda pattern | Success: File → Export PNG… exports a correctly sized transparent PNG; status bar reports result. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 12. Add canvas benchmark script
+- [x] 12. Add canvas benchmark script
   - Files: scripts/bench_canvas.py
   - Generate 10,000 shapes, drive pan/zoom/drag repaints, report average/95th-percentile frame time for GL and CPU (`VECCY_RENDERER`)
   - Purpose: Verify the performance requirement and catch regressions
@@ -96,7 +96,7 @@
   - _Requirements: NFR Performance_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python performance engineer | Task: Write scripts/bench_canvas.py per design.md Testing Strategy; run it on GL and CPU and record results in the implementation log; if GL frame time exceeds 16 ms, profile and optimize the renderer (e.g. picture caching) within render/ | Restrictions: Dev-only script, not imported by veccy; no new runtime deps | Success: script runs, GL average ≤ 16 ms at 10,000 shapes on this machine (or documented gap with cause). Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 13. Update documentation
+- [-] 13. Update documentation
   - Files: CLAUDE.md, README.md, .spec-workflow/steering/tech.md (+ structure.md if needed)
   - CLAUDE.md: render/ in architecture tree, Skia/GL lifetime notes, `VECCY_RENDERER`, drop AnchorUnderMouse note, refine pixel-assertion rule (allowed on render CPU output); README: Export PNG; steering: Skia renderer implemented, controllers → render dependency
   - Purpose: Keep contributor and agent docs accurate

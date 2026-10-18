@@ -1,9 +1,8 @@
 """Inputs to the renderer that aren't document content: canvas colors and transient gesture feedback."""
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from veccy.models.shapes import Segment, Shape, Style
+from veccy.models.shapes import Segment, Style
 
 Rect = tuple[float, float, float, float]
 
@@ -25,5 +24,6 @@ class Overlay:
     # Doc coordinates x, y, w, h.
     rubber_band: Rect | None = None
     preview: tuple[tuple[Segment, ...], Style] | None = None
-    # Shapes drawn in place of the document's while a drag is live.
-    overrides: Mapping[int, Shape] = field(default_factory=dict)
+    # Shapes being dragged, drawn shifted by `offset` (doc units) until the drag commits.
+    moving: frozenset[int] = frozenset()
+    offset: tuple[float, float] = (0.0, 0.0)

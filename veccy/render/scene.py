@@ -1,13 +1,14 @@
 """Draws the document (and canvas chrome) onto any skia.Canvas whose matrix maps doc units to device px."""
 
-from collections.abc import Mapping
+from collections.abc import Iterator
 
 import skia
 
 from veccy.models.app_state import Document
-from veccy.models.shapes import Shape, Style
+from veccy.models.shapes import EllipseShape, RectShape, Shape, Style, TextShape
 from veccy.render.overlay import CanvasColors, Overlay
 from veccy.render.paths import PathCache, stroke_paint, to_skia_path
+from veccy.render.text import text_blob
 
 _DASH_PX = 4.0
 _RUBBER_BAND_ALPHA = 0x33
@@ -32,29 +33,63 @@ def draw_background(canvas: skia.Canvas, doc: Document, colors: CanvasColors) ->
     canvas.drawRect(artboard, border)
 
 
-def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
+def _paints(style: Style) -> Iterator[skia.Paint]:
     if style.fill:
-        canvas.drawPath(path, skia.Paint(Color=parse_color(style.fill), AntiAlias=True))
+        yield skia.Paint(Color=parse_color(style.fill), AntiAlias=True)
     if style.stroke and style.stroke_width > 0:
         paint = stroke_paint(style.stroke_width)
         paint.setColor(parse_color(style.stroke))
+        yield paint
+
+
+def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
+    for paint in _paints(style):
         canvas.drawPath(path, paint)
 
 
 def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
-    _draw_path(canvas, cache.get(shape), shape.style)
+    # Rects, ovals and text have analytic / glyph-cache GPU fast paths; generic paths are far slower to draw.
+    match shape:
+        case RectShape(x=x, y=y, width=w, height=h):
+            rect = skia.Rect.MakeXYWH(x, y, w, h)
+            for paint in _paints(shape.style):
+                canvas.drawRect(rect, paint)
+        case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
+            oval = skia.Rect.MakeLTRB(cx - rx, cy - ry, cx + rx, cy + ry)
+            for paint in _paints(shape.style):
+                canvas.drawOval(oval, paint)
+        case TextShape():
+            blob = text_blob(shape)
+            if blob is not None:
+                for paint in _paints(shape.style):
+                    canvas.drawTextBlob(blob, shape.x, shape.y, paint)
+        case _:
+            _draw_path(canvas, cache.get(shape), shape.style)
+
+
+def visible_shapes(doc: Document) -> Iterator[Shape]:
+    """Paint order: visible layers bottom to top."""
+    for layer in doc.layers:
+        if layer.visible:
+            yield from layer.shapes
 
 
 def draw_document(
-    canvas: skia.Canvas, doc: Document, cache: PathCache, overrides: Mapping[int, Shape] | None = None
+    canvas: skia.Canvas,
+    doc: Document,
+    cache: PathCache,
+    moving: frozenset[int] = frozenset(),
+    offset: tuple[float, float] = (0.0, 0.0),
 ) -> None:
-    """Visible layers bottom to top; `overrides` replaces shapes by id (live drag positions)."""
-    overrides = overrides or {}
-    for layer in doc.layers:
-        if not layer.visible:
-            continue
-        for shape in layer.shapes:
-            draw_shape(canvas, overrides.get(shape.id, shape), cache)
+    """Draws every visible shape; shapes in `moving` are shifted by `offset` (live drag)."""
+    for shape in visible_shapes(doc):
+        if shape.id in moving:
+            canvas.save()
+            canvas.translate(*offset)
+            draw_shape(canvas, shape, cache)
+            canvas.restore()
+        else:
+            draw_shape(canvas, shape, cache)
 
 
 def _hairline(color: int, dash: float = 0.0, phase: float = 0.0) -> skia.Paint:
@@ -73,14 +108,13 @@ def draw_overlays(
         dash = _DASH_PX / zoom
         # Alternating dashes stay visible on any fill.
         dashes = (_hairline(selection_color, dash), _hairline(skia.ColorWHITE, dash, dash))
-        for layer in doc.layers:
-            if not layer.visible:
-                continue
-            for shape in layer.shapes:
-                if shape.id in overlay.selection:
-                    bounds = cache.bounds(overlay.overrides.get(shape.id, shape))
-                    for paint in dashes:
-                        canvas.drawRect(bounds, paint)
+        for shape in visible_shapes(doc):
+            if shape.id in overlay.selection:
+                bounds = cache.bounds(shape)
+                if shape.id in overlay.moving:
+                    bounds = bounds.makeOffset(*overlay.offset)
+                for paint in dashes:
+                    canvas.drawRect(bounds, paint)
     if overlay.preview is not None:
         segments, style = overlay.preview
         path = to_skia_path(segments)
