@@ -72,7 +72,7 @@
   - _Requirements: 3.3, 3.4, 3.5, 4.1–4.6, 4.8_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Create views/canvas_gestures.py per design.md, porting existing gesture behavior; it receives doc-space points + modifiers from CanvasView, holds transient state, exposes `overlay` and a repaint callback, and commits through AppController (move_selection once per drag, set_selection, add_*) | Restrictions: Never mutate AppState directly; transient state stays here until commit; use lambda wrappers for Qt signal connections where relevant | Success: module compiles and is exercised by task 10 integration; behavior parity reviewed against old canvas_view.py. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 10. Rewrite CanvasView on QAbstractScrollArea + Skia
+- [x] 10. Rewrite CanvasView on QAbstractScrollArea + Skia
   - Files: veccy/views/canvas_view.py, veccy/views/theme.py, veccy/views/main_window.py
   - Scroll area with Skia surface viewport, Viewport-driven scrollbars, wheel/pan/zoom/resize rules ported, paint callback calling draw_background/draw_document/draw_overlays, GL→raster swap on `gl_failed`, `shutdown()` releases GL; add `theme.SELECTION`; remove QGraphicsScene usage
   - Purpose: Integrate renderer, gestures and surfaces with unchanged public API
@@ -80,7 +80,7 @@
   - _Requirements: 1.6, 2.2, 2.4, 2.5, 4.7, 6.2_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Rewrite views/canvas_view.py per design.md keeping refresh/center_artboard/fit_artboard/shutdown; prune PathCache on refresh; verify with scripts/screenshot_app.py (visual parity with the pre-change screenshot) and a QTest scratch script for click/Ctrl-click/rubber band/drag-move (one undo step)/rect with Shift/pen/Esc/wheel anchor/middle-drag pan, on raster and on GL | Restrictions: No QGraphicsScene/QGraphicsItem/QPainter document rendering; refresh(state) idempotent and cheap; keep file ≤ ~400 lines; disconnect signals during teardown | Success: app runs with GL on desktop and raster offscreen, screenshot matches previous appearance, QTest checks pass, pytest green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 11. Add Export PNG UI
+- [-] 11. Add Export PNG UI
   - Files: veccy/views/export_dialog.py, veccy/views/actions.py, veccy/views/menu_bar_view.py (+ veccy/views/main_window.py window command)
   - `ExportPngDialog` (scale 0.1–16, live W × H label, max side 16384 cap), `AppActions.export_png` (Ctrl+Shift+E), File menu entry after Save As, `MainWindow.export_png()` (dialog → file dialog → `.png` suffix → controller)
   - Purpose: Make PNG export reachable for users

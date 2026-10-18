@@ -9,6 +9,7 @@ PASTEBOARD = "#1e1e22"
 ARTBOARD = "#ffffff"
 ARTBOARD_BORDER = "#52525b"
 PREVIEW_STROKE = "#60a5fa"
+SELECTION = "#2563eb"
 
 
 def apply(app: QApplication) -> None:

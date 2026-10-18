@@ -57,10 +57,10 @@ def draw_document(
             draw_shape(canvas, overrides.get(shape.id, shape), cache)
 
 
-def _hairline(color: int, dash: float = 0.0) -> skia.Paint:
+def _hairline(color: int, dash: float = 0.0, phase: float = 0.0) -> skia.Paint:
     paint = skia.Paint(Color=color, Style=skia.Paint.kStroke_Style, StrokeWidth=0, AntiAlias=False)
     if dash:
-        paint.setPathEffect(skia.DashPathEffect.Make([dash, dash], 0))
+        paint.setPathEffect(skia.DashPathEffect.Make([dash, dash], phase))
     return paint
 
 
@@ -70,13 +70,17 @@ def draw_overlays(
     """Selection boxes, rubber band and drawing preview, 1 screen px wide at any zoom; never part of export."""
     selection_color = parse_color(colors.selection)
     if overlay.selection:
-        dashed = _hairline(selection_color, _DASH_PX / zoom)
+        dash = _DASH_PX / zoom
+        # Alternating dashes stay visible on any fill.
+        dashes = (_hairline(selection_color, dash), _hairline(skia.ColorWHITE, dash, dash))
         for layer in doc.layers:
             if not layer.visible:
                 continue
             for shape in layer.shapes:
                 if shape.id in overlay.selection:
-                    canvas.drawRect(cache.bounds(overlay.overrides.get(shape.id, shape)), dashed)
+                    bounds = cache.bounds(overlay.overrides.get(shape.id, shape))
+                    for paint in dashes:
+                        canvas.drawRect(bounds, paint)
     if overlay.preview is not None:
         segments, style = overlay.preview
         path = to_skia_path(segments)

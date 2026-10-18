@@ -70,3 +70,10 @@ def test_scrolled_moves_by_delta():
     vp = _vp(1.0, (-200, -100))
     moved = vp.scrolled(30, -20)
     assert (moved.scroll_x, moved.scroll_y) == (-170, -120)
+
+
+def test_scroll_stays_whole_pixel():
+    vp = Viewport(1.0, -100.5, 33.3, width=568, height=601, scene=scene_rect(600, 400)).clamped()
+    assert vp.scroll_x == round(vp.scroll_x) and vp.scroll_y == round(vp.scroll_y)
+    zoomed, _ = vp.zoom_at(1.37, (284.0, 300.5))
+    assert zoomed.scroll_x == round(zoomed.scroll_x)

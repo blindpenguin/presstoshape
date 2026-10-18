@@ -4,6 +4,7 @@ Scroll values are in screen px, like scrollbar values: the scaled scene spans [l
 view shows [scroll, scroll + width] of it. A scaled scene smaller than the view is centered instead.
 """
 
+import math
 from dataclasses import dataclass, replace
 
 import skia
@@ -18,6 +19,13 @@ Rect = tuple[float, float, float, float]
 def scene_rect(doc_width: float, doc_height: float) -> Rect:
     m = SCENE_MARGIN
     return (-m, -m, doc_width + 2 * m, doc_height + 2 * m)
+
+
+def _clamp_px(value: float, lo: float, hi: float) -> float:
+    lo_px, hi_px = math.ceil(lo), math.floor(hi)
+    if lo_px > hi_px:
+        return float(round(lo))
+    return float(min(max(round(value), lo_px), hi_px))
 
 
 @dataclass(frozen=True)
@@ -35,19 +43,20 @@ class Viewport:
         return (x * z, max(x * z, (x + w) * z - self.width), y * z, max(y * z, (y + h) * z - self.height))
 
     def clamped(self) -> "Viewport":
+        """Scroll clamped to the range and kept whole-pixel, like a scrollbar (half px would blur hairlines)."""
         min_x, max_x, min_y, max_y = self.scroll_range()
         return replace(
             self,
-            scroll_x=min(max(self.scroll_x, min_x), max_x),
-            scroll_y=min(max(self.scroll_y, min_y), max_y),
+            scroll_x=_clamp_px(self.scroll_x, min_x, max_x),
+            scroll_y=_clamp_px(self.scroll_y, min_y, max_y),
         )
 
     def offset(self) -> Point:
         """Translation t with screen = doc * zoom + t."""
         x, y, w, h = self.scene
         z = self.zoom
-        tx = (self.width - w * z) / 2 - x * z if w * z <= self.width else -self.scroll_x
-        ty = (self.height - h * z) / 2 - y * z if h * z <= self.height else -self.scroll_y
+        tx = round((self.width - w * z) / 2 - x * z) if w * z <= self.width else -self.scroll_x
+        ty = round((self.height - h * z) / 2 - y * z) if h * z <= self.height else -self.scroll_y
         return tx, ty
 
     def to_screen(self, p: Point) -> Point:
