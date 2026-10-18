@@ -1,6 +1,6 @@
 # veccy
 
-An experimental open-source vector drawing application for artists, built on PySide6. Early stage — see `.spec-workflow/steering/product.md` for where it is heading.
+An experimental open-source vector drawing application for artists, built on PySide6. Early stage — see `.spec-workflow/steering/product.md` for where it is heading. Questions? See the [FAQ](FAQ.md).
 
 ```
 uv sync
