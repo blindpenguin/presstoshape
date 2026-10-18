@@ -111,7 +111,11 @@ class MainWindow(QMainWindow):
         self.canvas.fit_artboard()
 
     def show_about(self) -> None:
-        QMessageBox.about(self, "About veccy", "veccy — a small SVG editor built on PySide6.")
+        QMessageBox.about(
+            self,
+            "About veccy",
+            "veccy — an open-source vector drawing application for artists.\n\nLicensed under the GNU GPL v3 or later.",
+        )
 
     def _confirm_discard(self) -> bool:
         if not self._state.dirty:

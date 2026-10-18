@@ -1,6 +1,6 @@
 # veccy
 
-A small SVG editor built on PySide6.
+An open-source vector drawing application for artists, built on PySide6. Early stage — see `.spec-workflow/steering/product.md` for where it is heading.
 
 ```
 uv sync
@@ -28,3 +28,7 @@ uv run python scripts/screenshot_app.py                # offscreen screenshot ->
 uv run --group dev python scripts/generate_icons.py    # re-copy Tabler SVG icons
 scripts/spec_dashboard.sh                              # spec-workflow approval dashboard (http://localhost:5000)
 ```
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE).
