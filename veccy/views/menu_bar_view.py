@@ -7,6 +7,8 @@ def build(menu_bar: QMenuBar, actions: AppActions) -> None:
     file_menu = menu_bar.addMenu("&File")
     file_menu.addActions([actions.new, actions.open, actions.save, actions.save_as])
     file_menu.addSeparator()
+    file_menu.addAction(actions.export_png)
+    file_menu.addSeparator()
     file_menu.addAction(actions.quit)
 
     edit = menu_bar.addMenu("&Edit")

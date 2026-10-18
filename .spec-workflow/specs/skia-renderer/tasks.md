@@ -80,7 +80,7 @@
   - _Requirements: 1.6, 2.2, 2.4, 2.5, 4.7, 6.2_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Rewrite views/canvas_view.py per design.md keeping refresh/center_artboard/fit_artboard/shutdown; prune PathCache on refresh; verify with scripts/screenshot_app.py (visual parity with the pre-change screenshot) and a QTest scratch script for click/Ctrl-click/rubber band/drag-move (one undo step)/rect with Shift/pen/Esc/wheel anchor/middle-drag pan, on raster and on GL | Restrictions: No QGraphicsScene/QGraphicsItem/QPainter document rendering; refresh(state) idempotent and cheap; keep file ≤ ~400 lines; disconnect signals during teardown | Success: app runs with GL on desktop and raster offscreen, screenshot matches previous appearance, QTest checks pass, pytest green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 11. Add Export PNG UI
+- [x] 11. Add Export PNG UI
   - Files: veccy/views/export_dialog.py, veccy/views/actions.py, veccy/views/menu_bar_view.py (+ veccy/views/main_window.py window command)
   - `ExportPngDialog` (scale 0.1–16, live W × H label, max side 16384 cap), `AppActions.export_png` (Ctrl+Shift+E), File menu entry after Save As, `MainWindow.export_png()` (dialog → file dialog → `.png` suffix → controller)
   - Purpose: Make PNG export reachable for users
@@ -88,7 +88,7 @@
   - _Requirements: 5.1, 5.5, Usability_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Implement the export UI per design.md; dialog pre-filled from state.export.scale; check with screenshot of the dialog (offscreen) and an end-to-end scratch run exporting the demo document | Restrictions: Dialogs live in views; controller receives plain path + scale; connect action via the existing lambda pattern | Success: File → Export PNG… exports a correctly sized transparent PNG; status bar reports result. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 12. Add canvas benchmark script
+- [-] 12. Add canvas benchmark script
   - Files: scripts/bench_canvas.py
   - Generate 10,000 shapes, drive pan/zoom/drag repaints, report average/95th-percentile frame time for GL and CPU (`VECCY_RENDERER`)
   - Purpose: Verify the performance requirement and catch regressions

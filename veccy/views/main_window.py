@@ -8,6 +8,7 @@ from veccy.models.app_state import AppState
 from veccy.views import menu_bar_view
 from veccy.views.actions import AppActions
 from veccy.views.canvas_view import CanvasView
+from veccy.views.export_dialog import ExportPngDialog
 from veccy.views.layers_view import LayersPanel
 from veccy.views.left_sidebar_view import ToolPalette
 from veccy.views.status_bar_view import StatusBar
@@ -15,6 +16,7 @@ from veccy.views.tool_options_view import TITLES, ToolOptionsPanel
 from veccy.views.toolbar_view import MainToolbar
 
 _SVG_FILTER = "SVG files (*.svg);;All files (*)"
+_PNG_FILTER = "PNG image (*.png)"
 _DOCK_WIDTH = 240
 _TOOL_DOCK_WIDTH = 200
 
@@ -106,6 +108,18 @@ class MainWindow(QMainWindow):
         if not path.lower().endswith(".svg"):
             path += ".svg"
         return self._controller.save_file(path)
+
+    def export_png(self) -> None:
+        scale = ExportPngDialog.ask(self._state.document, self._state.export.scale, self)
+        if scale is None:
+            return
+        stem = Path(self._state.file_path).with_suffix(".png") if self._state.file_path else Path("untitled.png")
+        path, _ = QFileDialog.getSaveFileName(self, "Export PNG", str(stem), _PNG_FILTER)
+        if not path:
+            return
+        if not path.lower().endswith(".png"):
+            path += ".png"
+        self._controller.export_png(path, scale)
 
     def fit_to_window(self) -> None:
         self.canvas.fit_artboard()
