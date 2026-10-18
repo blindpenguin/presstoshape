@@ -13,6 +13,13 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 - Pin `requires-python` in `pyproject.toml` to a concrete floor — PySide6 wheels trail new CPython releases, so don't assume latest Python works.
 - Keep `pyside6-essentials` pinned (`==`) — Qt behavior and PySide binding details shift between minors. Use `pyside6-essentials`, not the `pyside6` metapackage (that pulls in WebEngine/addons, hundreds of MB, unused). QtCore/QtGui/QtWidgets/QtSvg/QtSvgWidgets/QtTest are all in essentials.
 
+## Feature workflow (spec-workflow MCP)
+
+- The `spec-workflow` MCP server (`.mcp.json`, pinned to `@pimzino/spec-workflow-mcp@2.2.5`) drives non-trivial features: Requirements → Design → Tasks, each approved by the user in its dashboard before moving on, then implementation task by task with logs. Specs and steering docs live in `.spec-workflow/` and are committed.
+- Use it for new features or cross-cutting changes. Small fixes (single bug, tweak, rename) skip it.
+- Dashboard: `npx -y @pimzino/spec-workflow-mcp@2.2.5 --dashboard` → http://localhost:5000. The user runs it; don't start long-running servers yourself.
+- Bump the pinned version deliberately (check the changelog), never switch to `@latest` — npx would run unreviewed new code on every launch.
+
 ## Libraries
 
 - **PySide6** — UI and canvas rendering. Import from `PySide6.QtWidgets` etc.; never mix with PyQt5/6 (different bindings, incompatible objects).

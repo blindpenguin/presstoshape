@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "spec-workflow": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@pimzino/spec-workflow-mcp@2.2.5",
+        "."
+      ],
+      "env": {}
+    }
+  }
+}
