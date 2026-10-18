@@ -106,14 +106,16 @@ def _self_test(app: QApplication, session: Session, window: MainWindow) -> None:
     count = len(queries.pickable_shapes(session.state))
 
     with tempfile.TemporaryDirectory() as folder:
-        svg_path, png_path = str(Path(folder) / "test.svg"), Path(folder) / "test.png"
-        if not documents.save_file(session, svg_path):
-            raise RuntimeError(f"saving SVG failed: {session.state.status_message}")
-        if not documents.open_file(session, svg_path):
-            raise RuntimeError(f"opening SVG failed: {session.state.status_message}")
-        reopened = queries.pickable_shapes(session.state)
-        if len(reopened) != count or not any(isinstance(shape, CompositeShape) for shape in reopened):
-            raise RuntimeError("SVG round trip lost shapes or the composite")
+        png_path = Path(folder) / "test.png"
+        for name in ("test.svg", "test.p2s"):
+            path = str(Path(folder) / name)
+            if not documents.save_file(session, path):
+                raise RuntimeError(f"saving {name} failed: {session.state.status_message}")
+            if not documents.open_file(session, path):
+                raise RuntimeError(f"opening {name} failed: {session.state.status_message}")
+            reopened = queries.pickable_shapes(session.state)
+            if len(reopened) != count or not any(isinstance(shape, CompositeShape) for shape in reopened):
+                raise RuntimeError(f"{name} round trip lost shapes or the composite")
         if not documents.export_png(session, str(png_path), 1.0) or png_path.stat().st_size == 0:
             raise RuntimeError(f"PNG export failed: {session.state.status_message}")
 

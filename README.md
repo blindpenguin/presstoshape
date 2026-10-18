@@ -33,7 +33,8 @@ uv run python main.py
 - Undo/redo for all document edits.
 - GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
 - Export PNG (Ctrl+Shift+E) at any scale, transparent background.
-- Opens and saves SVG (Inkscape-compatible layers). Rotated rectangles, ellipses and text should keep their type, saved with a `transform` attribute; paths get transforms applied to their points. Composites are saved as their result path, with the parts stored in hidden metadata so other programs show the result. If another program changes the result, PressToShape should notice and open it as a plain path. Gradients, clip paths, `<use>` and images aren't supported yet.
+- Saves in its own format, `.p2s` (File → Save, Ctrl+S): reopening should give back exactly the same drawing, plus the view, tool settings, selection and the Composite you were editing. The format is described in [docs/file-format.md](docs/file-format.md).
+- Opens and saves SVG too (Save As → SVG; an opened SVG keeps saving as SVG), with Inkscape-compatible layers. Rotated rectangles, ellipses and text should keep their type, saved with a `transform` attribute; paths get transforms applied to their points. Composites are saved as their result path, with the parts stored in hidden metadata so other programs show the result. If another program changes the result, PressToShape should notice and open it as a plain path. Gradients, clip paths, `<use>` and images aren't supported yet.
 
 ## Development
 

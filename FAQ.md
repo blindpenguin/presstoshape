@@ -24,7 +24,7 @@ It's currently a one-person project.
 
 ### What can PressToShape do today?
 
-Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and stable releases.
+Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes and stable releases.
 
 ## Using PressToShape
 
@@ -48,7 +48,7 @@ A shape built from other shapes without destroying them. Each part adds to, subt
 
 ### Will PressToShape have its own file format?
 
-That's the plan. SVG can't hold everything PressToShape is meant to support later (live effects, brush definitions, …). A native format would store everything PressToShape can do, while SVG stays for exchange with other tools. The format isn't designed yet.
+Yes: `.p2s`. It's a ZIP archive with the drawing as JSON and a small preview image, so it's easy to inspect and the format is [documented](docs/file-format.md). It stores everything PressToShape can do, plus where you were working (zoom, scroll position, tool settings, selection). SVG stays for exchange with other tools: Save As offers both, and a file opened as SVG keeps saving as SVG. Newer PressToShape versions should keep opening older `.p2s` files; a file from a newer version than yours is refused with a message instead of being opened half-way.
 
 ### Does it support drawing tablets and pressure?
 

@@ -26,6 +26,13 @@ def set_zoom(session: Session, zoom_percent: float) -> None:
     session.notify()
 
 
+def take_restore_view_center(session: Session) -> tuple[float, float] | None:
+    """The view a freshly opened .p2s file asks for, handed out once. Nothing displays it, so no notify."""
+    center = session.state.restore_view_center
+    session.state.restore_view_center = None
+    return center
+
+
 @operation("view.zoom_in", "Zoom &In")
 def zoom_in(session: Session) -> None:
     set_zoom(session, session.state.zoom_percent * _ZOOM_STEP)

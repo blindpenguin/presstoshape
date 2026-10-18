@@ -62,7 +62,7 @@ presstoshape/
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   └── nodes.py              # path node editing
-├── formats/svg.py            # SVG read/write
+├── formats/                  # svg.py (SVG read/write), p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md)
 ├── render/                   # Skia drawing: model -> skia.Canvas
 │   ├── scene.py / picture.py # document, overlays; recorded-picture replay
 │   ├── paths.py / text.py    # cached shape paths, text outlines
@@ -99,6 +99,7 @@ Rules:
 - Tools subclass `BaseTool` and are listed in `tools/registry.py`; they keep gesture state (drag start, pen points, previews) until they commit through one operation call. `CanvasView` never checks tool types.
 - View `refresh(state)` must be idempotent and cheap; block widget signals while writing values back (`blockSignals(True)`), and skip expensive rebuilds when the relevant slice of state is unchanged.
 - The canvas redraws everything from state each frame. `PathCache` keys Skia geometry by shape id and rebuilds when the frozen shape changes. While a gesture runs, the tool reports the moving ids plus a doc-space `matrix` (move/rotate) or exact `live` replacement shapes (scale, node drags) in its `Overlay`, so the recorded picture is reused.
+- Native format `.p2s` (ZIP + JSON, `formats/p2s.py`): encoders/decoders are explicit per type, never generic over dataclass fields. Any change to what files store bumps `CURRENT_VERSION` in `formats/p2s_migrations.py`, adds a migration from the previous version, a `tests/formats/samples/v<N>.p2s` sample, and a row in `docs/file-format.md`. Everything the app can save must open again (tested round trips). Saves are atomic (`documents._write_atomically`).
 - Composites: `AppState.edit_path` holds the ids of the entered Composites (outer to inner). Operations reach "the shapes being edited" only through `editing/containers.py` (`pickable_shapes`, `change_container`), never `layer.shapes` directly, so they work the same on layer shapes and on parts. Part modes stay keyed by part id when lists are rebuilt. Enter/leave are not undo steps; `Session` trims a stale `edit_path` after undo.
 - Shapes are frozen; change them with `dataclasses.replace`. Undo snapshots copy layer lists only and share shape objects.
 - Shape `transform` stays canonical: go through `geometry.transforms` (`transform_shape`, `translate`, `with_rotation`) rather than composing matrices onto shapes by hand. Paths keep an identity transform (baked into segments).

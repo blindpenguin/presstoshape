@@ -34,7 +34,7 @@ Session / operations / tools / views, as in professional editors (Blender's oper
 
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
-- **Native format (planned)**: a PressToShape document format that stores everything PressToShape supports losslessly. Requirements: versioned with forward migration, exact reload of what was saved, able to embed resources (images, fonts as needed). Concrete format (e.g. zip + JSON, SQLite) is decided in its own spec.
+- **Native format `.p2s`**: ZIP with an uncompressed `mimetype` entry, `document.json` (document + working state: view, tool settings, selection, edit path) and a preview PNG; `resources/` reserved for embedded images/fonts/brushes. Integer format version with step-by-step migrations and a sample file per version; newer versions refused with a message. Explicit per-type encoders, exact numbers, atomic saves. Documented in `docs/file-format.md`. Default for Save; SVG via Save As.
 - **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; rect/ellipse/text keep rotate/scale/skew transforms as a per-shape `transform` (written back as `rotate(...)` or `matrix(...)`), paths get transforms applied to their points; unsupported paint is approximated.
 - **Raster export**: PNG, rendered by the same renderer as the canvas (transparent background, any scale up to 16384 px per side).
 - **Caching**: in-memory only (Skia path cache and recorded document pictures in the canvas).
@@ -118,4 +118,4 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 - **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; skew on text is dropped.
 - **Text**: single-line, single font; rendered with Skia using a generic sans-serif font.
 - **Shape model**: no groups. Each shape has an affine `transform`, kept canonical: rect/ellipse/text store unrotated geometry plus a rotation about their center (a full matrix only when skewed); paths always have the transform baked into their segments. Handle scaling changes geometry, so strokes don't scale.
-- **No native format yet; CI covers nightlies only** (no per-push checks, no code signing, no macOS/ARM builds, no Linux formats besides AppImage).
+- **CI covers nightlies only** (no per-push checks, no code signing, no macOS/ARM builds, no Linux formats besides AppImage).

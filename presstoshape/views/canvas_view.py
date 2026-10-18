@@ -189,6 +189,15 @@ class CanvasView(QAbstractScrollArea):
         self._sync_scrollbars()
         self._repaint()
 
+    def view_center(self) -> tuple[float, float]:
+        """Doc point at the middle of the viewport (stored in .p2s files)."""
+        return self._vp.to_doc((self._vp.width / 2, self._vp.height / 2))
+
+    def center_on(self, point: tuple[float, float]) -> None:
+        center_x, center_y = self.view_center()
+        zoom = self._vp.zoom
+        self._scroll_by((point[0] - center_x) * zoom, (point[1] - center_y) * zoom)
+
     def fit_artboard(self) -> None:
         if self._doc_size is None:
             return

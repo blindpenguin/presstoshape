@@ -12,6 +12,7 @@ presstoshape/                   # repo root
 ├── .mcp.json                   # spec-workflow MCP server (pinned version)
 ├── .spec-workflow/             # steering docs, specs, templates (committed)
 ├── .github/workflows/          # nightly.yml: nightly builds and the rolling "nightly" pre-release
+├── docs/                       # public format docs (file-format.md)
 ├── packaging/                  # static packaging inputs: PyInstaller spec, WiX source, AppImage files, licenses
 ├── README.md / CLAUDE.md       # user-facing overview / contributor + agent rules
 ├── scripts/                    # dev tools, never imported by the app
@@ -40,7 +41,9 @@ presstoshape/                   # repo root
     │   ├── transforms.py       # outline, translate, canonical shape transforms
     │   └── nodes.py            # path node editing (move, smooth handles, insert, delete)
     ├── formats/
-    │   └── svg.py              # SVG read/write
+    │   ├── svg.py              # SVG read/write
+    │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
+    │   └── p2s_migrations.py   # upgrades older .p2s format versions
     ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay
     ├── editing/
     │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()

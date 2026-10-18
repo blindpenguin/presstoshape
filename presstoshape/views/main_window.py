@@ -4,7 +4,7 @@ from pathlib import Path
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
-from presstoshape.editing.operations import documents
+from presstoshape.editing.operations import documents, view
 from presstoshape.editing.session import Session
 from presstoshape.version import app_version
 from presstoshape.views import menu_bar_view, window_placement
@@ -18,7 +18,10 @@ from presstoshape.views.status_bar_view import StatusBar
 from presstoshape.views.tool_options_view import TITLES, ToolOptionsPanel
 from presstoshape.views.toolbar_view import MainToolbar
 
-_SVG_FILTER = "SVG files (*.svg);;All files (*)"
+_NATIVE_FILTER = "PressToShape (*.p2s)"
+_SVG_FILTER = "SVG (*.svg)"
+_OPEN_FILTERS = f"PressToShape and SVG (*.p2s *.svg);;{_NATIVE_FILTER};;{_SVG_FILTER};;All files (*)"
+_SAVE_FILTERS = f"{_NATIVE_FILTER};;{_SVG_FILTER}"
 _PNG_FILTER = "PNG image (*.png)"
 _DOCK_WIDTH = 240
 _TOOL_DOCK_WIDTH = 200
@@ -89,8 +92,8 @@ class MainWindow(QMainWindow):
             self._layers,
             self._status,
         )
-        for view in views:
-            view.refresh(state)
+        for panel in views:
+            panel.refresh(state)
 
     def _window_commands(self) -> dict[str, Callable[[], object]]:
         return {
@@ -118,22 +121,30 @@ class MainWindow(QMainWindow):
         if not self._confirm_discard():
             return
         start = str(Path(self._state.file_path).parent) if self._state.file_path else ""
-        path, _ = QFileDialog.getOpenFileName(self, "Open SVG", start, _SVG_FILTER)
+        path, _ = QFileDialog.getOpenFileName(self, "Open", start, _OPEN_FILTERS)
         if path and documents.open_file(self._session, path):
-            self.canvas.fit_artboard()
+            center = view.take_restore_view_center(self._session)
+            if center is None:
+                self.canvas.fit_artboard()
+            else:
+                self.canvas.center_on(center)
 
     def save_document(self) -> bool:
         if self._state.file_path is None:
             return self.save_document_as()
-        return documents.save_file(self._session)
+        return documents.save_file(self._session, view_center=self.canvas.view_center())
 
     def save_document_as(self) -> bool:
-        path, _ = QFileDialog.getSaveFileName(self, "Save SVG", self._state.file_path or "untitled.svg", _SVG_FILTER)
+        current = self._state.file_path
+        keeps_svg = current is not None and not documents.is_native(current)
+        suggested = current or f"untitled{documents.NATIVE_SUFFIX}"
+        chosen_filter = _SVG_FILTER if keeps_svg else _NATIVE_FILTER
+        path, chosen_filter = QFileDialog.getSaveFileName(self, "Save As", suggested, _SAVE_FILTERS, chosen_filter)
         if not path:
             return False
-        if not path.lower().endswith(".svg"):
-            path += ".svg"
-        return documents.save_file(self._session, path)
+        if Path(path).suffix.lower() not in (documents.NATIVE_SUFFIX, ".svg"):
+            path += ".svg" if chosen_filter == _SVG_FILTER else documents.NATIVE_SUFFIX
+        return documents.save_file(self._session, path, view_center=self.canvas.view_center())
 
     def export_png(self) -> None:
         scale = ExportPngDialog.ask(self._state.document, self._state.export.scale, self)

@@ -11,7 +11,7 @@ ALLOWED = {
     "geometry": {"models"},
     "formats": {"models", "geometry"},
     "render": {"models", "geometry"},
-    "editing": {"models", "geometry", "formats", "render"},
+    "editing": {"models", "geometry", "formats", "render", "version"},
     "tools": {"models", "geometry", "render", "editing"},
     "views": {"models", "geometry", "formats", "render", "editing", "tools", "icons", "version"},
     "app": {"models", "editing", "views", "version", "icons"},

@@ -66,3 +66,7 @@ class AppState:
     status_message: str = "Ready"
     file_path: str | None = None
     dirty: bool = False
+    # View to show after opening a .p2s file (doc point at the viewport center); the window applies and clears it.
+    restore_view_center: tuple[float, float] | None = None
+    # Whether this session already said that SVG files don't keep view, tool settings and selection.
+    svg_hint_shown: bool = False
