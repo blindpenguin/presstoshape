@@ -47,25 +47,39 @@ def _build(shape: Shape) -> skia.Path:
     return to_skia_path(geometry.outline(shape) or ())
 
 
+def _bounds(shape: Shape, path: skia.Path) -> skia.Rect:
+    rect = path.computeTightBounds()
+    style = shape.style
+    if style.stroke and style.stroke_width > 0:
+        half = style.stroke_width / 2
+        rect = rect.makeOutset(half, half)
+    return rect
+
+
 class PathCache:
     """Keyed by shape id; an entry is valid while its stored shape equals the current one."""
 
     def __init__(self) -> None:
-        self._paths: dict[int, tuple[Shape, skia.Path]] = {}
+        self._paths: dict[int, tuple[Shape, skia.Path, skia.Rect]] = {}
         self._strokes: dict[int, tuple[Shape, float, skia.Path]] = {}
 
-    def get(self, shape: Shape) -> skia.Path:
+    def _entry(self, shape: Shape) -> tuple[Shape, skia.Path, skia.Rect]:
         entry = self._paths.get(shape.id)
-        if entry is None or entry[0] != shape:
-            entry = (shape, _build(shape))
+        # Identity first: unchanged shapes are the same object, and equality on nested dataclasses is slow.
+        if entry is None or (entry[0] is not shape and entry[0] != shape):
+            path = _build(shape)
+            entry = (shape, path, _bounds(shape, path))
             self._paths[shape.id] = entry
-        return entry[1]
+        return entry
+
+    def get(self, shape: Shape) -> skia.Path:
+        return self._entry(shape)[1]
 
     def stroke_path(self, shape: Shape, min_width: float = 0.0) -> skia.Path:
         """Filled outline of the shape's stroke, at least `min_width` wide (for hit-testing thin strokes)."""
         width = max(shape.style.stroke_width, min_width)
         entry = self._strokes.get(shape.id)
-        if entry is None or entry[0] != shape or entry[1] != width:
+        if entry is None or (entry[0] is not shape and entry[0] != shape) or entry[1] != width:
             outline = skia.Path()
             stroke_paint(width).getFillPath(self.get(shape), outline)
             entry = (shape, width, outline)
@@ -74,12 +88,7 @@ class PathCache:
 
     def bounds(self, shape: Shape) -> skia.Rect:
         """Geometry bounds grown by half the stroke width when stroked (like Qt's item boundingRect)."""
-        rect = self.get(shape).computeTightBounds()
-        style = shape.style
-        if style.stroke and style.stroke_width > 0:
-            half = style.stroke_width / 2
-            rect = rect.makeOutset(half, half)
-        return rect
+        return self._entry(shape)[2]
 
     def prune(self, live_ids: Iterable[int]) -> None:
         live = set(live_ids)

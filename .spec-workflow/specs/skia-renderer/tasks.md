@@ -40,7 +40,7 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python graphics developer | Task: Add draw_overlays to render/scene.py per design.md with constant screen-space line widths regardless of zoom; extend tests (selection box pixels present at bounds, rubber band drawn, preview hairline when style has no stroke, draw_document never draws overlays) | Restrictions: No Qt; overlays use only Overlay + CanvasColors inputs | Success: tests pass at zoom 0.5, 1 and 4. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 6. Implement hit-testing in veccy/render/hit_test.py
+- [x] 6. Implement hit-testing in veccy/render/hit_test.py
   - Files: veccy/render/hit_test.py, tests/test_hit_test.py
   - `shape_at(doc, cache, point, tolerance)`, `shapes_in_rect(doc, cache, rect)` with bounds pre-check
   - Purpose: Replace QGraphicsScene picking and rubber-band selection
@@ -48,7 +48,7 @@
   - _Requirements: 4.1, 4.4, 4.9, NFR Performance (hit test < 10 ms)_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer with computational geometry experience | Task: Implement hit_test.py per design.md: top-most visible shape wins, fill hit only if fill set, stroke hit via stroked outline of width max(stroke_width, 2*tolerance), text hit on glyph area, hidden layers ignored, rect intersection for rubber band; tests including a 10,000-shape click under 10 ms | Restrictions: No Qt; no state mutation | Success: tests pass including timing. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 7. Implement PNG export in render and controller
+- [-] 7. Implement PNG export in render and controller
   - Files: veccy/render/export.py, veccy/controllers/app_controller.py, tests/test_export.py
   - `export_size(doc, scale)`, `render_png(doc, scale) -> bytes | None` (transparent, no overlays); `AppController.export_png(path, scale) -> bool` storing `state.export.scale`, status message, no checkpoint/dirty change, OSError handled
   - Purpose: Raster export using the canvas renderer
