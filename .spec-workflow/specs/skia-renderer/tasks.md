@@ -32,7 +32,7 @@
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.8, 3.5, 6.1, 6.3_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python graphics developer experienced with Skia | Task: Implement render/overlay.py and the background/document part of render/scene.py per design.md: antialiased fill then stroke, butt cap, miter join, miter limit 4, skip None paints and zero width, visible layers bottom-to-top, overrides substitute shapes; CPU-surface pytest with sampled pixels (filled interior, no-fill interior transparent, stroke edge, hidden layer skipped, top shape wins, override position) | Restrictions: No Qt imports; render must not import veccy.views or controller state mutation; pixel assertions only on render CPU output | Success: tests pass; colors match model hex values. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 5. Implement overlay drawing
+- [x] 5. Implement overlay drawing
   - Files: veccy/render/scene.py (continue), tests/test_render_scene.py (extend)
   - `draw_overlays(canvas, overlay, cache, vp, colors)`: dashed selection boxes at 1 screen px, rubber band (translucent fill + outline), preview path with tool style or hairline preview color
   - Purpose: All canvas feedback drawn in Skia, never in export
@@ -40,7 +40,7 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python graphics developer | Task: Add draw_overlays to render/scene.py per design.md with constant screen-space line widths regardless of zoom; extend tests (selection box pixels present at bounds, rubber band drawn, preview hairline when style has no stroke, draw_document never draws overlays) | Restrictions: No Qt; overlays use only Overlay + CanvasColors inputs | Success: tests pass at zoom 0.5, 1 and 4. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 6. Implement hit-testing in veccy/render/hit_test.py
+- [-] 6. Implement hit-testing in veccy/render/hit_test.py
   - Files: veccy/render/hit_test.py, tests/test_hit_test.py
   - `shape_at(doc, cache, point, tolerance)`, `shapes_in_rect(doc, cache, rect)` with bounds pre-check
   - Purpose: Replace QGraphicsScene picking and rubber-band selection

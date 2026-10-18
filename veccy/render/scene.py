@@ -5,9 +5,12 @@ from collections.abc import Mapping
 import skia
 
 from veccy.models.app_state import Document
-from veccy.models.shapes import Shape
-from veccy.render.overlay import CanvasColors
-from veccy.render.paths import PathCache, stroke_paint
+from veccy.models.shapes import Shape, Style
+from veccy.render.overlay import CanvasColors, Overlay
+from veccy.render.paths import PathCache, stroke_paint, to_skia_path
+
+_DASH_PX = 4.0
+_RUBBER_BAND_ALPHA = 0x33
 
 
 def parse_color(value: str) -> int:
@@ -29,15 +32,17 @@ def draw_background(canvas: skia.Canvas, doc: Document, colors: CanvasColors) ->
     canvas.drawRect(artboard, border)
 
 
-def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
-    style = shape.style
-    path = cache.get(shape)
+def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
     if style.fill:
         canvas.drawPath(path, skia.Paint(Color=parse_color(style.fill), AntiAlias=True))
     if style.stroke and style.stroke_width > 0:
         paint = stroke_paint(style.stroke_width)
         paint.setColor(parse_color(style.stroke))
         canvas.drawPath(path, paint)
+
+
+def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
+    _draw_path(canvas, cache.get(shape), shape.style)
 
 
 def draw_document(
@@ -50,3 +55,36 @@ def draw_document(
             continue
         for shape in layer.shapes:
             draw_shape(canvas, overrides.get(shape.id, shape), cache)
+
+
+def _hairline(color: int, dash: float = 0.0) -> skia.Paint:
+    paint = skia.Paint(Color=color, Style=skia.Paint.kStroke_Style, StrokeWidth=0, AntiAlias=False)
+    if dash:
+        paint.setPathEffect(skia.DashPathEffect.Make([dash, dash], 0))
+    return paint
+
+
+def draw_overlays(
+    canvas: skia.Canvas, doc: Document, overlay: Overlay, cache: PathCache, zoom: float, colors: CanvasColors
+) -> None:
+    """Selection boxes, rubber band and drawing preview, 1 screen px wide at any zoom; never part of export."""
+    selection_color = parse_color(colors.selection)
+    if overlay.selection:
+        dashed = _hairline(selection_color, _DASH_PX / zoom)
+        for layer in doc.layers:
+            if not layer.visible:
+                continue
+            for shape in layer.shapes:
+                if shape.id in overlay.selection:
+                    canvas.drawRect(cache.bounds(overlay.overrides.get(shape.id, shape)), dashed)
+    if overlay.preview is not None:
+        segments, style = overlay.preview
+        path = to_skia_path(segments)
+        _draw_path(canvas, path, style)
+        if not style.stroke or style.stroke_width <= 0:
+            canvas.drawPath(path, _hairline(parse_color(colors.preview)))
+    if overlay.rubber_band is not None:
+        rect = skia.Rect.MakeXYWH(*overlay.rubber_band)
+        fill = skia.Paint(Color=(selection_color & 0x00FFFFFF) | (_RUBBER_BAND_ALPHA << 24))
+        canvas.drawRect(rect, fill)
+        canvas.drawRect(rect, _hairline(selection_color))
