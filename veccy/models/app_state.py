@@ -28,6 +28,12 @@ class Document:
     next_id: int = 1
 
 
+@dataclass
+class ExportSettings:
+    # Last PNG export scale, kept for the session only.
+    scale: float = 1.0
+
+
 def _default_tool_styles() -> dict[Tool, Style]:
     return {
         Tool.PEN: Style(fill=None),
@@ -48,6 +54,7 @@ class AppState:
     # Style each drawing tool gives new shapes, edited in the tool options panel.
     tool_styles: dict[Tool, Style] = field(default_factory=_default_tool_styles)
     font_size: float = 24.0
+    export: ExportSettings = field(default_factory=ExportSettings)
     zoom_percent: int = 100
     status_message: str = "Ready"
     file_path: str | None = None

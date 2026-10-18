@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/skia-renderer/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T11:13:39.999Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792322019996_s3pdjf505",
+      "approvalTitle": "skia-renderer: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T11:16:13.288Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792322019996_s3pdjf505",
+      "approvalTitle": "skia-renderer: requirements"
+    }
+  ]
+}

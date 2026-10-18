@@ -1,6 +1,6 @@
 # Tasks Document
 
-- [ ] 1. Add skia-python dependency and export settings model
+- [x] 1. Add skia-python dependency and export settings model
   - Files: pyproject.toml, uv.lock (via `uv add`), veccy/models/app_state.py
   - Add `skia-python==144.0.post2` with `uv add`; add `ExportSettings(scale: float = 1.0)` dataclass and `AppState.export` field
   - Purpose: Make Skia available and hold the session's last export scale

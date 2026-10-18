@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/skia-renderer/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T11:18:39.622Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792322319621_pmgv90z02",
+      "approvalTitle": "skia-renderer: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T11:19:09.081Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792322319621_pmgv90z02",
+      "approvalTitle": "skia-renderer: design"
+    }
+  ]
+}
