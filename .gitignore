@@ -14,3 +14,6 @@ wheels/
 
 # spec-workflow dashboard audit log (scripts/spec_dashboard.sh runs from repo root)
 /audit.log
+
+# Per-user Claude Code settings (shared settings would go in .claude/settings.json)
+/.claude/settings.local.json
