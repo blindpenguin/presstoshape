@@ -2,7 +2,7 @@
 name = "veccy"
 version = "0.1.0"
 description = "Open-source vector drawing application for artists"
-license = "GPL-3.0-or-later"
+license = "GPL-3.0-only"
 license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.13"

@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About veccy",
-            "veccy — an open-source vector drawing application for artists.\n\nLicensed under the GNU GPL v3 or later.",
+            "veccy — an open-source vector drawing application for artists.\n\nLicensed under the GNU GPL v3.",
         )
 
     def _confirm_discard(self) -> bool:

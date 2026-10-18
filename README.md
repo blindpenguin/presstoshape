@@ -31,4 +31,4 @@ scripts/spec_dashboard.sh                              # spec-workflow approval 
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](LICENSE).
+GPL-3.0 (GPL-3.0-only) — see [LICENSE](LICENSE).
