@@ -56,7 +56,7 @@
   - _Requirements: 5.2, 5.3, 5.4, 5.6, 5.7_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement render/export.py and AppController.export_png per design.md; tests: size per scale, transparent corner pixel, PNG decodes via skia.Image.MakeFromEncoded with expected dimensions, controller writes file, sets status, leaves undo stack and dirty unchanged, failure on unwritable path returns False with "Export failed" status | Restrictions: No Qt in controllers/render; follow existing controller method shape (status message, _notify) | Success: tests pass, full suite green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 8. Implement Skia surface widgets and GL format setup
+- [x] 8. Implement Skia surface widgets and GL format setup
   - Files: veccy/views/skia_surface.py, veccy/app.py
   - `SkiaGLWidget` (QOpenGLWidget, GrDirectContext.MakeGL, wraps default FBO, flushAndSubmit/resetContext, release on aboutToBeDestroyed, `gl_failed` signal), `SkiaRasterWidget` (CPU surface → QImage blit with DPR), `create_surface(paint_cb, parent)` honoring offscreen platform and `VECCY_RENDERER`; default QSurfaceFormat (stencil 8, macOS 4.1 core) set in App before QApplication
   - Purpose: GPU drawing with CPU fallback behind one paint-callback interface
@@ -64,7 +64,7 @@
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6, 1.7_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Qt/OpenGL developer experienced with PySide6 and Skia | Task: Implement views/skia_surface.py per design.md and set the default QSurfaceFormat in App.run before QApplication creation; verify with a scratch script on desktop (GL) and offscreen (raster) that a paint callback drawing a red rect shows up (grabFramebuffer / grab) | Restrictions: Paint callback signature (canvas, width_px, height_px, dpr); QPainter only for blitting the raster image; zero-size early return; no defensive try/except around Qt calls; give widgets parents | Success: both widgets render the callback output; closing the window does not crash or warn. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 9. Implement CanvasGestures
+- [-] 9. Implement CanvasGestures
   - Files: veccy/views/canvas_gestures.py
   - Per-tool gesture state machine producing `Overlay` and committing via controller: select (click, Ctrl toggle, move drag with overrides, rubber band, empty click clears), rectangle/ellipse with Shift, pen (dedupe, double-click/Enter finish), text dialog, Esc cancel
   - Purpose: Interaction logic separated from the scroll/paint shell
