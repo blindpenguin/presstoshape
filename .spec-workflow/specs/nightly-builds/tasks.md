@@ -48,7 +48,7 @@
   - _Requirements: 1.1–1.4, 2.1–2.4, 6.1–6.3, NFR Security, Reliability_
   - _Prompt: Implement the task for spec nightly-builds, first run spec-workflow-guide to get the workflow guide then implement the task: Role: CI/CD engineer | Task: Write nightly.yml per design.md; push a branch (ask the user before pushing), run via workflow_dispatch against tag nightly-test until green; verify SHA256SUMS, notes and assets; test the unchanged-skip path; delete the test release and tag one command each | Restrictions: no inline packaging logic; no unpinned actions or tools; never publish to `nightly` from the test runs | Success: green run produces a complete nightly-test release; skip path verified. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 7. Docs and first real nightly
+- [x] 7. Docs and first real nightly
   - Files: README.md, FAQ.md, CLAUDE.md, .spec-workflow/steering/tech.md, .spec-workflow/steering/structure.md
   - README "Nightly builds" section with link and which file to pick; FAQ installer answers (hedged, unsigned, SmartScreen); CLAUDE.md packaging notes (build_package.py, build group, version module); steering updates; after merge to main, trigger the first real nightly and check it
   - Purpose: truthful docs, first public nightly (Req 6.5)
