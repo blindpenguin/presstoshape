@@ -6,6 +6,9 @@ dist/
 wheels/
 *.egg-info
 
+# Stamped by scripts/build_package.py for packaged builds
+/presstoshape/_build_info.py
+
 # Virtual environments
 .venv
 

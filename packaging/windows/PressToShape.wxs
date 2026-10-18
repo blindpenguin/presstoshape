@@ -1,0 +1,40 @@
+<!-- WiX v7 source for the PressToShape MSI; built by scripts/build_package.py (windows command), which passes
+     Version, IconFile and LicenseRtf as -d variables and binds "app" to the PyInstaller folder. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!-- The UpgradeCode never changes: it is what makes a newer MSI replace an installed one. -->
+  <Package
+      Name="PressToShape"
+      Manufacturer="PressToShape project"
+      Version="$(Version)"
+      UpgradeCode="DACF085C-C479-45CF-A63C-A540AC9A1FF2"
+      Scope="perMachine"
+      Language="1033">
+    <!-- Nightlies built on the same day share a version, so same-version upgrades must replace too. -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of PressToShape is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="$(IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/blindpenguin/presstoshape" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/blindpenguin/presstoshape/issues" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="PressToShape">
+        <Files Include="!(bindpath.app)\**" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="AppShortcut" Name="PressToShape" Description="Vector drawing"
+                  Target="[INSTALLFOLDER]PressToShape.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
+        <RegistryValue Root="HKLM" Key="Software\PressToShape" Name="StartMenuShortcut" Type="integer" Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(LicenseRtf)" />
+  </Package>
+</Wix>

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox
 
 from presstoshape.editing.operations import documents
 from presstoshape.editing.session import Session
+from presstoshape.version import app_version
 from presstoshape.views import menu_bar_view
 from presstoshape.views.actions import AppActions
 from presstoshape.views.canvas_view import CanvasView
@@ -151,7 +152,8 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About PressToShape",
-            "PressToShape — an open-source vector drawing application for artists.\n\nLicensed under the GNU GPL v3.",
+            f"PressToShape {app_version()}\n\n"
+            "An open-source vector drawing application for artists.\n\nLicensed under the GNU GPL v3.",
         )
 
     def _confirm_discard(self) -> bool:

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=PressToShape
+GenericName=Vector Drawing
+Comment=Open-source vector drawing application for artists
+Exec=PressToShape %f
+Icon=presstoshape
+Terminal=false
+Categories=Graphics;2DGraphics;VectorGraphics;
+MimeType=image/svg+xml;

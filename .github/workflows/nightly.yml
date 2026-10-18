@@ -1,0 +1,194 @@
+# Nightly builds: tests, then Windows MSI + portable ZIP, Linux AppImage and source tarball, published as one
+# rolling pre-release. All packaging logic lives in scripts/build_package.py; this file only orchestrates.
+# Actions are pinned by commit SHA (version in the comment), like every other pinned tool in this project.
+name: Nightly
+
+on:
+  # TEMPORARY for trial runs before this workflow exists on main; remove before merging.
+  push:
+    branches: [nightly-builds]
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish to (use nightly-test for trial runs)
+        default: nightly
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  # Only main publishes to "nightly" by default; runs from other branches go to "nightly-test".
+  TAG: ${{ inputs.tag || (github.ref_name == 'main' && 'nightly' || 'nightly-test') }}
+  UV_PYTHON_DOWNLOADS: never
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+      sha: ${{ steps.check.outputs.sha }}
+      previous: ${{ steps.check.outputs.previous }}
+      version: ${{ steps.check.outputs.version }}
+      msi_version: ${{ steps.check.outputs.msi_version }}
+      date: ${{ steps.check.outputs.date }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          sha=$(git rev-parse HEAD)
+          previous=$(git rev-parse -q --verify "refs/tags/$TAG^{commit}" || true)
+          build=true
+          if [ "${{ github.event_name }}" = schedule ] && [ "$previous" = "$sha" ]; then build=false; fi
+          {
+            echo "build=$build"
+            echo "sha=$sha"
+            echo "previous=$previous"
+            python3 scripts/build_package.py version --sha "$sha"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  test:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        id: python
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libxcb-cursor0
+      - run: uv sync --frozen
+        env:
+          UV_PYTHON: ${{ steps.python.outputs.python-path }}
+      - run: uv run --no-sync pytest
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+  windows:
+    needs: [check, test]
+    runs-on: windows-2025
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        id: python
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Install WiX 7
+        run: |
+          dotnet tool install --global wix --version 7.0.0
+          wix extension add --global -acceptEula wix7 WixToolset.UI.wixext/7.0.0
+      - run: uv sync --frozen --group build
+        env:
+          UV_PYTHON: ${{ steps.python.outputs.python-path }}
+      - name: Build MSI and portable ZIP
+        run: >
+          uv run --no-sync python scripts/build_package.py windows
+          --version "${{ needs.check.outputs.version }}" --msi-version "${{ needs.check.outputs.msi_version }}"
+          --sha "${{ needs.check.outputs.sha }}" --date "${{ needs.check.outputs.date }}"
+      - name: Install, self-test and uninstall the MSI
+        run: uv run --no-sync python scripts/build_package.py test-msi dist/release/*.msi
+      - if: failure()
+        run: cat "$TEMP/presstoshape-self-test.log" build/msi-install.log 2>/dev/null | tail -50 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows
+          path: |
+            dist/release/*.msi
+            dist/release/*.zip
+          if-no-files-found: error
+
+  linux:
+    needs: [check, test]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        id: python
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 xvfb
+      - run: uv sync --frozen --group build
+        env:
+          UV_PYTHON: ${{ steps.python.outputs.python-path }}
+      - name: Build AppImage
+        # Under Xvfb the self-test also runs on the real xcb platform, which catches missing X11 libraries.
+        run: >
+          xvfb-run -a uv run --no-sync python scripts/build_package.py linux
+          --version "${{ needs.check.outputs.version }}"
+          --sha "${{ needs.check.outputs.sha }}" --date "${{ needs.check.outputs.date }}"
+      - if: failure()
+        run: tail -50 /tmp/presstoshape-self-test.log || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux
+          path: dist/release/*.AppImage
+          if-no-files-found: error
+
+  source:
+    needs: [check, test]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 scripts/build_package.py source --version "${{ needs.check.outputs.version }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: source
+          path: dist/release/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: [check, windows, linux, source]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ needs.check.outputs.sha }}
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist/release
+          merge-multiple: true
+      - name: Checksums and notes
+        run: |
+          (cd dist/release && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+          python3 scripts/build_package.py notes --version "$VERSION" --sha "$SHA" \
+            --previous "${{ needs.check.outputs.previous }}" --date "${{ needs.check.outputs.date }}"
+      - name: Upload to a draft, then swap it in
+        # The old release is only removed after every asset is uploaded, so a failure never leaves a half-updated
+        # nightly behind.
+        run: |
+          draft="$TAG-draft-$GITHUB_RUN_ID"
+          gh release list --limit 100 --json tagName,isDraft \
+            --jq ".[] | select(.isDraft and (.tagName | startswith(\"$TAG-draft-\"))) | .tagName" \
+            | xargs -r -n1 gh release delete --yes
+          gh release create "$draft" --draft --prerelease --target "$SHA" \
+            --title "Nightly $VERSION" --notes-file dist/release-notes.md dist/release/*
+          if gh release view "$TAG" > /dev/null 2>&1; then gh release delete "$TAG" --yes; fi
+          git push --force origin "$SHA:refs/tags/$TAG"
+          gh release edit "$draft" --tag "$TAG" --draft=false --prerelease --latest=false

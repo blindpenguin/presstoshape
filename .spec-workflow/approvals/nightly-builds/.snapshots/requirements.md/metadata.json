@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/nightly-builds/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T17:32:05.151Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792344725146_cou64161g",
+      "approvalTitle": "Nightly builds — requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T17:33:59.487Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792344725146_cou64161g",
+      "approvalTitle": "Nightly builds — requirements"
+    }
+  ]
+}

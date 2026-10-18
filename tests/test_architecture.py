@@ -13,9 +13,11 @@ ALLOWED = {
     "render": {"models", "geometry"},
     "editing": {"models", "geometry", "formats", "render"},
     "tools": {"models", "geometry", "render", "editing"},
-    "views": {"models", "geometry", "formats", "render", "editing", "tools", "icons"},
-    "app": {"editing", "views"},
+    "views": {"models", "geometry", "formats", "render", "editing", "tools", "icons", "version"},
+    "app": {"models", "editing", "views", "version", "icons"},
     "icons": set(),
+    "version": set(),
+    "_build_info": set(),
 }
 
 QT_FREE = {"models", "geometry", "formats", "render", "editing", "tools"}

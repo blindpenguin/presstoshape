@@ -8,6 +8,9 @@ from pathlib import Path
 
 _DIR = Path(__file__).resolve().parent / "assets" / "icons"
 
+# Full-color app mark (window, exe, installer); not recolored like the UI icons.
+APP = Path(__file__).resolve().parent / "assets" / "app" / "presstoshape.svg"
+
 NEW = _DIR / "new.svg"
 OPEN = _DIR / "open.svg"
 SAVE = _DIR / "save.svg"
