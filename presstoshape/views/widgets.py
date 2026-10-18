@@ -1,6 +1,8 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QColorDialog, QPushButton
+from PySide6.QtWidgets import QColorDialog, QComboBox, QPushButton
+
+from presstoshape.editing.operations.composites import MODE_LABELS
 
 
 class ColorButton(QPushButton):
@@ -27,3 +29,37 @@ class ColorButton(QPushButton):
         if picked.isValid():
             self.set_color(picked.name())
             self.color_picked.emit(picked.name())
+
+
+class PartModeBox(QComboBox):
+    """Composite part modes. Emits `mode_picked(mode)` on user changes; `show_mode` doesn't emit.
+
+    `show_mode(None, text)` shows a non-selectable placeholder such as "Base" or "Mixed".
+    """
+
+    mode_picked = Signal(str)
+
+    def __init__(self) -> None:
+        super().__init__()
+        for mode, label in MODE_LABELS.items():
+            self.addItem(label, mode)
+        self._placeholder = -1
+        self.activated.connect(self._on_activated)
+
+    def show_mode(self, mode: str | None, placeholder: str = "") -> None:
+        self.blockSignals(True)
+        if self._placeholder >= 0:
+            self.removeItem(self._placeholder)
+            self._placeholder = -1
+        if mode is None:
+            self.addItem(placeholder, None)
+            self._placeholder = self.count() - 1
+            self.setCurrentIndex(self._placeholder)
+        else:
+            self.setCurrentIndex(self.findData(mode))
+        self.blockSignals(False)
+
+    def _on_activated(self, index: int) -> None:
+        mode = self.itemData(index)
+        if mode is not None:
+            self.mode_picked.emit(mode)

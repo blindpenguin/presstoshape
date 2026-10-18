@@ -24,7 +24,7 @@ It's currently a one-person project.
 
 ### What can PressToShape do today?
 
-Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and installers.
+Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and installers.
 
 ## Using PressToShape
 
@@ -37,6 +37,10 @@ PressToShape targets Linux and Windows. Testing currently happens on Linux only,
 Mostly, with limits. PressToShape reads general SVG: rectangles, circles, ellipses, lines, polylines, polygons, paths and text, with nested groups, transforms and inherited styles. Inkscape layers should come through as PressToShape layers (hidden ones included), and files saved by PressToShape should open in Inkscape with their layers. PressToShape is in early development, though, so there may be issues.
 
 Not supported yet: gradients, clip paths, masks, `<use>`, embedded images and CSS stylesheets. They're skipped or approximated (unsupported paint shows as grey). Rectangles, ellipses and text under rotate/scale/skew transforms should keep their type; skew on text is dropped, and paths get the transform applied to their points. Re-saving such a file from PressToShape can lose information, so keep a copy of the original.
+
+### What's a Composite?
+
+A shape built from other shapes without destroying them. Each part adds to, subtracts from, intersects or excludes what's below it, and you can go back in (double-click) to move, reshape or re-mode any part while the result updates. Composites can contain Composites. In SVG files, other programs see the finished shape; the parts are kept in metadata that PressToShape reads back. If the shape was edited elsewhere in the meantime, PressToShape should open it as a plain path rather than guess.
 
 ### Will PressToShape have its own file format?
 

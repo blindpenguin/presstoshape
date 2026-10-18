@@ -1,13 +1,16 @@
 """Draws the document (and canvas chrome) onto any skia.Canvas whose matrix maps doc units to device px."""
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator, Sequence
+from dataclasses import replace
 
 import skia
 
 from presstoshape.geometry import nodes as path_nodes
+from presstoshape.geometry import transforms
 from presstoshape.models.app_state import Document
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
+    CompositeShape,
     EllipseShape,
     PathShape,
     RectShape,
@@ -23,6 +26,16 @@ from presstoshape.render.text import text_blob
 
 _DASH_PX = 4.0
 _RUBBER_BAND_ALPHA = 0x33
+# Edit mode: how strongly everything around the edited Composite is dimmed, and how its parts are outlined.
+_DIM_ALPHA = 0x99
+_BASE_PART_PX = 2.0
+_MODE_DASHES_PX: dict[str, tuple[float, ...]] = {
+    "add": (),
+    "subtract": (6.0, 4.0),
+    "intersect": (1.5, 3.0),
+    "exclude": (6.0, 3.0, 1.5, 3.0),
+}
+_EVERYWHERE = skia.Rect.MakeLTRB(-1e7, -1e7, 1e7, 1e7)
 
 
 def parse_color(value: str) -> int:
@@ -127,14 +140,14 @@ def _hairline(color: int, dash: float = 0.0, phase: float = 0.0) -> skia.Paint:
 
 
 def _draw_selection_boxes(
-    canvas: skia.Canvas, doc: Document, overlay: Overlay, cache: PathCache, zoom: float, color: int
+    canvas: skia.Canvas, shapes: Iterable[Shape], overlay: Overlay, cache: PathCache, zoom: float, color: int
 ) -> None:
     dash = _DASH_PX / zoom
     # Alternating dashes stay visible on any fill.
     dashes = (_hairline(color, dash), _hairline(skia.ColorWHITE, dash, dash))
     live = {s.id: s for s in overlay.live}
     matrix = to_skia_matrix(overlay.matrix)
-    for shape in visible_shapes(doc):
+    for shape in shapes:
         if shape.id not in overlay.selection:
             continue
         if shape.id in live:
@@ -183,14 +196,71 @@ def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: i
         canvas.drawRect(square, border)
 
 
-def draw_overlays(
-    canvas: skia.Canvas, doc: Document, overlay: Overlay, cache: PathCache, zoom: float, colors: CanvasColors
+def live_composite(composite: CompositeShape, overlay: Overlay) -> CompositeShape:
+    """The edited Composite with the parts a gesture is dragging in their preview position."""
+    live = {shape.id: shape for shape in overlay.live}
+
+    def preview(part: Shape) -> Shape:
+        if part.id in live:
+            return live[part.id]
+        if part.id in overlay.moving:
+            try:
+                return transforms.transform_shape(part, overlay.matrix)
+            except ValueError:
+                return part
+        return part
+
+    return replace(composite, parts=tuple(preview(part) for part in composite.parts))
+
+
+def draw_edit_mode(
+    canvas: skia.Canvas, chain: Sequence[CompositeShape], overlay: Overlay, zoom: float, colors: CanvasColors
 ) -> None:
-    """Selection boxes and handles, rubber band and drawing preview, sized in screen px; never part of export."""
+    """Draws the entered Composites (outer to inner; the top-level one is hidden from the document picture):
+    the top-level result with the live change, dimmed like everything else, then the innermost Composite's live
+    result and its parts' outlines styled by mode (Add solid, Subtract dashed, Intersect dotted, Exclude
+    dash-dot; the base thicker)."""
+    composite = live_composite(chain[-1], overlay)
+    outermost = composite
+    for parent in reversed(chain[:-1]):
+        parts = tuple(outermost if part.id == outermost.id else part for part in parent.parts)
+        outermost = replace(parent, parts=parts)
+    _draw_path(canvas, to_skia_path(transforms.outline(outermost) or ()), outermost.style)
+    dim = parse_color(colors.pasteboard) & 0x00FFFFFF | (_DIM_ALPHA << 24)
+    canvas.drawRect(_EVERYWHERE, skia.Paint(Color=dim))
+    _draw_path(canvas, to_skia_path(transforms.outline(composite) or ()), composite.style)
+    selection_color = parse_color(colors.selection)
+    for index, (part, mode) in enumerate(zip(composite.parts, composite.modes)):
+        part_outline = transforms.outline(part)
+        if not part_outline:
+            continue
+        paint = skia.Paint(Color=selection_color, Style=skia.Paint.kStroke_Style, AntiAlias=True)
+        if index == 0:
+            paint.setStrokeWidth(_BASE_PART_PX / zoom)
+        else:
+            paint.setStrokeWidth(0)
+            dashes = _MODE_DASHES_PX[mode]
+            if dashes:
+                paint.setPathEffect(skia.DashPathEffect.Make([length / zoom for length in dashes], 0))
+        canvas.drawPath(to_skia_path(part_outline), paint)
+
+
+def draw_overlays(
+    canvas: skia.Canvas,
+    shapes: Iterable[Shape],
+    overlay: Overlay,
+    cache: PathCache,
+    zoom: float,
+    colors: CanvasColors,
+) -> None:
+    """Selection boxes and handles, rubber band and drawing preview, sized in screen px; never part of export.
+
+    `shapes` are the ones the user can pick right now (their selected ones get a box).
+    """
     selection_color = parse_color(colors.selection)
     # A single selection is outlined by its frame alone; per-shape boxes would just repeat it (or, rotated, clash).
     if overlay.selection and (overlay.frame is None or len(overlay.selection) > 1):
-        _draw_selection_boxes(canvas, doc, overlay, cache, zoom, selection_color)
+        _draw_selection_boxes(canvas, shapes, overlay, cache, zoom, selection_color)
     if overlay.frame is not None:
         _draw_frame(canvas, overlay.frame, zoom, selection_color)
     for node_overlay in overlay.nodes:

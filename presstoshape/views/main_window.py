@@ -2,13 +2,14 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QWidget
+from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from presstoshape.editing.operations import documents
 from presstoshape.editing.session import Session
 from presstoshape.views import menu_bar_view
 from presstoshape.views.actions import AppActions
 from presstoshape.views.canvas_view import CanvasView
+from presstoshape.views.edit_bar_view import EditBar
 from presstoshape.views.export_dialog import ExportPngDialog
 from presstoshape.views.layers_view import LayersPanel
 from presstoshape.views.left_sidebar_view import ToolPalette
@@ -32,7 +33,14 @@ class MainWindow(QMainWindow):
         self._force_close = False
 
         self.canvas = CanvasView(session)
-        self.setCentralWidget(self.canvas)
+        self._edit_bar = EditBar(session)
+        central = QWidget()
+        central_layout = QVBoxLayout(central)
+        central_layout.setContentsMargins(0, 0, 0, 0)
+        central_layout.setSpacing(0)
+        central_layout.addWidget(self._edit_bar)
+        central_layout.addWidget(self.canvas)
+        self.setCentralWidget(central)
 
         self._actions = AppActions(self, session, self._window_commands())
         menu_bar_view.build(self.menuBar(), self._actions)
@@ -72,6 +80,7 @@ class MainWindow(QMainWindow):
         views = (
             self._actions,
             self._toolbar,
+            self._edit_bar,
             self.canvas,
             self._tool_options,
             self._layers,

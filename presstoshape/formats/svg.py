@@ -14,12 +14,14 @@ import xml.etree.ElementTree as ET
 
 import svgelements as se
 
+from presstoshape.geometry import booleans
 from presstoshape.geometry.affine import IDENTITY, Affine, apply, as_rotation, compose, is_identity, translation
 from presstoshape.geometry.segments import quad_to_cubic, transform_segments
-from presstoshape.geometry.transforms import transform_shape
+from presstoshape.geometry.transforms import outline, transform_shape
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
     Close,
+    CompositeShape,
     CubicTo,
     EllipseShape,
     LineTo,
@@ -35,7 +37,18 @@ from presstoshape.models.shapes import (
 SVG_NS = "http://www.w3.org/2000/svg"
 INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape"
 ET.register_namespace("", SVG_NS)
+# Composite definitions live in this namespace, inside the result path's <metadata>: viewers don't render it
+# and Inkscape keeps it.
+PRESSTOSHAPE_NS = "https://github.com/blindpenguin/presstoshape/ns/svg/1"
 ET.register_namespace("inkscape", INKSCAPE_NS)
+ET.register_namespace("presstoshape", PRESSTOSHAPE_NS)
+_COMPOSITE = f"{{{PRESSTOSHAPE_NS}}}composite"
+_MODE = f"{{{PRESSTOSHAPE_NS}}}mode"
+_PART_MODES = ("add", "subtract", "intersect", "exclude")
+# How far a stored result may drift from the parts' result (float rounding, other tools rewriting `d`) and
+# still count as unedited: a share of the result's area, with a floor for tiny shapes.
+_MISMATCH_SHARE = 1e-3
+_MISMATCH_FLOOR = 0.05
 
 _GROUPMODE = f"{{{INKSCAPE_NS}}}groupmode"
 _LABEL = f"{{{INKSCAPE_NS}}}label"
@@ -116,6 +129,14 @@ def _untransformed_element(shape: Shape) -> ET.Element:
             return ET.Element(_q("ellipse"), attrs | style)
         case PathShape(segments=segments):
             return ET.Element(_q("path"), {"d": path_d(segments)} | style)
+        case CompositeShape(parts=parts, modes=modes):
+            element = ET.Element(_q("path"), {"d": path_d(outline(shape) or ())} | style)
+            definition = ET.SubElement(ET.SubElement(element, _q("metadata")), _COMPOSITE)
+            for part, mode in zip(parts, modes):
+                child = _shape_element(part)
+                child.set(_MODE, mode)
+                definition.append(child)
+            return element
         case TextShape(x=x, y=y, text=text, font_size=size):
             attrs = {"x": _num(x), "y": _num(y), "font-size": _num(size), "font-family": "sans-serif"}
             element = ET.Element(_q("text"), attrs | style)
@@ -125,6 +146,11 @@ def _untransformed_element(shape: Shape) -> ET.Element:
 
 def read_svg(text: str) -> Document:
     """Raises ET.ParseError on malformed XML, ValueError on XML that isn't a usable SVG document."""
+    return read_svg_with_notes(text)[0]
+
+
+def read_svg_with_notes(text: str) -> tuple[Document, list[str]]:
+    """Like read_svg, plus notes about things that couldn't be restored (e.g. Composites edited elsewhere)."""
     root = ET.fromstring(text)
     if root.tag != _q("svg"):
         raise ValueError("not an SVG document")
@@ -152,7 +178,8 @@ def read_svg(text: str) -> Document:
                 layers.append(loose)
             reader.visit(child, base_style, base_matrix, loose.shapes)
 
-    return Document(width, height, layers or [Layer("Layer 1")], next_id=reader.next_id)
+    document = Document(width, height, layers or [Layer("Layer 1")], next_id=reader.next_id)
+    return document, reader.notes
 
 
 def _document_frame(root: ET.Element) -> tuple[float, float, tuple[float, float]]:
@@ -166,6 +193,7 @@ def _document_frame(root: ET.Element) -> tuple[float, float, tuple[float, float]
 class _Reader:
     def __init__(self) -> None:
         self.next_id = 1
+        self.notes: list[str] = []
 
     def _new_id(self) -> int:
         self.next_id += 1
@@ -181,9 +209,45 @@ class _Reader:
             for child in element:
                 self.visit(child, style, matrix, out)
             return
-        shape = self._shape(tag, element, style, matrix)
+        shape = self._read(tag, element, style, matrix)
         if shape is not None:
             out.append(shape)
+
+    def _read(self, tag: str, el: ET.Element, style: dict[str, str], m: Affine) -> Shape | None:
+        """One element as a shape; a path carrying a Composite definition becomes that Composite."""
+        if tag == "path" and el.find(f"{_q('metadata')}/{_COMPOSITE}") is not None:
+            return self._composite(el, style, m)
+        return self._shape(tag, el, style, m)
+
+    def _composite(self, el: ET.Element, style: dict[str, str], m: Affine) -> Shape | None:
+        """The stored parts if they still produce the path's visible result, else the plain path with a note."""
+        plain = self._shape("path", el, style, m)
+        try:
+            parts: list[Shape] = []
+            modes: list[str] = []
+            for child in el.find(f"{_q('metadata')}/{_COMPOSITE}"):
+                child_style = _merge_style(style, child)
+                child_matrix = compose(m, _parse_transform(child.get("transform")))
+                part = self._read(child.tag.removeprefix(f"{{{SVG_NS}}}"), child, child_style, child_matrix)
+                if part is None:
+                    raise ValueError("unreadable composite part")
+                mode = child.get(_MODE, "add")
+                parts.append(part)
+                modes.append(mode if mode in _PART_MODES else "add")
+            if not parts:
+                raise ValueError("composite without parts")
+            paint = plain.style if plain is not None else Style()
+            composite = CompositeShape(self._new_id(), tuple(parts), tuple(modes), paint)
+        except (ValueError, TypeError, IndexError):
+            self.notes.append("A composite couldn't be read and was opened as a path")
+            return plain
+        result = outline(composite) or ()
+        stored = plain.segments if plain is not None else ()
+        allowed = max(_MISMATCH_SHARE * booleans.area(result), _MISMATCH_FLOOR)
+        if booleans.mismatch_area(result, stored) > allowed:
+            self.notes.append("A composite was edited in another program and was opened as a path")
+            return plain
+        return composite
 
     def _shape(self, tag: str, el: ET.Element, style: dict[str, str], m: Affine) -> Shape | None:
         scale = math.sqrt(abs(m[0] * m[3] - m[1] * m[2]))

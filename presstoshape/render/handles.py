@@ -8,7 +8,15 @@ from enum import Enum
 from presstoshape.geometry import affine, nodes
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.boxes import Point, Rect
-from presstoshape.models.shapes import IDENTITY_TRANSFORM, EllipseShape, PathShape, RectShape, Shape, TextShape
+from presstoshape.models.shapes import (
+    IDENTITY_TRANSFORM,
+    CompositeShape,
+    EllipseShape,
+    PathShape,
+    RectShape,
+    Shape,
+    TextShape,
+)
 from presstoshape.render.paths import PathCache
 from presstoshape.render.text import text_path
 
@@ -106,7 +114,7 @@ def selection_frame(shapes: Iterable[Shape], cache: PathCache) -> Frame | None:
     shapes = list(shapes)
     if not shapes:
         return None
-    if len(shapes) == 1 and not isinstance(shapes[0], PathShape):
+    if len(shapes) == 1 and not isinstance(shapes[0], (PathShape, CompositeShape)):
         return Frame(local_bounds(shapes[0], cache), shapes[0].transform)
     boxes = [cache.geometry_bounds(s) for s in shapes]
     left, top = min(b.left() for b in boxes), min(b.top() for b in boxes)

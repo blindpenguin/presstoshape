@@ -1,11 +1,10 @@
 """Boolean commands on the selection: union, difference, intersection, exclude and divide. All destructive."""
 
-from collections.abc import Sequence
 
 import pathops
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations._document import new_id
+from presstoshape.editing.operations._document import new_id, replace_with
 from presstoshape.editing.registry import register
 from presstoshape.editing.session import Session
 from presstoshape.geometry import booleans, transforms
@@ -41,7 +40,7 @@ def combine(session: Session, op: str) -> None:
         return
     with session.edit(name):
         result = [PathShape(new_id(state), segments, targets[0].style)] if segments else []
-        _replace_with(state, targets, result)
+        replace_with(state, targets, result)
         state.selection = {shape.id for shape in result}
         state.status_message = name if result else f"{name} is empty"
 
@@ -61,23 +60,9 @@ def divide_selection(session: Session) -> None:
     pieces.sort(key=lambda piece: piece[1])
     with session.edit("Divide"):
         result = [PathShape(new_id(state), segments, targets[top].style) for segments, top in pieces]
-        _replace_with(state, targets, result)
+        replace_with(state, targets, result)
         state.selection = {shape.id for shape in result}
         state.status_message = f"Divided into {len(result)} pieces"
-
-
-def _replace_with(state: AppState, targets: Sequence[Shape], new_shapes: Sequence[Shape]) -> None:
-    """Removes `targets` and puts `new_shapes` where the bottom-most target was (its layer and z-order)."""
-    bottom = targets[0]
-    consumed = {shape.id for shape in targets}
-    for layer in state.document.layers:
-        kept: list[Shape] = []
-        for shape in layer.shapes:
-            if shape.id == bottom.id:
-                kept.extend(new_shapes)
-            elif shape.id not in consumed:
-                kept.append(shape)
-        layer.shapes = kept
 
 
 def _report_failure(session: Session, name: str) -> None:

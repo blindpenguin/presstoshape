@@ -1,12 +1,14 @@
 from functools import partial
 
-from PySide6.QtWidgets import QDoubleSpinBox, QLabel, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDoubleSpinBox, QFormLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
 
-from presstoshape.editing.operations import view
+from presstoshape.editing import containers
+from presstoshape.editing.operations import composites, view
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import AppState, Tool
 from presstoshape.views.selection_view import SelectionOptions
 from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
+from presstoshape.views.widgets import PartModeBox
 
 _FIELDS = {
     Tool.RECTANGLE: (FILL, STROKE, WIDTH),
@@ -47,6 +49,8 @@ class ToolOptionsPanel(QStackedWidget):
         self._pages: dict[Tool, QWidget] = {Tool.SELECT: self._selection}
         self._editors: dict[Tool, StyleEditor] = {}
         self._font_size: QDoubleSpinBox | None = None
+        # Drawing tools show the mode new parts get while a Composite is being edited.
+        self._part_modes: dict[Tool, tuple[QFormLayout, PartModeBox]] = {}
         self._pages[Tool.NODE] = self._hint_page(_HINTS[Tool.NODE])
         for tool, fields in _FIELDS.items():
             editor = StyleEditor(
@@ -55,6 +59,11 @@ class ToolOptionsPanel(QStackedWidget):
                 on_stroke=lambda color, t=tool: view.set_tool_style(session, t, stroke=color),
                 on_width=lambda width, t=tool: view.set_tool_style(session, t, stroke_width=width),
             )
+            if tool is not Tool.TEXT:
+                part_mode = PartModeBox()
+                part_mode.mode_picked.connect(partial(composites.set_new_part_mode, session))
+                editor.form.addRow("New part", part_mode)
+                self._part_modes[tool] = (editor.form, part_mode)
             if tool is Tool.TEXT:
                 self._font_size = QDoubleSpinBox()
                 self._font_size.setRange(1, 999)
@@ -95,6 +104,12 @@ class ToolOptionsPanel(QStackedWidget):
         if tool is Tool.NODE:
             return
         self._editors[tool].refresh(state.tool_styles[tool])
+        if tool in self._part_modes:
+            form, part_mode = self._part_modes[tool]
+            editing = containers.editing(state)
+            form.setRowVisible(part_mode, editing)
+            if editing:
+                part_mode.show_mode(state.new_part_mode)
         if tool is Tool.TEXT and self._font_size is not None:
             self._font_size.blockSignals(True)
             self._font_size.setValue(state.font_size)

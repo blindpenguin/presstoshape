@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from dataclasses import replace
 
-from presstoshape.editing import queries
+from presstoshape.editing import containers, queries
 from presstoshape.editing.operations._document import new_id, replace_shape
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
@@ -21,15 +21,20 @@ EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
 
 
 def _add(session: Session, make: Callable[[int], Shape], name: str) -> int | None:
+    """Adds to the active layer, or as the top-most part of the edited Composite (in the new-part mode)."""
     state = session.state
+    in_composite = containers.editing(state)
     layer = queries.active_layer(state)
-    if not layer.visible:
+    if not in_composite and not layer.visible:
         state.status_message = f"Layer '{layer.name}' is hidden"
         session.notify()
         return None
     with session.edit(f"Add {name}"):
         shape = make(new_id(state))
-        layer.shapes.append(shape)
+        if in_composite:
+            containers.change_container(state, lambda shapes: [*shapes, shape])
+        else:
+            layer.shapes.append(shape)
         state.selection = {shape.id}
         state.status_message = f"Added {name}"
     return shape.id
@@ -61,6 +66,10 @@ def add_path(session: Session, points: list[Point]) -> int | None:
 
 def add_text(session: Session, position: Point, text: str) -> int | None:
     if not text.strip():
+        return None
+    if containers.editing(session.state):
+        session.state.status_message = "Text can't be a Composite part: add it outside, then use Object to Path"
+        session.notify()
         return None
     style = session.state.tool_styles[Tool.TEXT]
     size = session.state.font_size

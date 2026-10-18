@@ -1,23 +1,23 @@
 """Picking shapes by point and by rectangle, on the same cached geometry the canvas draws."""
 
-from collections.abc import Iterator
+from collections.abc import Sequence
 
 import skia
 
 from presstoshape.geometry.boxes import Rect
-from presstoshape.models.app_state import Document
-from presstoshape.models.shapes import Shape
+from presstoshape.models.shapes import CompositeShape, Shape
 from presstoshape.render.paths import PathCache
 
 
-def _visible_top_down(doc: Document) -> Iterator[Shape]:
-    for layer in reversed(doc.layers):
-        if layer.visible:
-            yield from reversed(layer.shapes)
-
-
 def _area(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.Path]:
-    """Pickable regions: the fill if painted, the stroke if painted; an unpainted shape falls back to its fill."""
+    """Pickable regions: the fill if painted, the stroke if painted; an unpainted shape falls back to its fill.
+
+    A Composite with an empty result is picked by the bounds of its parts, so it can't get lost.
+    """
+    if isinstance(shape, CompositeShape) and cache.get(shape).isEmpty():
+        box = skia.Path()
+        box.addRect(cache.bounds(shape))
+        return [box]
     style = shape.style
     stroked = bool(style.stroke) and style.stroke_width > 0
     regions = []
@@ -28,10 +28,10 @@ def _area(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.P
     return regions
 
 
-def shape_at(doc: Document, cache: PathCache, point: tuple[float, float], tolerance: float) -> int | None:
-    """Top-most visible shape under `point`; `tolerance` (doc units) widens thin strokes."""
+def shape_at(shapes: Sequence[Shape], cache: PathCache, point: tuple[float, float], tolerance: float) -> int | None:
+    """Top-most of `shapes` (given bottom to top) under `point`; `tolerance` (doc units) widens thin strokes."""
     x, y = point
-    for shape in _visible_top_down(doc):
+    for shape in reversed(shapes):
         b = cache.bounds(shape)
         if not (b.fLeft - tolerance <= x <= b.fRight + tolerance and b.fTop - tolerance <= y <= b.fBottom + tolerance):
             continue
@@ -40,14 +40,14 @@ def shape_at(doc: Document, cache: PathCache, point: tuple[float, float], tolera
     return None
 
 
-def shapes_in_rect(doc: Document, cache: PathCache, rect: Rect) -> set[int]:
-    """Visible shapes whose pickable area intersects `rect` (x, y, w, h in doc units)."""
+def shapes_in_rect(shapes: Sequence[Shape], cache: PathCache, rect: Rect) -> set[int]:
+    """Those of `shapes` whose pickable area intersects `rect` (x, y, w, h in doc units)."""
     band = skia.Rect.MakeXYWH(*rect)
     band.sort()
     band_path = skia.Path()
     band_path.addRect(band)
     hits: set[int] = set()
-    for shape in _visible_top_down(doc):
+    for shape in shapes:
         bounds = cache.bounds(shape)
         if not skia.Rect.Intersects(band, bounds):
             continue

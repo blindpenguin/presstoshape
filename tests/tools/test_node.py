@@ -1,7 +1,7 @@
 
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import node_editing, selection, shapes, view
+from presstoshape.editing.operations import composites, node_editing, selection, shapes, view
 from presstoshape.geometry import nodes
 from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import CursorType, Mods
@@ -105,3 +105,20 @@ def test_node_overlay_shows_controls_of_selected_nodes():
     (overlay,) = g.overlay.nodes
     assert overlay.selected == {1}
     assert overlay.controls == {(1, 1), (1, 2), (2, 1), (2, 2)}
+
+
+def test_node_tool_edits_a_path_part_inside_a_composite():
+    session, g = setup_tools()
+    path_id = shapes.add_path(session, [(0, 0), (100, 0), (200, 100)])
+    rect = shapes.add_rectangle(session, (300, 300), (310, 310))
+    selection.set_selection(session, {path_id, rect})
+    composites.make_composite(session)
+    (composite_id,) = session.state.selection
+    composites.enter(session, composite_id)
+    selection.set_selection(session, {path_id})
+    view.select_tool(session, Tool.NODE)
+    g.set_tool(Tool.NODE)
+    drag(g, (100, 0), (100, 0))
+    drag(g, (100, 0), (110, 20))
+    part = queries.find_shape(session.state, composite_id).parts[0]
+    assert (part.segments[1].x, part.segments[1].y) == (110, 20)

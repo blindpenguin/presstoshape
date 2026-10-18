@@ -3,12 +3,15 @@
 import math
 from dataclasses import replace
 
-from presstoshape.geometry import affine
+import pathops
+
+from presstoshape.geometry import affine, booleans
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.boxes import Point
 from presstoshape.geometry.segments import ellipse_segments, rect_segments, transform_segments
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
+    CompositeShape,
     EllipseShape,
     PathShape,
     RectShape,
@@ -23,8 +26,14 @@ _ORTHO_EPS = 1e-9
 
 
 def outline(shape: Shape) -> tuple[Segment, ...] | None:
-    """Shape geometry as path segments with its transform applied, or None for text (no vector outline here)."""
+    """Shape geometry as path segments with its transform applied, or None for text (no vector outline here).
+
+    A Composite's outline is its parts combined by their modes; degenerate parts that pathops can't handle give
+    an empty outline rather than an error, so one bad part can't break drawing.
+    """
     match shape:
+        case CompositeShape():
+            return _composite_outline(shape)
         case RectShape(x=x, y=y, width=w, height=h):
             segments = rect_segments(x, y, w, h)
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
@@ -36,6 +45,18 @@ def outline(shape: Shape) -> tuple[Segment, ...] | None:
     return _apply_affine(segments, shape.transform)
 
 
+def _composite_outline(composite: CompositeShape) -> tuple[Segment, ...]:
+    parts = [
+        (part_outline, mode)
+        for part, mode in zip(composite.parts, composite.modes)
+        if (part_outline := outline(part)) is not None
+    ]
+    try:
+        return booleans.combine_parts(parts)
+    except pathops.PathOpsError:
+        return ()
+
+
 def _apply_affine(segments: tuple[Segment, ...], m: Affine) -> tuple[Segment, ...]:
     if m == IDENTITY_TRANSFORM:
         return segments
@@ -44,6 +65,8 @@ def _apply_affine(segments: tuple[Segment, ...], m: Affine) -> tuple[Segment, ..
 
 def translate(shape: Shape, dx: float, dy: float) -> Shape:
     match shape:
+        case CompositeShape():
+            return replace(shape, parts=tuple(translate(part, dx, dy) for part in shape.parts))
         case PathShape():
             return replace(shape, segments=transform_segments(shape.segments, lambda x, y: (x + dx, y + dy)))
         case RectShape() | TextShape():
@@ -81,6 +104,8 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0) -> Shape:
     scales uniformly by the larger axis factor and keeps its rotation about the anchor. Raises ValueError when
     the result would be singular.
     """
+    if isinstance(shape, CompositeShape):
+        return replace(shape, parts=tuple(transform_shape(part, m, min_extent) for part in shape.parts))
     total = affine.compose(m, shape.transform)
     if isinstance(shape, PathShape):
         return replace(shape, segments=_apply_affine(shape.segments, total), transform=IDENTITY_TRANSFORM)

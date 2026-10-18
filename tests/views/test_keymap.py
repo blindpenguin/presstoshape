@@ -10,7 +10,13 @@ def _known_ids() -> set[str]:
 
 def test_every_layout_id_resolves():
     layouts = [ids for _, ids in keymap.MENUS] + [keymap.MAIN_TOOLBAR, keymap.TOOL_STRIP]
-    used = {command_id for ids in layouts for command_id in ids if command_id not in (None, keymap.ZOOM_LABEL)}
+    used = set()
+    for ids in layouts:
+        for entry in ids:
+            if isinstance(entry, tuple):
+                used.update(entry[1])
+            elif entry not in (None, keymap.ZOOM_LABEL):
+                used.add(entry)
     assert used - _known_ids() == set()
 
 

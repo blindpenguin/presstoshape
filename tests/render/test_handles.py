@@ -1,7 +1,7 @@
 import pytest
 
 from presstoshape.geometry import transforms
-from presstoshape.models.shapes import LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.models.shapes import CompositeShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
 from presstoshape.render.handles import (
     HANDLE_PX,
     Frame,
@@ -107,3 +107,11 @@ def test_node_at_prefers_controls_and_respects_zoom():
     assert node_at(segments, (5, 0), 1.0) == ("node", 0)
     assert node_at(segments, (5, 0), 4.0) is None
     assert node_at(segments, (30, 0), 1.0) is None
+
+
+def test_single_composite_frame_is_axis_aligned_result_bounds():
+    inner = transforms.with_rotation(RectShape(1, 0, 0, 20, 10, S), 90)
+    composite = CompositeShape(10, (inner, RectShape(2, 100, 100, 5, 5, S)), ("add", "add"), S)
+    frame = selection_frame([composite], PathCache())
+    assert frame.transform == (1, 0, 0, 1, 0, 0)
+    assert frame.rect == pytest.approx((5, -5, 100, 110))

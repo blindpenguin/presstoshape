@@ -31,16 +31,21 @@ class DocumentPicture:
         moving: frozenset[int] = frozenset(),
         matrix: Transform = IDENTITY_TRANSFORM,
         live: tuple[Shape, ...] = (),
+        hidden: frozenset[int] = frozenset(),
     ) -> None:
+        """`hidden` shapes are left out (the Composite being edited, drawn live on top by edit mode)."""
+        separate = moving | hidden
         # Tuple comparison checks identity first, so an unchanged document compares in a fast C loop.
-        key = (tuple((layer.visible, tuple(layer.shapes)) for layer in doc.layers), moving)
+        key = (tuple((layer.visible, tuple(layer.shapes)) for layer in doc.layers), separate)
         if key != self._key:
-            self._runs = self._record(doc, moving)
+            self._runs = self._record(doc, separate)
             self._key = key
         replacements = {s.id: s for s in live}
         for is_moving, picture, ids in self._runs:
             if not is_moving:
                 canvas.drawPicture(picture)
+            elif all(shape_id in hidden for shape_id in ids):
+                continue
             elif replacements:
                 for shape_id in ids:
                     if shape_id in replacements:

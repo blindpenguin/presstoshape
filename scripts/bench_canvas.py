@@ -3,6 +3,7 @@
 Repaints the real canvas while panning, zooming, and moving/scaling/rotating a selection, and reports average and
 95th-percentile frame time. Gesture frames include the gesture's own per-move work (e.g. rebuilding scaled
 shapes). GL frames wait for the GPU to finish, so times include GPU work. `hover` times the cursor query alone.
+`part` drags one part of a 20-part Composite in edit mode (the result is recomputed every frame).
 
 Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N]
        PRESSTOSHAPE_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
@@ -23,10 +24,11 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from presstoshape.app import _set_surface_format  # noqa: E402
 from presstoshape.editing import queries  # noqa: E402
-from presstoshape.editing.operations import selection, view  # noqa: E402
+from presstoshape.editing.operations import composites, selection, view  # noqa: E402
 from presstoshape.editing.session import Session  # noqa: E402
 from presstoshape.models.app_state import AppState, Document, Layer  # noqa: E402
 from presstoshape.models.shapes import (  # noqa: E402
+    CompositeShape,
     EllipseShape,
     LineTo,
     MoveTo,
@@ -61,6 +63,26 @@ def _document(count: int) -> Document:
             case _:
                 shapes.append(RectShape(i, x, y, rng.uniform(5, 80), rng.uniform(5, 80), style))
     return Document(side, side, [Layer("Bench", True, shapes)], next_id=count + 1)
+
+
+def _composite(state: AppState) -> CompositeShape:
+    """20 overlapping rects and ellipses in mixed modes, near the artboard center."""
+    rng = random.Random(3)
+    document = state.document
+    center = document.width / 2
+    parts = []
+    for index in range(20):
+        x, y = center + rng.uniform(-400, 400), center + rng.uniform(-400, 400)
+        size = rng.uniform(150, 400)
+        shape_id = document.next_id + index
+        style = Style(fill="#3b82f6")
+        if index % 2:
+            parts.append(EllipseShape(shape_id, x, y, size / 2, size / 3, style))
+        else:
+            parts.append(RectShape(shape_id, x, y, size, size * 0.7, style))
+    modes = ("add",) + tuple(rng.choice(("add", "subtract", "intersect", "exclude")) for _ in range(19))
+    document.next_id += 21
+    return CompositeShape(document.next_id - 1, tuple(parts), modes, Style(fill="#ef4444"))
 
 
 def _sync_gpu(widget: SkiaGLWidget) -> None:
@@ -166,6 +188,14 @@ def main() -> None:
         canvas._toolbox.active.hover(point)
         hover_times.append((time.perf_counter() - start) * 1000)
     _report("hover", hover_times)
+
+    composite = _composite(state)
+    shapes.append(composite)
+    composites.enter(session, composite.id)
+    selection.set_selection(session, {composite.parts[7].id})
+    _start_gesture(select, _Mode.MOVE)
+    _report("part", _measure(viewport, lambda i: select.move((float(i % 60), float(i % 40)), none), args.frames, True))
+    select.cancel()
 
     window.close_without_prompt()
 

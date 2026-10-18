@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+from presstoshape.editing import containers
 from presstoshape.models.app_state import AppState, Document, Layer
 
 _UNDO_LIMIT = 200
@@ -116,8 +117,9 @@ class Session:
         self._merge_key = None
         state = self.state
         state.dirty = True
-        visible = {shape.id for layer in state.document.layers if layer.visible for shape in layer.shapes}
-        state.selection &= visible
+        # Undo may remove an entered Composite: leave as many levels as needed, then keep only pickable ids.
+        state.edit_path = containers.valid_edit_path(state)
+        state.selection &= {shape.id for shape in containers.pickable_shapes(state)}
         state.node_selection = frozenset()
         state.status_message = message
         self.notify()

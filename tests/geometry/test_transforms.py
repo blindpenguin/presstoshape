@@ -2,9 +2,19 @@ import math
 
 import pytest
 
-from presstoshape.geometry import affine, transforms
+from presstoshape.geometry import affine, booleans, transforms
 from presstoshape.geometry.segments import transform_segments
-from presstoshape.models.shapes import Close, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.models.shapes import (
+    Close,
+    CompositeShape,
+    EllipseShape,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
 from tests.helpers import bbox
 
 S = Style()
@@ -158,3 +168,52 @@ def test_rotation_of_and_with_rotation():
     assert transforms.rotation_of(rect) == 0.0
     assert transforms.rotation_of(transforms.with_rotation(rect, -60)) == pytest.approx(-60)
     assert transforms.with_rotation(rect, 0).transform == affine.IDENTITY
+
+
+# --- composites ---------------------------------------------------------------------------
+
+
+def _composite(*parts, modes=None, shape_id=100):
+    modes = modes or ("add",) * len(parts)
+    return CompositeShape(shape_id, tuple(parts), tuple(modes), S)
+
+
+def _area(segments) -> float:
+    return booleans._to_skia(segments).area
+
+
+@pytest.mark.parametrize("mode, area", [("add", 175), ("subtract", 75), ("intersect", 25), ("exclude", 150)])
+def test_composite_outline_per_mode(mode, area):
+    composite = _composite(RectShape(1, 0, 0, 10, 10, S), RectShape(2, 5, 5, 10, 10, S), modes=("add", mode))
+    assert _area(transforms.outline(composite)) == pytest.approx(area)
+
+
+def test_nested_composite_outline_uses_inner_result():
+    inner = _composite(RectShape(1, 0, 0, 10, 10, S), RectShape(2, 5, 0, 5, 10, S), modes=("add", "subtract"))
+    outer = _composite(inner, RectShape(3, 0, 0, 2, 10, S), modes=("add", "subtract"), shape_id=101)
+    # Inner leaves x 0..5; the outer cuts x 0..2 away.
+    assert bbox(transforms.outline(outer)) == pytest.approx((2, 0, 5, 10))
+
+
+def test_empty_composite_result():
+    composite = _composite(RectShape(1, 0, 0, 10, 10, S), RectShape(2, 0, 0, 10, 10, S), modes=("add", "subtract"))
+    assert transforms.outline(composite) == ()
+
+
+def test_pathops_error_gives_empty_outline(monkeypatch):
+    def fail(parts):
+        raise booleans.pathops.PathOpsError("degenerate")
+
+    monkeypatch.setattr(booleans, "combine_parts", fail)
+    composite = _composite(RectShape(1, 0, 0, 10, 10, S), RectShape(2, 5, 5, 10, 10, S))
+    assert transforms.outline(composite) == ()
+
+
+def test_translate_and_transform_composite_map_over_parts():
+    inner = _composite(RectShape(1, 0, 0, 10, 10, S), EllipseShape(2, 5, 5, 3, 3, S), shape_id=101)
+    outer = _composite(inner, RectShape(3, 20, 0, 5, 5, S))
+    moved = transforms.translate(outer, 10, 20)
+    assert moved.parts[0].parts[0].x == 10 and moved.parts[0].parts[1].cy == 25 and moved.parts[1].y == 20
+    scaled = transforms.transform_shape(outer, affine.scaling(2, 2))
+    assert scaled.parts[0].parts[0].width == 20 and scaled.parts[1].x == 40
+    assert scaled.transform == affine.IDENTITY and transforms.rotation_of(scaled) == 0

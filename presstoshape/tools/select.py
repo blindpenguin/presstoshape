@@ -3,12 +3,12 @@
 import math
 from enum import Enum, auto
 
-from presstoshape.editing import queries
-from presstoshape.editing.operations import selection, transform
+from presstoshape.editing import containers, queries
+from presstoshape.editing.operations import composites, selection, transform
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.boxes import Point, Rect, rect_from_points
-from presstoshape.models.shapes import Shape
+from presstoshape.models.shapes import CompositeShape, Shape
 from presstoshape.render import hit_test
 from presstoshape.render.handles import Frame, Handle, handle_at, handle_direction, selection_frame
 from presstoshape.render.overlay import Overlay
@@ -138,6 +138,29 @@ class SelectTool(BaseTool):
         self._live = ()
         self.hint = None
 
+    def double_click(self, point: Point, mods: Mods) -> None:
+        """Enters a Composite; in edit mode a double-click on no part leaves one level."""
+        state = self._context.state
+        hit = self._context.shape_at(point)
+        shape = queries.find_shape(state, hit) if hit is not None else None
+        if isinstance(shape, CompositeShape):
+            self.cancel()
+            composites.enter(self._context.session, shape.id)
+        elif hit is None and containers.editing(state):
+            self.cancel()
+            composites.leave(self._context.session)
+        else:
+            self.press(point, mods)
+
+    def key(self, name: str) -> bool:
+        if name != "enter":
+            return False
+        selected = queries.selected_shapes(self._context.state)
+        if len(selected) == 1 and isinstance(selected[0], CompositeShape):
+            composites.enter(self._context.session, selected[0].id)
+            return True
+        return False
+
     def hover(self, point: Point) -> CursorType:
         if self._mode is not None:
             return self._cursor
@@ -215,4 +238,5 @@ class SelectTool(BaseTool):
     def _band_hits(self) -> set[int]:
         if self._mode is not _Mode.BAND:
             return set()
-        return hit_test.shapes_in_rect(self._context.state.document, self._context.cache, self._band())
+        shapes = queries.pickable_shapes(self._context.state)
+        return hit_test.shapes_in_rect(shapes, self._context.cache, self._band())

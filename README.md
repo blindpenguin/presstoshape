@@ -14,7 +14,9 @@ uv run python main.py
 - Node tool: drag path nodes and their bezier handles, Shift+click or box-select several, double-click a segment to add a node, Delete removes nodes. Path → Object to Path (Ctrl+Shift+C) turns rectangles, ellipses and text into editable paths.
 - Pen: click points for a smooth curve; double-click or Enter finishes, Esc cancels.
 - Mouse wheel zooms under the cursor, middle-drag pans. Touchpad scrolling pans; Ctrl+scroll zooms.
-- Boolean operations on selected shapes: union (Ctrl++), difference (Ctrl+-), intersection (Ctrl+*), exclude (Ctrl+^) and divide (Ctrl+/), which splits overlapping shapes into separate pieces. Each also has a Ctrl+Alt shortcut that works on any keyboard layout: U, D, I, X and V.
+- Boolean operations on selected shapes: union (Ctrl++), difference (Ctrl+-), intersection (Ctrl+*), exclude (Ctrl+Alt+X) and divide (Ctrl+/), which splits overlapping shapes into separate pieces. The others also have Ctrl+Alt shortcuts that work on any keyboard layout: U, D, I and V.
+- Composites (Path → Make Composite, Ctrl+Alt+C): non-destructive booleans. The selected shapes become parts of one shape, bottom to top, each set to add, subtract, intersect or exclude. Double-click (or Enter) to edit the parts with the usual tools while the result updates live; Esc, a double-click outside or Done on the bar above the canvas leaves. Composites can be nested. Release puts the parts back, Flatten bakes the result into a path.
+- Object → Raise / Lower (Page Up / Page Down) and Raise to Top / Lower to Bottom (Home / End) reorder shapes, and the parts of a Composite while editing it.
 - Tool options panel (next to the tool strip) follows the active tool:
   - Select: properties of the selection — position/size/rotation (rectangle, ellipse), text content/position/size/rotation for a single object, fill / stroke / stroke width for one or many.
   - Drawing tools: the style that tool gives new shapes; text tool also sets font size.
@@ -22,7 +24,7 @@ uv run python main.py
 - Undo/redo for all document edits.
 - GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
 - Export PNG (Ctrl+Shift+E) at any scale, transparent background.
-- Opens and saves SVG (Inkscape-compatible layers). Rotated rectangles, ellipses and text should keep their type, saved with a `transform` attribute; paths get transforms applied to their points. Gradients, clip paths, `<use>` and images aren't supported yet.
+- Opens and saves SVG (Inkscape-compatible layers). Rotated rectangles, ellipses and text should keep their type, saved with a `transform` attribute; paths get transforms applied to their points. Composites are saved as their result path, with the parts stored in hidden metadata so other programs show the result. If another program changes the result, PressToShape should notice and open it as a plain path. Gradients, clip paths, `<use>` and images aren't supported yet.
 
 ## Development
 

@@ -2,9 +2,10 @@
 
 from collections.abc import Iterator
 
+from presstoshape.editing import containers
 from presstoshape.geometry import transforms
 from presstoshape.models.app_state import AppState, Layer
-from presstoshape.models.shapes import EllipseShape, RectShape, Shape, TextShape
+from presstoshape.models.shapes import CompositeShape, EllipseShape, RectShape, Shape, TextShape
 
 
 def active_layer(state: AppState) -> Layer:
@@ -12,22 +13,31 @@ def active_layer(state: AppState) -> Layer:
 
 
 def visible_shapes(state: AppState) -> Iterator[Shape]:
-    """Paint order: visible layers bottom to top."""
+    """Paint order: visible layers bottom to top (document level; parts of Composites are not listed)."""
     for layer in state.document.layers:
         if layer.visible:
             yield from layer.shapes
 
 
+def pickable_shapes(state: AppState) -> list[Shape]:
+    """What the user can select right now, bottom to top: visible layer shapes, or the edited Composite's parts."""
+    return containers.pickable_shapes(state)
+
+
 def selected_shapes(state: AppState) -> list[Shape]:
     """Selected shapes in paint order, bottom first."""
-    return [shape for shape in visible_shapes(state) if shape.id in state.selection]
+    return [shape for shape in pickable_shapes(state) if shape.id in state.selection]
 
 
 def find_shape(state: AppState, shape_id: int) -> Shape | None:
-    for layer in state.document.layers:
-        for shape in layer.shapes:
-            if shape.id == shape_id:
-                return shape
+    """Any shape by id, including parts nested in Composites."""
+    pending = [shape for layer in state.document.layers for shape in layer.shapes]
+    while pending:
+        shape = pending.pop()
+        if shape.id == shape_id:
+            return shape
+        if isinstance(shape, CompositeShape):
+            pending.extend(shape.parts)
     return None
 
 
@@ -36,4 +46,6 @@ def can_combine(state: AppState) -> bool:
 
 
 def can_object_to_path(state: AppState) -> bool:
-    return any(isinstance(shape, (RectShape, EllipseShape, TextShape)) for shape in selected_shapes(state))
+    return any(
+        isinstance(shape, (RectShape, EllipseShape, TextShape, CompositeShape)) for shape in selected_shapes(state)
+    )

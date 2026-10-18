@@ -2,7 +2,7 @@ import pytest
 
 from presstoshape.geometry import booleans
 from presstoshape.geometry.segments import ellipse_segments, rect_segments
-from presstoshape.models.shapes import CubicTo, MoveTo
+from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo
 from tests.helpers import bbox
 
 A = rect_segments(0, 0, 10, 10)
@@ -156,3 +156,11 @@ def test_divide_twenty_shapes_quickly():
     pieces = booleans.divide(outlines)
     assert time.perf_counter() - start < 1.0
     assert pieces
+
+
+def test_mismatch_area_compares_shapes_not_their_writing():
+    # Same square, drawn counter-clockwise from another corner.
+    rewritten = (MoveTo(10, 10), LineTo(10, 0), LineTo(0, 0), LineTo(0, 10), Close())
+    assert booleans.mismatch_area(A, rewritten) == pytest.approx(0)
+    assert booleans.mismatch_area(A, rect_segments(0, 0, 10, 11)) == pytest.approx(10)
+    assert booleans.area(A) == pytest.approx(100)

@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/composites/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T17:02:57.052Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792342977047_eopt64yph",
+      "approvalTitle": "composites: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T17:03:33.119Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792342977047_eopt64yph",
+      "approvalTitle": "composites: design"
+    }
+  ]
+}

@@ -24,7 +24,7 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 
 - **PySide6** — UI, input and the canvas GL context. Import from `PySide6.QtWidgets` etc.; never mix with PyQt5/6 (different bindings, incompatible objects).
 - **skia-python** — renders the canvas and PNG export (`presstoshape/render/`). GPU through OpenGL inside a `QOpenGLWidget`, CPU raster fallback. No Metal backend, so macOS uses OpenGL 4.1 core.
-- **skia-pathops** — boolean path ops in `presstoshape/geometry/booleans.py`: `combine_parts` (ordered parts with add/subtract/intersect/exclude modes; shared with the planned Composites), `divide`, `split_regions`. Works in float32; `_from_skia` rounds results.
+- **skia-pathops** — boolean path ops in `presstoshape/geometry/booleans.py`: `combine_parts` (ordered parts with add/subtract/intersect/exclude modes; also computes Composite results), `divide`, `split_regions`. Works in float32; `_from_skia` rounds results.
 - **svgelements** — only for parsing path `d` data, colors, lengths and transform strings in `formats/svg.py`. Don't use its `SVG.parse` document reader: it silently drops `display:none` groups (hidden layers) and `<text>`.
 
 ## Qt specifics
@@ -72,6 +72,7 @@ presstoshape/
 │   ├── session.py            # Session: the AppState, labelled undo history, subscribe/notify, edit()
 │   ├── registry.py           # registered operations: id, menu label, can_run
 │   ├── queries.py            # read-only questions about state
+│   ├── containers.py         # active container (layer or entered Composite): pickable shapes, change_container
 │   └── operations/           # the only code that changes state, one module per feature
 ├── tools/                    # Qt-free input state machines
 │   ├── base.py               # Mods, CursorType, ToolContext, BaseTool
@@ -97,6 +98,7 @@ Rules:
 - Tools subclass `BaseTool` and are listed in `tools/registry.py`; they keep gesture state (drag start, pen points, previews) until they commit through one operation call. `CanvasView` never checks tool types.
 - View `refresh(state)` must be idempotent and cheap; block widget signals while writing values back (`blockSignals(True)`), and skip expensive rebuilds when the relevant slice of state is unchanged.
 - The canvas redraws everything from state each frame. `PathCache` keys Skia geometry by shape id and rebuilds when the frozen shape changes. While a gesture runs, the tool reports the moving ids plus a doc-space `matrix` (move/rotate) or exact `live` replacement shapes (scale, node drags) in its `Overlay`, so the recorded picture is reused.
+- Composites: `AppState.edit_path` holds the ids of the entered Composites (outer to inner). Operations reach "the shapes being edited" only through `editing/containers.py` (`pickable_shapes`, `change_container`), never `layer.shapes` directly, so they work the same on layer shapes and on parts. Part modes stay keyed by part id when lists are rebuilt. Enter/leave are not undo steps; `Session` trims a stale `edit_path` after undo.
 - Shapes are frozen; change them with `dataclasses.replace`. Undo snapshots copy layer lists only and share shape objects.
 - Shape `transform` stays canonical: go through `geometry.transforms` (`transform_shape`, `translate`, `with_rotation`) rather than composing matrices onto shapes by hand. Paths keep an identity transform (baked into segments).
 - Tools decide cursors as `CursorType` (Qt-free, tested); only `views/cursors.py` maps them to Qt.

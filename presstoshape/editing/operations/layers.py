@@ -1,6 +1,7 @@
 """Adding, removing, selecting, hiding and renaming layers."""
 
 from presstoshape.editing.operations._document import prune_selection
+from presstoshape.editing.operations.composites import leave_all
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import Layer
@@ -26,6 +27,7 @@ def remove_layer(session: Session, index: int) -> None:
     if len(layers) <= 1 or not 0 <= index < len(layers):
         return
     with session.edit("Delete layer"):
+        leave_all(state)
         del layers[index]
         state.selected_layer_index = min(state.selected_layer_index, len(layers) - 1)
         prune_selection(state)
@@ -40,6 +42,7 @@ def select_layer(session: Session, index: int) -> None:
     state = session.state
     if index == state.selected_layer_index or not 0 <= index < len(state.document.layers):
         return
+    leave_all(state)
     state.selected_layer_index = index
     session.notify()
 
@@ -50,6 +53,7 @@ def set_layer_visible(session: Session, index: int, visible: bool) -> None:
     if layer.visible == visible:
         return
     with session.edit("Show layer" if visible else "Hide layer"):
+        leave_all(state)
         layer.visible = visible
         prune_selection(state)
 

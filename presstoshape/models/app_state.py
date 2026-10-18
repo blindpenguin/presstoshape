@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
-from presstoshape.models.shapes import Shape, Style
+from presstoshape.models.shapes import PartMode, Shape, Style
 
 
 class Tool(Enum):
@@ -54,6 +54,10 @@ class AppState:
     selection: set[int] = field(default_factory=set)
     # Node tool: selected path nodes as (shape id, segment index).
     node_selection: frozenset[tuple[int, int]] = frozenset()
+    # Entered Composites, outer to inner; empty when no Composite is being edited. Not part of undo.
+    edit_path: tuple[int, ...] = ()
+    # Mode given to parts drawn while a Composite is being edited.
+    new_part_mode: PartMode = "add"
     # Style each drawing tool gives new shapes, edited in the tool options panel.
     tool_styles: dict[Tool, Style] = field(default_factory=_default_tool_styles)
     font_size: float = 24.0

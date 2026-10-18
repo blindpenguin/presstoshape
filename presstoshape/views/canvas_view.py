@@ -5,13 +5,14 @@ import skia
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt, QTimer, Signal
 from PySide6.QtWidgets import QAbstractScrollArea, QInputDialog
 
+from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import view
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import AppState
 from presstoshape.render.overlay import CanvasColors
 from presstoshape.render.paths import PathCache
 from presstoshape.render.picture import DocumentPicture
-from presstoshape.render.scene import draw_background, draw_overlays, parse_color
+from presstoshape.render.scene import draw_background, draw_edit_mode, draw_overlays, parse_color
 from presstoshape.render.viewport import Viewport, scene_rect
 from presstoshape.tools.base import CursorType, Mods, ToolContext
 from presstoshape.tools.registry import Toolbox
@@ -168,9 +169,13 @@ class CanvasView(QAbstractScrollArea):
             return
         canvas.setMatrix(self._vp.matrix(dpr))
         overlay = self._toolbox.active.overlay
+        chain = containers.edit_chain(state)
+        hidden = frozenset({chain[0].id}) if chain else frozenset()
         draw_background(canvas, state.document, _COLORS)
-        self._picture.draw(canvas, state.document, overlay.moving, overlay.matrix, overlay.live)
-        draw_overlays(canvas, state.document, overlay, self._cache, self._vp.zoom, _COLORS)
+        self._picture.draw(canvas, state.document, overlay.moving, overlay.matrix, overlay.live, hidden)
+        if chain:
+            draw_edit_mode(canvas, chain, overlay, self._vp.zoom, _COLORS)
+        draw_overlays(canvas, queries.pickable_shapes(state), overlay, self._cache, self._vp.zoom, _COLORS)
 
     # --- view navigation ----------------------------------------------------
 

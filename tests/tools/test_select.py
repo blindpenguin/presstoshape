@@ -3,8 +3,9 @@ import math
 import pytest
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import selection, shapes, transform
+from presstoshape.editing.operations import composites, selection, shapes, transform
 from presstoshape.geometry import affine, transforms
+from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import all_shapes, drag, setup_tools
 
@@ -215,3 +216,71 @@ def test_hover_resize_follows_rotation():
     sid = _rect_selected(session)
     transform.set_rotation(session, sid, 90)
     assert g.hover((150, 175)) is CursorType.RESIZE_V
+
+
+# --- composites ------------------------------------------------------------------------
+
+
+def _composite_tool_session():
+    session, g = setup_tools()
+    bottom = shapes.add_rectangle(session, (100, 100), (200, 200))
+    top = shapes.add_rectangle(session, (150, 150), (250, 250))
+    selection.set_selection(session, {bottom, top})
+    composites.make_composite(session, "add")
+    (composite_id,) = session.state.selection
+    return session, g, composite_id, bottom, top
+
+
+def test_double_click_enters_and_double_click_on_nothing_leaves():
+    session, g, composite_id, bottom, top = _composite_tool_session()
+    g.double_click((120, 120), NONE)
+    assert session.state.edit_path == (composite_id,)
+    g.double_click((400, 50), NONE)
+    assert session.state.edit_path == () and session.state.selection == {composite_id}
+
+
+def test_enter_key_enters_a_selected_composite():
+    session, g, composite_id, bottom, top = _composite_tool_session()
+    assert g.key("enter") is True
+    assert session.state.edit_path == (composite_id,)
+
+
+def test_escape_clears_selection_first_then_leaves():
+    session, g, composite_id, bottom, top = _composite_tool_session()
+    composites.enter(session, composite_id)
+    selection.set_selection(session, {bottom})
+    g.escape()
+    assert session.state.selection == set() and session.state.edit_path == (composite_id,)
+    g.escape()
+    assert session.state.edit_path == ()
+
+
+def test_dragging_a_part_moves_only_that_part():
+    session, g, composite_id, bottom, top = _composite_tool_session()
+    composites.enter(session, composite_id)
+    g.press((240, 240), NONE)
+    g.move((260, 240), NONE)
+    assert g.overlay.moving == {top}
+    g.release((260, 240), NONE)
+    composite = queries.find_shape(session.state, composite_id)
+    assert composite.parts[1].x == 170 and composite.parts[0].x == 100
+
+
+def test_drawing_in_edit_mode_adds_a_part():
+    session, g, composite_id, bottom, top = _composite_tool_session()
+    composites.enter(session, composite_id)
+    composites.set_new_part_mode(session, "subtract")
+    g.set_tool(Tool.RECTANGLE)
+    drag(g, (110, 110), (130, 130))
+    composite = queries.find_shape(session.state, composite_id)
+    assert len(composite.parts) == 3 and composite.modes[-1] == "subtract"
+
+
+def test_nested_double_click_enters_one_level_deeper():
+    session, g, composite_id, bottom, top = _composite_tool_session()
+    composites.enter(session, composite_id)
+    selection.set_selection(session, {bottom, top})
+    composites.make_composite(session)
+    (nested_id,) = session.state.selection
+    g.double_click((120, 120), NONE)
+    assert session.state.edit_path == (composite_id, nested_id)

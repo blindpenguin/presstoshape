@@ -1,12 +1,14 @@
+import re
 import xml.etree.ElementTree as ET
 
 import pytest
 
-from presstoshape.formats.svg import read_svg, write_svg
-from presstoshape.geometry import affine, transforms
+from presstoshape.formats.svg import read_svg, read_svg_with_notes, write_svg
+from presstoshape.geometry import affine, booleans, transforms
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
     Close,
+    CompositeShape,
     CubicTo,
     EllipseShape,
     LineTo,
@@ -180,3 +182,89 @@ def test_inkscape_style_transforms_import_as_primitives():
     assert rect.transform == affine.IDENTITY
     assert isinstance(text, TextShape) and (text.x, text.y) == pytest.approx((5, 10))
     assert transforms.rotation_of(text) == pytest.approx(45)
+
+
+# --- composites ---------------------------------------------------------------------------
+
+
+
+def _nested_composite() -> CompositeShape:
+    red = Style(fill="#ff0000", stroke=None)
+    inner = CompositeShape(
+        20, (RectShape(3, 0, 0, 40, 40, red), EllipseShape(4, 40, 40, 15, 15, red)), ("add", "exclude"), red
+    )
+    return CompositeShape(
+        10,
+        (
+            RectShape(1, 0, 0, 100, 60, Style()),
+            inner,
+            RectShape(2, 30, 10, 20, 20, Style()),
+            RectShape(5, 0, 0, 90, 50, Style()),
+        ),
+        ("add", "subtract", "add", "intersect"),
+        Style(fill="#00aa00"),
+    )
+
+
+def _write(*shapes) -> str:
+    return write_svg(Document(200, 200, [Layer("L", shapes=list(shapes))]))
+
+
+def _structure(shape):
+    if isinstance(shape, CompositeShape):
+        return ("composite", shape.modes, shape.style, tuple(_structure(part) for part in shape.parts))
+    return (type(shape).__name__, shape.style)
+
+
+def test_composite_round_trip_keeps_nesting_modes_styles_and_result():
+    original = _nested_composite()
+    document, notes = read_svg_with_notes(_write(original))
+    (restored,) = document.layers[0].shapes
+    assert notes == []
+    assert _structure(restored) == _structure(original)
+    assert booleans.mismatch_area(transforms.outline(restored), transforms.outline(original)) < 0.05
+
+
+def test_composite_is_written_as_a_visible_result_path_with_hidden_definition():
+    svg = _write(_nested_composite())
+    root = ET.fromstring(svg)
+    path = root.find("{http://www.w3.org/2000/svg}g/{http://www.w3.org/2000/svg}path")
+    assert path.get("fill") == "#00aa00" and path.get("d")
+    assert path.find("{http://www.w3.org/2000/svg}metadata") is not None
+
+
+def test_rewritten_result_path_is_still_recognized():
+    svg = _write(_nested_composite())
+    root = ET.fromstring(svg)
+    path = root.find("{http://www.w3.org/2000/svg}g/{http://www.w3.org/2000/svg}path")
+    # Another tool may rewrite `d` with other precision and spacing; the shape stays the same.
+    path.set("d", re.sub(r"-?\d+\.?\d*", lambda m: f" {float(m.group()):.2f} ", path.get("d")))
+    document, notes = read_svg_with_notes(ET.tostring(root, encoding="unicode"))
+    assert notes == [] and isinstance(document.layers[0].shapes[0], CompositeShape)
+
+
+def test_edited_result_opens_as_path_with_a_note():
+    svg = _write(_nested_composite())
+    root = ET.fromstring(svg)
+    path = root.find("{http://www.w3.org/2000/svg}g/{http://www.w3.org/2000/svg}path")
+    path.set("d", "M 0 0 L 150 0 L 150 150 Z")
+    document, notes = read_svg_with_notes(ET.tostring(root, encoding="unicode"))
+    (shape,) = document.layers[0].shapes
+    assert isinstance(shape, PathShape) and shape.style.fill == "#00aa00"
+    assert notes and "edited in another program" in notes[0]
+
+
+def test_broken_definition_falls_back_to_the_path():
+    svg = _write(_nested_composite())
+    root = ET.fromstring(svg)
+    definition = root.find(".//{https://github.com/blindpenguin/presstoshape/ns/svg/1}composite")
+    for child in list(definition):
+        definition.remove(child)
+    document, notes = read_svg_with_notes(ET.tostring(root, encoding="unicode"))
+    assert isinstance(document.layers[0].shapes[0], PathShape)
+    assert notes
+
+
+def test_files_without_composites_have_no_notes():
+    document, notes = read_svg_with_notes(_write(RectShape(1, 0, 0, 10, 10, Style())))
+    assert notes == [] and isinstance(document.layers[0].shapes[0], RectShape)

@@ -2,11 +2,19 @@ import skia
 
 from presstoshape.geometry import affine, transforms
 from presstoshape.models.app_state import Document, Layer
-from presstoshape.models.shapes import EllipseShape, LineTo, MoveTo, RectShape, Style
+from presstoshape.models.shapes import CompositeShape, EllipseShape, LineTo, MoveTo, RectShape, Style
+from presstoshape.render.export import render_png
 from presstoshape.render.handles import Frame
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache
-from presstoshape.render.scene import draw_background, draw_document, draw_overlays, parse_color
+from presstoshape.render.scene import (
+    draw_background,
+    draw_document,
+    draw_edit_mode,
+    draw_overlays,
+    parse_color,
+    visible_shapes,
+)
 
 COLORS = CanvasColors("#101010", "#ffffff", "#808080", "#0000ff", "#00ff00")
 TRANSPARENT = (0, 0, 0, 0)
@@ -87,7 +95,7 @@ def _render_overlay(doc: Document, overlay, zoom: float = 1.0) -> skia.Surface:
     canvas = surface.getCanvas()
     canvas.clear(skia.ColorTRANSPARENT)
     canvas.scale(zoom, zoom)
-    draw_overlays(canvas, doc, overlay, PathCache(), zoom, COLORS)
+    draw_overlays(canvas, list(visible_shapes(doc)), overlay, PathCache(), zoom, COLORS)
     return surface
 
 
@@ -171,3 +179,52 @@ def test_selected_node_is_filled_unselected_is_white():
     surface = _render_overlay(_doc(), overlay, 1.0)
     assert _pixel(surface, 20, 20) == (255, 255, 255, 255)
     assert _pixel(surface, 80, 20) == (0, 255, 0, 255)
+
+
+def _ring(shape_id=10, style=Style(fill="#ff0000", stroke=None)):
+    outer = RectShape(1, 20, 20, 60, 60, style)
+    hole = RectShape(2, 40, 40, 20, 20, style)
+    return CompositeShape(shape_id, (outer, hole), ("add", "subtract"), style)
+
+
+def test_composite_renders_its_result_not_its_parts():
+    surface = _render(_doc(_ring()))
+    assert _pixel(surface, 25, 25) == (255, 0, 0, 255)
+    assert _pixel(surface, 50, 50) == TRANSPARENT
+
+
+def test_composite_export_matches_canvas():
+    data = render_png(_doc(_ring()), 1.0)
+    image = skia.Image.MakeFromEncoded(skia.Data.MakeWithCopy(data))
+    rgba = image.toarray(colorType=skia.kRGBA_8888_ColorType)
+    assert tuple(int(v) for v in rgba[25, 25]) == (255, 0, 0, 255)
+    assert tuple(int(v) for v in rgba[50, 50]) == TRANSPARENT
+
+
+def _edit_surface(chain, overlay=Overlay()):
+    doc = Document(100, 100, [Layer("L", True, [RectShape(99, 0, 0, 100, 100, Style(fill="#0000ff", stroke=None))])])
+    surface = skia.Surface(100, 100)
+    canvas = surface.getCanvas()
+    canvas.clear(skia.ColorTRANSPARENT)
+    draw_document(canvas, doc, PathCache())
+    draw_edit_mode(canvas, chain, overlay, 1.0, COLORS)
+    return surface
+
+
+def test_edit_mode_dims_outside_and_draws_the_live_result():
+    ring = _ring()
+    surface = _edit_surface([ring])
+    # Outside the Composite: the blue background is dimmed toward the pasteboard color.
+    dimmed = _pixel(surface, 5, 5)
+    assert dimmed != (0, 0, 255, 255) and dimmed[2] < 255
+    # The Composite's result is drawn undimmed on top.
+    assert _pixel(surface, 25, 25) == (255, 0, 0, 255)
+
+
+def test_edit_mode_shows_a_dragged_part_live():
+    ring = _ring()
+    overlay = Overlay(moving=frozenset({2}), matrix=affine.translation(-20, -20))
+    surface = _edit_surface([ring], overlay)
+    # The hole moved up-left to 20..40, so (30, 30) is now a hole and (50, 50) is filled.
+    assert _pixel(surface, 50, 50) == (255, 0, 0, 255)
+    assert _pixel(surface, 30, 30) != (255, 0, 0, 255)

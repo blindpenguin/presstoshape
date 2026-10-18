@@ -9,6 +9,7 @@ from presstoshape.geometry.segments import quad_to_cubic
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
     Close,
+    CompositeShape,
     CubicTo,
     LineTo,
     MoveTo,
@@ -113,9 +114,19 @@ class PathCache:
         # Identity first: unchanged shapes are the same object, and equality on nested dataclasses is slow.
         if entry is None or (entry[0] is not shape and entry[0] != shape):
             path = _build(shape)
-            entry = (shape, path, _bounds(shape, path))
+            bounds = _bounds(shape, path)
+            if isinstance(shape, CompositeShape) and path.isEmpty():
+                bounds = self._union(self.bounds(part) for part in shape.parts)
+            entry = (shape, path, bounds)
             self._paths[shape.id] = entry
         return entry
+
+    @staticmethod
+    def _union(rects) -> skia.Rect:
+        result = skia.Rect.MakeEmpty()
+        for rect in rects:
+            result.join(rect)
+        return result
 
     def get(self, shape: Shape) -> skia.Path:
         return self._entry(shape)[1]
@@ -136,8 +147,12 @@ class PathCache:
         return self._entry(shape)[2]
 
     def geometry_bounds(self, shape: Shape) -> skia.Rect:
-        """Tight bounds of the transformed geometry, without stroke."""
-        return self.get(shape).computeTightBounds()
+        """Tight bounds of the transformed geometry, without stroke. An empty Composite uses its parts' bounds,
+        so it can still be found, selected and framed."""
+        path = self.get(shape)
+        if isinstance(shape, CompositeShape) and path.isEmpty():
+            return self._union(self.geometry_bounds(part) for part in shape.parts)
+        return path.computeTightBounds()
 
     def prune(self, live_ids: Iterable[int]) -> None:
         live = set(live_ids)

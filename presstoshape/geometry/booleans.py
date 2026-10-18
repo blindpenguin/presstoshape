@@ -1,17 +1,16 @@
 """Boolean path operations through skia-pathops (float32 inside; results are rounded)."""
 
 from collections.abc import Sequence
-from typing import Literal
 
 import pathops
 
 from presstoshape.geometry.boxes import Point
 from presstoshape.geometry.segments import quad_to_cubic
-from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, Segment
+from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, PartMode, Segment
 
 Segments = tuple[Segment, ...]
 # How a part combines with everything below it.
-Mode = Literal["add", "subtract", "intersect", "exclude"]
+Mode = PartMode
 
 _PATHOPS: dict[str, pathops.PathOp] = {
     "add": pathops.PathOp.UNION,
@@ -31,6 +30,15 @@ def combine_parts(parts: Sequence[tuple[Segments, Mode]]) -> Segments:
     for outline, mode in rest:
         result = pathops.op(result, _to_skia(outline), _PATHOPS[mode])
     return _from_skia(result)
+
+
+def area(segments: Segments) -> float:
+    return abs(_to_skia(segments).area)
+
+
+def mismatch_area(first: Segments, second: Segments) -> float:
+    """Area covered by exactly one of two outlines: 0 when they describe the same shape, however written."""
+    return abs(pathops.op(_to_skia(first), _to_skia(second), pathops.PathOp.XOR).area)
 
 
 # Pieces smaller than this (square doc units) are float32 slivers along shared edges, not real areas.

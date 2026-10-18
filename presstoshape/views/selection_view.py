@@ -2,13 +2,14 @@ from functools import partial
 
 from PySide6.QtWidgets import QDoubleSpinBox, QFormLayout, QFrame, QLabel, QLineEdit, QVBoxLayout, QWidget
 
-from presstoshape.editing import queries
-from presstoshape.editing.operations import shapes, style, transform
+from presstoshape.editing import containers, queries
+from presstoshape.editing.operations import composites, shapes, style, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Shape, Style, TextShape
+from presstoshape.models.shapes import CompositeShape, EllipseShape, PathShape, RectShape, Shape, Style, TextShape
 from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
+from presstoshape.views.widgets import PartModeBox
 
 _COORD_RANGE = 100_000.0
 
@@ -19,7 +20,13 @@ _GEOMETRY: dict[type, tuple[tuple[str, str, float | None], ...]] = {
     TextShape: (("x", "X", None), ("y", "Y", None), ("font_size", "Size", 1.0)),
 }
 
-_KIND_NAMES = {RectShape: "Rectangle", EllipseShape: "Ellipse", PathShape: "Path", TextShape: "Text"}
+_TYPE_NAMES = {
+    RectShape: "Rectangle",
+    EllipseShape: "Ellipse",
+    PathShape: "Path",
+    TextShape: "Text",
+    CompositeShape: "Composite",
+}
 
 _HINT = (
     "Click to select, Ctrl+click to add or remove, drag on empty canvas for box select. "
@@ -52,6 +59,9 @@ class SelectionOptions(QWidget):
         geometry_box = QWidget()
         self._form = QFormLayout(geometry_box)
         self._form.setContentsMargins(0, 0, 0, 0)
+        self._mode = PartModeBox()
+        self._mode.mode_picked.connect(partial(composites.set_part_mode, session))
+        self._form.addRow("Mode", self._mode)
         self._text = QLineEdit()
         self._text.editingFinished.connect(self._on_text_edited)
         self._form.addRow("Text", self._text)
@@ -98,7 +108,7 @@ class SelectionOptions(QWidget):
         if not selected:
             self._heading.setText("Nothing selected")
         elif single is not None:
-            self._heading.setText(_KIND_NAMES[type(single)])
+            self._heading.setText(_TYPE_NAMES[type(single)])
         else:
             self._heading.setText(f"{len(selected)} objects")
         self._hint.setVisible(not selected)
@@ -106,8 +116,9 @@ class SelectionOptions(QWidget):
         self._style.refresh(selected[0].style if selected else Style())
 
         rows = _GEOMETRY.get(type(single), ())
-        self._geometry.setVisible(bool(rows))
-        self._separator.setVisible(bool(rows))
+        show_mode = self._refresh_mode(state, selected)
+        self._geometry.setVisible(bool(rows) or show_mode)
+        self._separator.setVisible(bool(rows) or show_mode)
         fields = {field for field, _, _ in rows}
         for field, spin in self._spins.items():
             self._form.setRowVisible(spin, field in fields)
@@ -122,6 +133,28 @@ class SelectionOptions(QWidget):
         self._form.setRowVisible(self._text, is_text)
         if is_text and not self._text.hasFocus() and self._text.text() != single.text:
             self._text.setText(single.text)
+
+    def _refresh_mode(self, state: AppState, selected: list[Shape]) -> bool:
+        """Part mode of the selection inside a Composite: its mode, "Base" or "Mixed". False outside edit mode."""
+        composite = containers.edited_composite(state)
+        visible = composite is not None and bool(selected)
+        self._form.setRowVisible(self._mode, visible)
+        if not visible:
+            return False
+        base_id = composite.parts[0].id
+        others = {
+            mode
+            for part, mode in zip(composite.parts, composite.modes)
+            if part.id in state.selection and part.id != base_id
+        }
+        if not others:
+            self._mode.show_mode(None, "Base")
+        elif len(others) == 1:
+            self._mode.show_mode(next(iter(others)))
+        else:
+            self._mode.show_mode(None, "Mixed")
+        self._mode.setEnabled(bool(others))
+        return True
 
     def _refresh_rotation(self, single: Shape | None) -> None:
         rotatable = isinstance(single, _ROTATABLE)

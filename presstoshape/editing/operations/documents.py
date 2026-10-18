@@ -16,6 +16,7 @@ def _reset(session: Session, document: Document, path: str | None, message: str)
     state.dirty = False
     state.selection = set()
     state.node_selection = frozenset()
+    state.edit_path = ()
     state.selected_layer_index = len(document.layers) - 1
     state.status_message = message
     session.clear_history()
@@ -28,12 +29,15 @@ def new_document(session: Session) -> None:
 
 def open_file(session: Session, path: str) -> bool:
     try:
-        document = svg.read_svg(Path(path).read_text(encoding="utf-8"))
+        document, notes = svg.read_svg_with_notes(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError, ET.ParseError) as error:
         session.state.status_message = f"Could not open {Path(path).name}: {error}"
         session.notify()
         return False
-    _reset(session, document, path, f"Opened {Path(path).name}")
+    message = f"Opened {Path(path).name}"
+    if notes:
+        message += ". " + ". ".join(dict.fromkeys(notes))
+    _reset(session, document, path, message)
     return True
 
 

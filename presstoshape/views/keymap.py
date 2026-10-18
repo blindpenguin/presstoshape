@@ -60,6 +60,11 @@ KEYMAP: dict[str, Binding] = {
     "view.zoom_out": Binding("-", icons.ZOOM_OUT),
     "view.zoom_fit": Binding("5", icons.ZOOM_FIT),
     "view.zoom_actual": Binding("1"),
+    "path.make_composite": Binding("Ctrl+Alt+C"),
+    "object.raise": Binding("PgUp"),
+    "object.lower": Binding("PgDown"),
+    "object.raise_to_top": Binding("Home"),
+    "object.lower_to_bottom": Binding("End"),
     "tool.select": Binding("V", icons.TOOL_SELECT),
     "tool.node": Binding("N", icons.TOOL_NODE),
     "tool.pen": Binding("P", icons.TOOL_PEN),
@@ -71,11 +76,20 @@ KEYMAP: dict[str, Binding] = {
 TOOL_IDS = [entry.id for entry in TOOLS]
 BOOLEAN_IDS = ["path.union", "path.difference", "path.intersection", "path.exclude", "path.divide"]
 
-# None is a separator.
-MENUS: list[tuple[str, list[str | None]]] = [
+COMPOSITE_IDS: list[str | None | tuple[str, list[str]]] = [
+    "path.make_composite",
+    ("Make Composite &As", [f"path.make_composite_{mode}" for mode in ("add", "subtract", "intersect", "exclude")]),
+    "path.release_composite",
+    "path.flatten_composite",
+]
+ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lower_to_bottom"]
+
+# None is a separator; a (title, ids) tuple is a submenu.
+MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
     ("&File", ["file.new", "file.open", "file.save", "file.save_as", None, "file.export_png", None, "file.quit"]),
     ("&Edit", ["edit.undo", "edit.redo", None, "edit.select_all", "edit.delete"]),
-    ("&Path", [*BOOLEAN_IDS, None, "path.object_to_path"]),
+    ("&Path", [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
+    ("&Object", ARRANGE_IDS),
     ("&View", ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),
     ("&Tools", TOOL_IDS),
     ("&Help", ["help.about"]),

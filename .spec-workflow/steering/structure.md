@@ -27,7 +27,7 @@ presstoshape/                   # repo root
     ├── assets/icons/*.svg      # generated Tabler outline icons (currentColor)
     ├── models/                 # plain dataclasses, no logic beyond defaults
     │   ├── app_state.py        # AppState, Document, Layer, Tool
-    │   └── shapes.py           # frozen shapes, Style, path segments, Transform
+    │   └── shapes.py           # frozen shapes (incl. CompositeShape), Style, path segments, Transform
     ├── geometry/               # pure shape math
     │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
     │   ├── boxes.py            # Point, Rect, drag boxes
@@ -42,7 +42,8 @@ presstoshape/                   # repo root
     │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()
     │   ├── registry.py         # Operation table: id, menu label, can_run
     │   ├── queries.py          # read-only questions about state
-    │   └── operations/         # history, view, selection, shapes, transform, booleans, paths, node_editing, style, layers, documents
+    │   ├── containers.py       # active container (layer or entered Composite chain via edit_path)
+    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, arrange, paths, node_editing, style, layers, documents
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox

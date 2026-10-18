@@ -4,7 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from presstoshape.editing.operations import selection
+from presstoshape.editing import containers, queries
+from presstoshape.editing.operations import composites, selection
 from presstoshape.editing.session import Session
 from presstoshape.geometry.boxes import Point
 from presstoshape.models.app_state import AppState
@@ -67,7 +68,8 @@ class ToolContext:
 
     def shape_at(self, point: Point) -> int | None:
         """Top-most shape under `point`, with a few screen px of tolerance for thin strokes."""
-        return hit_test.shape_at(self.state.document, self.cache, point, HIT_TOLERANCE_PX * self.pixel_size)
+        shapes = queries.pickable_shapes(self.state)
+        return hit_test.shape_at(shapes, self.cache, point, HIT_TOLERANCE_PX * self.pixel_size)
 
 
 class BaseTool:
@@ -108,11 +110,15 @@ class BaseTool:
         return False
 
     def escape(self) -> None:
+        """Cancels a gesture, else clears the selection, else leaves one level of Composite edit mode."""
+        state = self._context.state
         if self.active:
             self.cancel()
             self._context.repaint()
-        else:
+        elif state.selection or not containers.editing(state):
             selection.set_selection(self._context.session, set())
+        else:
+            composites.leave(self._context.session)
 
     def cancel(self) -> None:
         pass

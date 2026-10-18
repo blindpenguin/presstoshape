@@ -1,6 +1,7 @@
 """Immutable shape/geometry data. Frozen so undo snapshots can share shapes and views can diff by equality."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -85,4 +86,21 @@ class TextShape:
     transform: Transform = IDENTITY_TRANSFORM
 
 
-Shape = RectShape | EllipseShape | PathShape | TextShape
+# How a Composite part combines with everything below it. The bottom part is the base whatever its mode.
+PartMode = Literal["add", "subtract", "intersect", "exclude"]
+
+
+@dataclass(frozen=True)
+class CompositeShape:
+    """Parts combined bottom to top, each by its mode; painted as one outline in the Composite's style."""
+
+    id: int
+    parts: tuple["Shape", ...]
+    # One per part; modes[0] is ignored because the first part is the base.
+    modes: tuple[PartMode, ...]
+    style: Style
+    # Stays identity: transforms are applied to the parts.
+    transform: Transform = IDENTITY_TRANSFORM
+
+
+Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape

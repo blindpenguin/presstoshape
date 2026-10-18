@@ -1,6 +1,6 @@
 """Selecting, moving and deleting the selected shapes."""
 
-from presstoshape.editing import queries
+from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import node_editing
 from presstoshape.editing.operations._document import map_selected, remove_shapes
 from presstoshape.editing.registry import operation
@@ -11,7 +11,7 @@ from presstoshape.models.app_state import Tool
 
 def set_selection(session: Session, ids: set[int]) -> None:
     state = session.state
-    selection = {shape.id for shape in queries.visible_shapes(state)} & set(ids)
+    selection = {shape.id for shape in queries.pickable_shapes(state)} & set(ids)
     if selection == state.selection:
         return
     state.selection = selection
@@ -22,7 +22,7 @@ def set_selection(session: Session, ids: set[int]) -> None:
 
 @operation("edit.select_all", "Select &All")
 def select_all(session: Session) -> None:
-    set_selection(session, {shape.id for shape in queries.visible_shapes(session.state)})
+    set_selection(session, {shape.id for shape in queries.pickable_shapes(session.state)})
 
 
 def move_selection(session: Session, dx: float, dy: float) -> None:
@@ -49,3 +49,8 @@ def delete_selection(session: Session) -> None:
         remove_shapes(state, selection)
         state.status_message = f"Deleted {len(selection)} object(s)"
         state.selection = set()
+        composite = containers.edited_composite(state)
+        if composite is not None and not composite.parts:
+            # The last part went, so the Composite goes too and its edit mode closes.
+            state.edit_path = state.edit_path[:-1]
+            remove_shapes(state, {composite.id})

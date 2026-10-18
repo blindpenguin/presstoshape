@@ -5,7 +5,7 @@ PressToShape is an open-source, cross-platform, professional vector drawing appl
 
 The problem it solves: professional vector work is dominated by a proprietary subscription product. Open alternatives exist, but are often not fast, approachable or artist-focused enough for illustration work. PressToShape is meant to be a tool artists choose because it is good, not only because it is free.
 
-Today PressToShape is at an early stage (shapes, bezier pen, text, styling, layers, booleans, undo, SVG I/O). This document describes where it is going.
+Today PressToShape is at an early stage (shapes, bezier pen, text, styling, layers, booleans, non-destructive Composites, undo, SVG I/O). This document describes where it is going.
 
 ## Target Users
 - **Illustrators and digital artists** drawing with tablets and mice. Need: expressive freehand and brush tools, pressure sensitivity, rich color and paint, a fast canvas that doesn't get in the way.
