@@ -1,9 +1,9 @@
 import pytest
 
+from presstoshape.editing.operations import shapes
+from presstoshape.editing.session import Session
+from presstoshape.models.shapes import RectShape
 from tests.helpers import all_shapes
-from veccy.editing.operations import shapes
-from veccy.editing.session import Session
-from veccy.models.shapes import RectShape
 
 
 def test_add_rectangle_selects_it_and_marks_dirty():

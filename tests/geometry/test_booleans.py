@@ -1,9 +1,9 @@
 import pytest
 
+from presstoshape.geometry import booleans
+from presstoshape.geometry.segments import ellipse_segments, rect_segments
+from presstoshape.models.shapes import CubicTo, MoveTo
 from tests.helpers import bbox
-from veccy.geometry import booleans
-from veccy.geometry.segments import ellipse_segments, rect_segments
-from veccy.models.shapes import CubicTo, MoveTo
 
 
 def test_union_of_overlapping_squares_covers_both():

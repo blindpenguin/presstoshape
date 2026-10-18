@@ -1,6 +1,6 @@
 import sys
 
-from veccy.app import App
+from presstoshape.app import App
 
 
 def main() -> None:

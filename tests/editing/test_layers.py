@@ -1,5 +1,5 @@
-from veccy.editing.operations import layers, selection, shapes
-from veccy.editing.session import Session
+from presstoshape.editing.operations import layers, selection, shapes
+from presstoshape.editing.session import Session
 
 
 def test_hidden_layer_shapes_drop_out_of_selection_and_block_drawing():

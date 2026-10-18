@@ -1,6 +1,6 @@
+from presstoshape.editing.operations import selection, shapes
+from presstoshape.editing.session import Session
 from tests.helpers import all_shapes
-from veccy.editing.operations import selection, shapes
-from veccy.editing.session import Session
 
 
 def test_undo_redo_add_and_move():

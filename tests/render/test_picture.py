@@ -2,11 +2,11 @@ from dataclasses import replace
 
 import skia
 
-from veccy.geometry import affine
-from veccy.models.app_state import Document, Layer
-from veccy.models.shapes import RectShape, Style
-from veccy.render.paths import PathCache
-from veccy.render.picture import DocumentPicture
+from presstoshape.geometry import affine
+from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.shapes import RectShape, Style
+from presstoshape.render.paths import PathCache
+from presstoshape.render.picture import DocumentPicture
 
 RED = Style(fill="#ff0000", stroke=None)
 GREEN = Style(fill="#00ff00", stroke=None)

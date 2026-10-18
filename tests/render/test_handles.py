@@ -1,8 +1,8 @@
 import pytest
 
-from veccy.geometry import transforms
-from veccy.models.shapes import LineTo, MoveTo, PathShape, RectShape, Style, TextShape
-from veccy.render.handles import (
+from presstoshape.geometry import transforms
+from presstoshape.models.shapes import LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.render.handles import (
     HANDLE_PX,
     Frame,
     Handle,
@@ -12,7 +12,7 @@ from veccy.render.handles import (
     node_at,
     selection_frame,
 )
-from veccy.render.paths import PathCache
+from presstoshape.render.paths import PathCache
 
 S = Style()
 
@@ -99,7 +99,7 @@ def test_opposite_handles():
 
 
 def test_node_at_prefers_controls_and_respects_zoom():
-    from veccy.models.shapes import CubicTo
+    from presstoshape.models.shapes import CubicTo
 
     segments = (MoveTo(0, 0), CubicTo(2, 0, 50, 0, 60, 0))
     assert node_at(segments, (1, 0), 1.0) == ("node", 0)

@@ -1,6 +1,6 @@
-import veccy.editing.operations  # noqa: F401  (registers every operation)
-from veccy.editing import registry
-from veccy.views import keymap
+import presstoshape.editing.operations  # noqa: F401  (registers every operation)
+from presstoshape.editing import registry
+from presstoshape.views import keymap
 
 
 def _known_ids() -> set[str]:

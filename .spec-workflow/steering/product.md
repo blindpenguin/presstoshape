@@ -1,11 +1,11 @@
 # Product Overview
 
 ## Product Purpose
-veccy is an open-source, cross-platform, professional vector drawing application for artists. It aims to combine the best ideas of existing tools — Illustrator's breadth, Affinity Designer's speed and polish, Inkscape's openness, and the approachable, illustration-first feel of Linearity/Vectornator — into one powerful tool that can take on Adobe Illustrator.
+PressToShape is an open-source, cross-platform, professional vector drawing application for artists. It aims to combine the best ideas of existing tools — Illustrator's breadth, Affinity Designer's speed and polish, Inkscape's openness, and the approachable, illustration-first feel of Linearity/Vectornator — into one powerful tool that can take on Adobe Illustrator.
 
-The problem it solves: professional vector work is dominated by a proprietary subscription product. Open alternatives exist, but are often not fast, approachable or artist-focused enough for illustration work. veccy is meant to be a tool artists choose because it is good, not only because it is free.
+The problem it solves: professional vector work is dominated by a proprietary subscription product. Open alternatives exist, but are often not fast, approachable or artist-focused enough for illustration work. PressToShape is meant to be a tool artists choose because it is good, not only because it is free.
 
-Today veccy is at an early stage (shapes, bezier pen, text, styling, layers, booleans, undo, SVG I/O). This document describes where it is going.
+Today PressToShape is at an early stage (shapes, bezier pen, text, styling, layers, booleans, undo, SVG I/O). This document describes where it is going.
 
 ## Target Users
 - **Illustrators and digital artists** drawing with tablets and mice. Need: expressive freehand and brush tools, pressure sensitivity, rich color and paint, a fast canvas that doesn't get in the way.
@@ -31,7 +31,7 @@ Core feature pillars (target):
 4. **Typography**: rich text, text on path, OpenType font features, converting text to outlines.
 5. **Path editing & construction**: node/handle editing, full boolean set, shape builder, stroke-to-path, offset, simplify.
 6. **Precision & layout**: transforms with handles, snapping, grids, guides, align/distribute, artboards.
-7. **File formats**: native veccy format that stores everything veccy can do; SVG import/export with Inkscape interop; raster export (PNG etc.).
+7. **File formats**: native PressToShape format that stores everything PressToShape can do; SVG import/export with Inkscape interop; raster export (PNG etc.).
 
 ## Business Objectives
 - Become a serious open-source alternative to Adobe Illustrator for illustration and design work.
@@ -43,7 +43,7 @@ Core feature pillars (target):
 ## Success Metrics
 - **Feature coverage**: each core pillar above reaches a usable first version.
 - **Performance**: canvas stays fluid (no visible lag in pan/zoom/drag/brush strokes) with complex documents of tens of thousands of shapes; startup to usable window in a couple of seconds.
-- **Interop**: veccy-made SVG round-trips through Inkscape with shapes, styles and layers intact; common Inkscape and Illustrator-exported SVG files open correctly.
+- **Interop**: PressToShape-made SVG round-trips through Inkscape with shapes, styles and layers intact; common Inkscape and Illustrator-exported SVG files open correctly.
 - **Reliability**: no data loss — every edit undoable, native format reloads exactly what was saved.
 - **Adoption**: artists use it for real projects (tracked via releases, downloads, community feedback).
 
@@ -51,15 +51,15 @@ Core feature pillars (target):
 1. **Artists first**: optimize for drawing feel and creative flow. Tools respond instantly, gestures feel natural, the UI stays out of the way of the canvas.
 2. **Professional depth, approachable surface**: deep capability is available, but common tasks stay simple and discoverable; panels follow the current tool and selection instead of showing everything at once.
 3. **Non-destructive by default**: effects, booleans and styles should stay editable wherever practical; every edit is undoable.
-4. **Own format for fidelity, SVG for exchange**: the native format stores everything veccy supports without compromise. SVG import/export stays a first-class citizen, and features SVG can't express degrade predictably (e.g. flatten or rasterize) instead of silently disappearing.
+4. **Own format for fidelity, SVG for exchange**: the native format stores everything PressToShape supports without compromise. SVG import/export stays a first-class citizen, and features SVG can't express degrade predictably (e.g. flatten or rasterize) instead of silently disappearing.
 5. **Inkscape interop is a requirement**: layers and supported content survive a round trip with Inkscape.
 6. **What you see is what you export**: canvas rendering matches exported output.
 
 ## Monitoring & Visibility (if applicable)
-Not applicable — veccy is a local desktop app with no telemetry. User feedback is through the status bar (tool, zoom, messages) and window title (file name, unsaved state).
+Not applicable — PressToShape is a local desktop app with no telemetry. User feedback is through the status bar (tool, zoom, messages) and window title (file name, unsaved state).
 
 ## Future Vision
-veccy grows from its current shape-editor core into a full professional illustration application, pillar by pillar, while its session / operations / tools architecture keeps it maintainable.
+PressToShape grows from its current shape-editor core into a full professional illustration application, pillar by pillar, while its session / operations / tools architecture keeps it maintainable.
 
 ### Potential Enhancements
 - **Pro workflows**: artboards, symbols/components, swatches and color libraries, global colors, styles libraries.

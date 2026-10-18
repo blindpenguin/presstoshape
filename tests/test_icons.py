@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from veccy import icons
+from presstoshape import icons
 
 
 def test_every_icon_constant_points_to_a_file():

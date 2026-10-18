@@ -1,10 +1,10 @@
 import time
 
-from veccy.geometry import transforms
-from veccy.models.app_state import Document, Layer
-from veccy.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
-from veccy.render.hit_test import shape_at, shapes_in_rect
-from veccy.render.paths import PathCache
+from presstoshape.geometry import transforms
+from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.render.hit_test import shape_at, shapes_in_rect
+from presstoshape.render.paths import PathCache
 
 FILLED = Style(fill="#ff0000", stroke=None)
 OUTLINED = Style(fill=None, stroke="#000000", stroke_width=2)

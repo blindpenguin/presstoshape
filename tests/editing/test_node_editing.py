@@ -1,8 +1,8 @@
-from veccy.editing import queries
-from veccy.editing.operations import node_editing, selection, shapes, view
-from veccy.editing.session import Session
-from veccy.models.app_state import Tool
-from veccy.models.shapes import PathShape
+from presstoshape.editing import queries
+from presstoshape.editing.operations import node_editing, selection, shapes, view
+from presstoshape.editing.session import Session
+from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import PathShape
 
 
 def _path_session():

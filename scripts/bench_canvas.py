@@ -5,7 +5,7 @@ Repaints the real canvas while panning, zooming, and moving/scaling/rotating a s
 shapes). GL frames wait for the GPU to finish, so times include GPU work. `hover` times the cursor query alone.
 
 Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N]
-       VECCY_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
+       PRESSTOSHAPE_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
 """
 
 import argparse
@@ -21,18 +21,26 @@ import skia  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from veccy.app import _set_surface_format  # noqa: E402
-from veccy.editing import queries  # noqa: E402
-from veccy.editing.operations import selection, view  # noqa: E402
-from veccy.editing.session import Session  # noqa: E402
-from veccy.models.app_state import AppState, Document, Layer  # noqa: E402
-from veccy.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape  # noqa: E402
-from veccy.render.handles import Handle  # noqa: E402
-from veccy.tools.base import Mods  # noqa: E402
-from veccy.tools.select import _Mode  # noqa: E402
-from veccy.views import theme  # noqa: E402
-from veccy.views.main_window import MainWindow  # noqa: E402
-from veccy.views.skia_surface import SkiaGLWidget  # noqa: E402
+from presstoshape.app import _set_surface_format  # noqa: E402
+from presstoshape.editing import queries  # noqa: E402
+from presstoshape.editing.operations import selection, view  # noqa: E402
+from presstoshape.editing.session import Session  # noqa: E402
+from presstoshape.models.app_state import AppState, Document, Layer  # noqa: E402
+from presstoshape.models.shapes import (  # noqa: E402
+    EllipseShape,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
+from presstoshape.render.handles import Handle  # noqa: E402
+from presstoshape.tools.base import Mods  # noqa: E402
+from presstoshape.tools.select import _Mode  # noqa: E402
+from presstoshape.views import theme  # noqa: E402
+from presstoshape.views.main_window import MainWindow  # noqa: E402
+from presstoshape.views.skia_surface import SkiaGLWidget  # noqa: E402
 
 
 def _document(count: int) -> Document:
@@ -44,7 +52,7 @@ def _document(count: int) -> Document:
         style = Style(fill=f"#{rng.randrange(0x1000000):06x}", stroke="#18181b", stroke_width=rng.choice((0, 1, 2)))
         match i % 10:
             case 0:
-                shapes.append(TextShape(i, x, y, "veccy", rng.uniform(8, 32), style))
+                shapes.append(TextShape(i, x, y, "shape", rng.uniform(8, 32), style))
             case 1 | 2:
                 pts = [MoveTo(x, y)] + [LineTo(x + rng.uniform(-60, 60), y + rng.uniform(-60, 60)) for _ in range(6)]
                 shapes.append(PathShape(i, tuple(pts), Style(fill=None, stroke=style.fill, stroke_width=2)))

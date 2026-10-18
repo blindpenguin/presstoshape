@@ -1,9 +1,9 @@
 import pytest
 
-from veccy.editing import queries
-from veccy.editing.operations import shapes, transform
-from veccy.editing.session import Session
-from veccy.geometry import affine, transforms
+from presstoshape.editing import queries
+from presstoshape.editing.operations import shapes, transform
+from presstoshape.editing.session import Session
+from presstoshape.geometry import affine, transforms
 
 
 def _rect_session(rotation: float = 0.0):

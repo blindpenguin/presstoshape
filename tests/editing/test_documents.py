@@ -1,6 +1,6 @@
+from presstoshape.editing.operations import documents, shapes
+from presstoshape.editing.session import Session
 from tests.helpers import all_shapes
-from veccy.editing.operations import documents, shapes
-from veccy.editing.session import Session
 
 
 def test_save_and_open_roundtrip(tmp_path):

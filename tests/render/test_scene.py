@@ -1,12 +1,12 @@
 import skia
 
-from veccy.geometry import affine, transforms
-from veccy.models.app_state import Document, Layer
-from veccy.models.shapes import EllipseShape, LineTo, MoveTo, RectShape, Style
-from veccy.render.handles import Frame
-from veccy.render.overlay import CanvasColors, NodeOverlay, Overlay
-from veccy.render.paths import PathCache
-from veccy.render.scene import draw_background, draw_document, draw_overlays, parse_color
+from presstoshape.geometry import affine, transforms
+from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.shapes import EllipseShape, LineTo, MoveTo, RectShape, Style
+from presstoshape.render.handles import Frame
+from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
+from presstoshape.render.paths import PathCache
+from presstoshape.render.scene import draw_background, draw_document, draw_overlays, parse_color
 
 COLORS = CanvasColors("#101010", "#ffffff", "#808080", "#0000ff", "#00ff00")
 TRANSPARENT = (0, 0, 0, 0)

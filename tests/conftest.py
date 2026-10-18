@@ -1,6 +1,6 @@
 import pytest
 
-from veccy.editing.session import Session
+from presstoshape.editing.session import Session
 
 
 @pytest.fixture

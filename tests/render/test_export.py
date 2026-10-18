@@ -1,10 +1,10 @@
 import skia
 
-from veccy.editing.operations import documents, shapes
-from veccy.editing.session import Session
-from veccy.models.app_state import Document, Layer
-from veccy.models.shapes import RectShape, Style
-from veccy.render.export import MAX_SIDE, export_size, render_png
+from presstoshape.editing.operations import documents, shapes
+from presstoshape.editing.session import Session
+from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.shapes import RectShape, Style
+from presstoshape.render.export import MAX_SIDE, export_size, render_png
 
 
 def _doc() -> Document:

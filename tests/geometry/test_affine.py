@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from veccy.geometry import affine
+from presstoshape.geometry import affine
 
 
 def _close(p, q, eps=1e-9):

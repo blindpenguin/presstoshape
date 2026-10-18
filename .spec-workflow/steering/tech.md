@@ -12,21 +12,21 @@ Desktop application for Linux and Windows (macOS not a target for now): a profes
 
 ### Key Dependencies/Libraries
 - **pyside6-essentials (==6.12.0, pinned)**: Qt 6 bindings — QtCore/QtGui/QtWidgets/QtOpenGLWidgets/QtSvg/QtTest. UI, input, GL context hosting. Pinned with `==` because Qt behavior and binding details shift between minors. `pyside6-essentials`, not the `pyside6` metapackage (WebEngine/addons, hundreds of MB, unused).
-- **skia-pathops (0.9.2)**: boolean path operations (union, difference, later the full set) in `veccy/geometry/booleans.py`. Works in float32; results are rounded on conversion.
+- **skia-pathops (0.9.2)**: boolean path operations (union, difference, later the full set) in `presstoshape/geometry/booleans.py`. Works in float32; results are rounded on conversion.
 - **svgelements (1.9.6)**: parsing SVG path data, colors, lengths and transform strings only. Its `SVG.parse` document reader is not used — it drops `display:none` groups (hidden layers) and `<text>`. Document traversal uses `xml.etree.ElementTree`.
-- **skia-python (==144.0.post2)**: canvas and PNG export renderer (`veccy/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
+- **skia-python (==144.0.post2)**: canvas and PNG export renderer (`presstoshape/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
 - **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker, `pyinstaller`.
 
 ### Application Architecture
 Session / operations / tools / views, as in professional editors (Blender's operators, Krita's commands, Inkscape's verbs), with Elm-like state ownership inside Qt's retained-mode widgets:
 
-- **Models** (`veccy/models/`): plain dataclasses. `AppState` (document, active tool, selection, node selection, tool styles, zoom, file path, dirty flag) is the single source of truth. Shapes and path segments are **frozen** dataclasses changed via `dataclasses.replace`.
-- **Geometry** (`veccy/geometry/`) and **formats** (`veccy/formats/`): pure functions over models — affine math, segments, booleans, shape transforms, node editing; SVG read/write.
-- **Render** (`veccy/render/`): Skia drawing of the model — document, overlays, picking (shapes, handles, nodes), viewport math, PNG export.
-- **Session** (`veccy/editing/session.py`): owns the one `AppState`, the undo history with labelled steps and the subscriber list. `with session.edit("Label"):` records one undo step, marks the document dirty and notifies once.
-- **Operations** (`veccy/editing/operations/`): the only code that changes state — plain functions `operation(session, ...)`, one module per feature. Commands that need no extra input are registered (`veccy/editing/registry.py`: id, menu label, "can run?" check), so menus, shortcuts and later a command search or scripting API come from one list.
-- **Tools** (`veccy/tools/`): Qt-free input state machines (`BaseTool` subclasses, listed in `tools/registry.py`). They hold gesture state and previews and commit through one operation call.
-- **Views** (`veccy/views/`): Qt widgets. They render from state in an idempotent, cheap `refresh(state)`; menus and toolbars are built from the registries plus `views/keymap.py` (shortcuts, icons, layouts); `CanvasView` forwards input to the active tool. Dialogs live here and pass plain values to operations.
+- **Models** (`presstoshape/models/`): plain dataclasses. `AppState` (document, active tool, selection, node selection, tool styles, zoom, file path, dirty flag) is the single source of truth. Shapes and path segments are **frozen** dataclasses changed via `dataclasses.replace`.
+- **Geometry** (`presstoshape/geometry/`) and **formats** (`presstoshape/formats/`): pure functions over models — affine math, segments, booleans, shape transforms, node editing; SVG read/write.
+- **Render** (`presstoshape/render/`): Skia drawing of the model — document, overlays, picking (shapes, handles, nodes), viewport math, PNG export.
+- **Session** (`presstoshape/editing/session.py`): owns the one `AppState`, the undo history with labelled steps and the subscriber list. `with session.edit("Label"):` records one undo step, marks the document dirty and notifies once.
+- **Operations** (`presstoshape/editing/operations/`): the only code that changes state — plain functions `operation(session, ...)`, one module per feature. Commands that need no extra input are registered (`presstoshape/editing/registry.py`: id, menu label, "can run?" check), so menus, shortcuts and later a command search or scripting API come from one list.
+- **Tools** (`presstoshape/tools/`): Qt-free input state machines (`BaseTool` subclasses, listed in `tools/registry.py`). They hold gesture state and previews and commit through one operation call.
+- **Views** (`presstoshape/views/`): Qt widgets. They render from state in an idempotent, cheap `refresh(state)`; menus and toolbars are built from the registries plus `views/keymap.py` (shortcuts, icons, layouts); `CanvasView` forwards input to the active tool. Dialogs live here and pass plain values to operations.
 - **Data flow**: input → tool/view → operation → `session.edit()` (undo, mutate `AppState`) → `session.notify()` → `MainWindow.refresh()` → every view's `refresh(state)`.
 - **Dependency direction**: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render. **No Qt below views.** Enforced by `tests/test_architecture.py`.
 - **Canvas**: `CanvasView` (QAbstractScrollArea) hosts a Skia surface widget and redraws the document from state each frame, replaying recorded Skia pictures. Shape geometry is in document coordinates with a canonical per-shape transform.
@@ -34,13 +34,13 @@ Session / operations / tools / views, as in professional editors (Blender's oper
 
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
-- **Native format (planned)**: a veccy document format that stores everything veccy supports losslessly. Requirements: versioned with forward migration, exact reload of what was saved, able to embed resources (images, fonts as needed). Concrete format (e.g. zip + JSON, SQLite) is decided in its own spec.
+- **Native format (planned)**: a PressToShape document format that stores everything PressToShape supports losslessly. Requirements: versioned with forward migration, exact reload of what was saved, able to embed resources (images, fonts as needed). Concrete format (e.g. zip + JSON, SQLite) is decided in its own spec.
 - **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; rect/ellipse/text keep rotate/scale/skew transforms as a per-shape `transform` (written back as `rotate(...)` or `matrix(...)`), paths get transforms applied to their points; unsupported paint is approximated.
 - **Raster export**: PNG, rendered by the same renderer as the canvas (transparent background, any scale up to 16384 px per side).
 - **Caching**: in-memory only (Skia path cache and recorded document pictures in the canvas).
 
 ### External Integrations (if applicable)
-None. veccy is offline; no network access, accounts or telemetry. Interop is file-based (SVG, raster export, later PDF/AI-compatible import).
+None. PressToShape is offline; no network access, accounts or telemetry. Interop is file-based (SVG, raster export, later PDF/AI-compatible import).
 
 ## Development Environment
 
@@ -102,8 +102,8 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 1. **PySide6 (Qt 6 Widgets)**: mature cross-platform desktop UI with tablet input, high-DPI and native dialogs; official Qt binding under LGPL. Never mixed with PyQt (incompatible objects).
 2. **Session / operations / tools / views with single-source-of-truth state, no Qt below views**: the shape professional editors use. Every edit is a named operation running through one session (undo and refresh for free, one place to change undo or notification later); tools are separate input state machines; menus and shortcuts come from registries. Keeps logic unit-testable without a display and rendering a pure function of state. Trade-off: rendering must stay fast enough to redraw from state (path cache, recorded pictures). Replaced an earlier MVC layout whose controller had grown into one large class.
 3. **Frozen shape dataclasses + snapshot undo**: snapshots are cheap (shared immutable shapes), undo is trivially correct, views diff by equality. Trade-off: every edit replaces objects; snapshot cost grows with layer/shape count.
-4. **Commit to Skia for rendering (skia-python)**: QPainter/QGraphicsScene can't deliver the target feature set at scale — mesh gradients, blend modes, live effects (blur, shadows, filters), variable-width brush strokes, GPU acceleration. Skia is the renderer behind Chrome and many design tools, already used here via skia-pathops, and the same renderer serves canvas and raster/PDF export (WYSIWYG). Plan: keep Qt for UI and input; render the canvas with Skia (GPU via an OpenGL surface, CPU raster fallback); the renderer boundary is `veccy/render/` (implemented by the skia-renderer spec).
-5. **Own native format + SVG for exchange**: SVG can't hold everything veccy will support (live effects, brush definitions, editable booleans); a native format guarantees fidelity, while SVG export degrades predictably (flatten/rasterize) and keeps Inkscape interop. Format choice deferred to a spec.
+4. **Commit to Skia for rendering (skia-python)**: QPainter/QGraphicsScene can't deliver the target feature set at scale — mesh gradients, blend modes, live effects (blur, shadows, filters), variable-width brush strokes, GPU acceleration. Skia is the renderer behind Chrome and many design tools, already used here via skia-pathops, and the same renderer serves canvas and raster/PDF export (WYSIWYG). Plan: keep Qt for UI and input; render the canvas with Skia (GPU via an OpenGL surface, CPU raster fallback); the renderer boundary is `presstoshape/render/` (implemented by the skia-renderer spec).
+5. **Own native format + SVG for exchange**: SVG can't hold everything PressToShape will support (live effects, brush definitions, editable booleans); a native format guarantees fidelity, while SVG export degrades predictably (flatten/rasterize) and keeps Inkscape interop. Format choice deferred to a spec.
 6. **skia-pathops for booleans**: robust, fast, Qt-free. Float32 precision accepted; results rounded.
 7. **svgelements for SVG micro-syntax only, ElementTree for documents**: svgelements' document reader loses hidden layers and text.
 8. **SVG icons with a custom `SvgIconEngine`**: vector icons at any DPI, recolored per mode/state; Qt's default SVG icon engine leaves `currentColor` black.

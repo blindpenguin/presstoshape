@@ -2,11 +2,11 @@ import math
 
 import pytest
 
+from presstoshape.editing import queries
+from presstoshape.editing.operations import selection, shapes, transform
+from presstoshape.geometry import affine, transforms
+from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import all_shapes, drag, setup_tools
-from veccy.editing import queries
-from veccy.editing.operations import selection, shapes, transform
-from veccy.geometry import affine, transforms
-from veccy.tools.base import CursorType, Mods
 
 NONE = Mods()
 

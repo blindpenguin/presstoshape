@@ -1,10 +1,10 @@
 
 
+from presstoshape.editing.operations import shapes
+from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import PathShape, RectShape
+from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import all_shapes, drag, setup_tools
-from veccy.editing.operations import shapes
-from veccy.models.app_state import Tool
-from veccy.models.shapes import PathShape, RectShape
-from veccy.tools.base import CursorType, Mods
 
 NONE = Mods()
 

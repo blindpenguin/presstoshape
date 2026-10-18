@@ -1,6 +1,6 @@
 import pytest
 
-from veccy.render.viewport import SCENE_MARGIN, Viewport, scene_rect
+from presstoshape.render.viewport import SCENE_MARGIN, Viewport, scene_rect
 
 
 def _vp(zoom: float = 1.0, scroll: tuple[float, float] = (0.0, 0.0)) -> Viewport:

@@ -2,10 +2,10 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from veccy.formats.svg import read_svg, write_svg
-from veccy.geometry import affine, transforms
-from veccy.models.app_state import Document, Layer
-from veccy.models.shapes import (
+from presstoshape.formats.svg import read_svg, write_svg
+from presstoshape.geometry import affine, transforms
+from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.shapes import (
     Close,
     CubicTo,
     EllipseShape,

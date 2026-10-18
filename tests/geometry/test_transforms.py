@@ -2,10 +2,10 @@ import math
 
 import pytest
 
+from presstoshape.geometry import affine, transforms
+from presstoshape.geometry.segments import transform_segments
+from presstoshape.models.shapes import Close, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
 from tests.helpers import bbox
-from veccy.geometry import affine, transforms
-from veccy.geometry.segments import transform_segments
-from veccy.models.shapes import Close, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
 
 S = Style()
 

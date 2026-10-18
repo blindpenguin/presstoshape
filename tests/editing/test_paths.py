@@ -1,11 +1,11 @@
 import pytest
 
+from presstoshape.editing import queries
+from presstoshape.editing.operations import paths, selection, shapes, transform
+from presstoshape.editing.session import Session
+from presstoshape.models.shapes import EllipseShape, PathShape, RectShape
+from presstoshape.render.paths import PathCache
 from tests.helpers import all_shapes
-from veccy.editing import queries
-from veccy.editing.operations import paths, selection, shapes, transform
-from veccy.editing.session import Session
-from veccy.models.shapes import EllipseShape, PathShape, RectShape
-from veccy.render.paths import PathCache
 
 
 def test_union_replaces_selection_at_bottom_position():

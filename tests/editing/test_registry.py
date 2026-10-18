@@ -1,6 +1,6 @@
 import pytest
 
-from veccy.editing import registry
+from presstoshape.editing import registry
 
 
 @pytest.fixture

@@ -1,11 +1,11 @@
-"""Layer rules: which veccy packages may import which, and where Qt is allowed. Checked statically with ast."""
+"""Layer rules: which presstoshape packages may import which, and where Qt is allowed. Checked statically with ast."""
 
 import ast
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent / "veccy"
+ROOT = Path(__file__).resolve().parent.parent / "presstoshape"
 
-# Package (or top-level module) -> veccy packages/modules it may import.
+# Package (or top-level module) -> presstoshape packages/modules it may import.
 ALLOWED = {
     "models": set(),
     "geometry": {"models"},
@@ -50,7 +50,7 @@ def _violations() -> list[str]:
             top, _, rest = module.partition(".")
             if top == "PySide6" and layer in QT_FREE:
                 problems.append(f"{where}:{line}: Qt import {module!r} in Qt-free layer {layer!r}")
-            if top == "veccy" and rest:
+            if top == "presstoshape" and rest:
                 target = rest.split(".")[0]
                 if target != layer and target not in allowed:
                     problems.append(f"{where}:{line}: {layer!r} must not import {module!r}")

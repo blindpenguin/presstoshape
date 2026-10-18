@@ -1,7 +1,7 @@
+from presstoshape.editing.operations import shapes, style
+from presstoshape.editing.session import Session
+from presstoshape.models.app_state import Tool
 from tests.helpers import all_shapes
-from veccy.editing.operations import shapes, style
-from veccy.editing.session import Session
-from veccy.models.app_state import Tool
 
 
 def test_stroke_width_changes_merge_into_one_undo_step():

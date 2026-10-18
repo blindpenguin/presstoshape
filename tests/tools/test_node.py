@@ -1,11 +1,11 @@
 
 
+from presstoshape.editing import queries
+from presstoshape.editing.operations import node_editing, selection, shapes, view
+from presstoshape.geometry import nodes
+from presstoshape.models.app_state import Tool
+from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import drag, setup_tools
-from veccy.editing import queries
-from veccy.editing.operations import node_editing, selection, shapes, view
-from veccy.geometry import nodes
-from veccy.models.app_state import Tool
-from veccy.tools.base import CursorType, Mods
 
 NONE = Mods()
 

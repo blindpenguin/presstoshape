@@ -1,8 +1,8 @@
 import pytest
 
-from veccy.geometry import nodes
-from veccy.geometry.segments import ellipse_segments, rect_segments
-from veccy.models.shapes import Close, CubicTo, LineTo, MoveTo
+from presstoshape.geometry import nodes
+from presstoshape.geometry.segments import ellipse_segments, rect_segments
+from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo
 
 RECT = rect_segments(0, 0, 10, 10)
 ELLIPSE = ellipse_segments(0, 0, 10, 5)

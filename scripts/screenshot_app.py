@@ -13,10 +13,10 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from veccy.app import App  # noqa: E402
-from veccy.editing.operations import selection, shapes, style, transform, view  # noqa: E402
-from veccy.editing.session import Session  # noqa: E402
-from veccy.models.app_state import Tool  # noqa: E402
+from presstoshape.app import App  # noqa: E402
+from presstoshape.editing.operations import selection, shapes, style, transform, view  # noqa: E402
+from presstoshape.editing.session import Session  # noqa: E402
+from presstoshape.models.app_state import Tool  # noqa: E402
 
 _OUTPUT = Path(__file__).resolve().parent.parent / "dev-screenshots" / "app.png"
 
@@ -27,7 +27,7 @@ def _seed(session: Session) -> None:
     style.set_stroke_width(session, 4)
     style.set_stroke(session, "#7c3aed")
     shapes.add_path(session, [(40, 330), (140, 250), (240, 360), (360, 300), (540, 360)])
-    text = shapes.add_text(session, (390, 90), "veccy")
+    text = shapes.add_text(session, (390, 90), "PressToShape")
     transform.set_rotation(session, text, -12)
     selection.set_selection(session, {a, b})
 

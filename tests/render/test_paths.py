@@ -3,9 +3,19 @@ from dataclasses import replace
 import pytest
 import skia
 
-from veccy.geometry import transforms
-from veccy.models.shapes import Close, CubicTo, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
-from veccy.render.paths import PathCache, from_skia_path, to_skia_path
+from presstoshape.geometry import transforms
+from presstoshape.models.shapes import (
+    Close,
+    CubicTo,
+    EllipseShape,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
+from presstoshape.render.paths import PathCache, from_skia_path, to_skia_path
 
 _STYLE = Style(fill="#ff0000", stroke=None)
 

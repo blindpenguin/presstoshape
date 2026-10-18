@@ -1,8 +1,8 @@
-"""Copies the app's icon set from Tabler Icons (pytablericons' bundled outline SVGs) into veccy/assets/icons/.
+"""Copies the app's icon set from Tabler Icons (pytablericons' bundled outline SVGs) into presstoshape/assets/icons/.
 
 Run with `uv run --group dev python scripts/generate_icons.py` whenever the mapping below changes. Output is
 committed — the running app only loads the static SVGs, it never imports pytablericons. Files keep Tabler's
-`stroke="currentColor"`; veccy.views.icon_engine substitutes the theme color at render time.
+`stroke="currentColor"`; presstoshape.views.icon_engine substitutes the theme color at render time.
 """
 
 import re
@@ -37,7 +37,7 @@ ICONS = {
 
 def main() -> None:
     src_dir = Path(pytablericons.__file__).resolve().parent / "icons" / "outline"
-    out_dir = Path(__file__).resolve().parent.parent / "veccy" / "assets" / "icons"
+    out_dir = Path(__file__).resolve().parent.parent / "presstoshape" / "assets" / "icons"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for stale in out_dir.iterdir():

@@ -1,6 +1,6 @@
 """Plain helpers shared by test modules (fixtures live in conftest.py)."""
 
-from veccy.models.shapes import CubicTo, LineTo, MoveTo
+from presstoshape.models.shapes import CubicTo, LineTo, MoveTo
 
 
 def points(segments):
@@ -24,9 +24,9 @@ class ToolDriver:
     """Drives a Toolbox the way CanvasView does, without Qt: switch tools, then talk to the active one."""
 
     def __init__(self, session, ask_text=lambda: None):
-        from veccy.render.paths import PathCache
-        from veccy.tools.base import ToolContext
-        from veccy.tools.registry import Toolbox
+        from presstoshape.render.paths import PathCache
+        from presstoshape.tools.base import ToolContext
+        from presstoshape.tools.registry import Toolbox
 
         self.toolbox = Toolbox(ToolContext(session, PathCache(), repaint=lambda: None, ask_text=ask_text))
 
@@ -47,14 +47,14 @@ class ToolDriver:
 
 def setup_tools(text: str | None = "hi"):
     """A fresh session and a ToolDriver whose text prompt answers `text`."""
-    from veccy.editing.session import Session
+    from presstoshape.editing.session import Session
 
     session = Session()
     return session, ToolDriver(session, ask_text=lambda: text)
 
 
 def drag(driver, start, end, shift=False, ctrl=False, alt=False) -> None:
-    from veccy.tools.base import Mods
+    from presstoshape.tools.base import Mods
 
     mods = Mods(shift, ctrl, alt)
     driver.press(start, mods)

@@ -1,5 +1,5 @@
 [project]
-name = "veccy"
+name = "presstoshape"
 version = "0.1.0"
 description = "Open-source vector drawing application for artists"
 license = "GPL-3.0-only"

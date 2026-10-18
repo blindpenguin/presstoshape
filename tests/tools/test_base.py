@@ -1,6 +1,6 @@
 import pytest
 
-from veccy.tools.base import CursorType, resize_cursor_type
+from presstoshape.tools.base import CursorType, resize_cursor_type
 
 
 @pytest.mark.parametrize(

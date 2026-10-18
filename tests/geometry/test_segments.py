@@ -1,6 +1,6 @@
-from veccy.geometry.boxes import box_from_drag
-from veccy.geometry.segments import smooth_segments
-from veccy.models.shapes import MoveTo
+from presstoshape.geometry.boxes import box_from_drag
+from presstoshape.geometry.segments import smooth_segments
+from presstoshape.models.shapes import MoveTo
 
 
 def test_box_from_drag_normalizes_any_direction():

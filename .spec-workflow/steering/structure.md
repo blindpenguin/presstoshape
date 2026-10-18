@@ -5,7 +5,7 @@
 Grouped by layer, one module per concern inside each layer. Layers, bottom to top: models → geometry / formats → render → editing (session + operations) → tools → views.
 
 ```
-veccy/                          # repo root
+presstoshape/                   # repo root
 ├── main.py                     # thin entry point: sys.exit(App().run())
 ├── pyproject.toml / uv.lock    # uv project, pinned deps (lockfile committed)
 ├── .python-version             # CPython floor for uv
@@ -15,13 +15,13 @@ veccy/                          # repo root
 ├── scripts/                    # dev tools, never imported by the app
 │   ├── screenshot_app.py       # offscreen window render -> dev-screenshots/app.png
 │   ├── bench_canvas.py         # canvas frame times on a 10k-shape document
-│   ├── generate_icons.py       # copies Tabler SVGs from pytablericons into veccy/assets/icons
+│   ├── generate_icons.py       # copies Tabler SVGs from pytablericons into presstoshape/assets/icons
 │   └── spec_dashboard.sh       # starts the spec-workflow dashboard
 ├── tests/                      # pytest, Qt-free code only; mirrors the package layout
 │   ├── conftest.py / helpers.py   # `session` fixture; ToolDriver, all_shapes, bbox, …
 │   ├── test_architecture.py    # layer and Qt-free rules
 │   └── geometry/ formats/ render/ editing/ tools/ views/   # test_<module>.py per module
-└── veccy/                      # application package
+└── presstoshape/               # application package
     ├── app.py                  # App: creates the Session + MainWindow, owns QApplication
     ├── icons.py                # semantic icon path constants (views only)
     ├── assets/icons/*.svg      # generated Tabler outline icons (currentColor)
@@ -62,7 +62,7 @@ veccy/                          # repo root
 
 Planned additions (each introduced by its own spec):
 ```
-veccy/
+presstoshape/
 ├── formats/<format>.py         # native document format, next to svg.py
 ├── geometry/<topic>.py         # more pure math (offset, simplify, brush outlines, …)
 ├── editing/operations/<feature>.py   # new commands
@@ -91,16 +91,16 @@ veccy/
 ### Import Order
 1. Standard library
 2. Third-party (`PySide6`, `skia-pathops`, `svgelements`, …)
-3. Internal `veccy.*` modules
+3. Internal `presstoshape.*` modules
 
 Groups separated by a blank line (ruff `I` / isort order once ruff is added).
 
 ### Module/Package Organization
-- Absolute imports with the `veccy.` prefix everywhere (`from veccy.models.app_state import AppState`); no relative imports.
+- Absolute imports with the `presstoshape.` prefix everywhere (`from presstoshape.models.app_state import AppState`); no relative imports.
 - Dependency direction is strict: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render. `tests/test_architecture.py` enforces it.
 - **No Qt imports below `views/`.**
 - PySide6 only — never PyQt5/6.
-- Dev-only packages (`pytablericons`, `pytest`) are never imported by `veccy/`.
+- Dev-only packages (`pytablericons`, `pytest`) are never imported by `presstoshape/`.
 
 ## Code Structure Patterns
 
@@ -135,14 +135,14 @@ Large classes are sectioned with `# --- section ---` comments (e.g. `# --- editi
 5. **Consistency**: follow existing patterns (operation shape with `session.edit`, `BaseTool`, `refresh(state)`, icon loading via `icon_engine.icon(path)`).
 
 ## Module Boundaries
-- **Models**: data only. No veccy or Qt imports.
+- **Models**: data only. No presstoshape or Qt imports.
 - **Geometry / formats**: pure functions over models; no state.
 - **Render**: pure model → Skia drawing, picking and viewport math; no state mutation. Used by the canvas surface and exporters, guaranteeing canvas = export.
 - **Editing**: the session and the operations — the only code that changes `AppState`.
 - **Tools**: input state machines; read state, call operations; no Qt.
 - **Views**: Qt only; read state, call operations, forward canvas input to the active tool. Own dialogs, the keymap and Qt object lifetimes (parents set, signals disconnected on teardown — see `CanvasView.shutdown()`).
-- **Scripts / tests**: may import anything from `veccy`; nothing in `veccy` imports them.
-- **Assets**: generated files in `veccy/assets/` are only changed by their generator scripts.
+- **Scripts / tests**: may import anything from `presstoshape`; nothing in `presstoshape` imports them.
+- **Assets**: generated files in `presstoshape/assets/` are only changed by their generator scripts.
 
 ## Code Size Guidelines
 - **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `geometry/nodes.py` and `formats/svg.py` ≈ 350).

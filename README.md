@@ -1,4 +1,4 @@
-# veccy
+# PressToShape
 
 An experimental open-source vector drawing application for artists, built on PySide6. Early stage — see `.spec-workflow/steering/product.md` for where it is heading. Questions? See the [FAQ](FAQ.md).
 
@@ -29,7 +29,7 @@ uv run python main.py
 ```
 uv run pytest                                          # logic tests
 uv run python scripts/screenshot_app.py                # offscreen screenshot -> dev-screenshots/app.png
-uv run python scripts/bench_canvas.py                  # canvas frame times, 10k shapes (VECCY_RENDERER=cpu|gl)
+uv run python scripts/bench_canvas.py                  # canvas frame times, 10k shapes (PRESSTOSHAPE_RENDERER=cpu|gl)
 uv run --group dev python scripts/generate_icons.py    # re-copy Tabler SVG icons
 scripts/spec_dashboard.sh                              # spec-workflow approval dashboard (http://localhost:5000)
 ```

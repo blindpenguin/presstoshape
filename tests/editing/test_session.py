@@ -1,7 +1,7 @@
 import pytest
 
-from veccy.editing.session import Session
-from veccy.models.shapes import RectShape, Style
+from presstoshape.editing.session import Session
+from presstoshape.models.shapes import RectShape, Style
 
 
 def _add_rect(session: Session, shape_id: int, label: str = "Add rectangle", merge_key: str | None = None) -> None:

@@ -1,8 +1,8 @@
+from presstoshape.editing.operations import shapes, view
+from presstoshape.editing.session import Session
+from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import PathShape, TextShape
 from tests.helpers import all_shapes
-from veccy.editing.operations import shapes, view
-from veccy.editing.session import Session
-from veccy.models.app_state import Tool
-from veccy.models.shapes import PathShape, TextShape
 
 
 def test_notifies_listeners_on_change():
