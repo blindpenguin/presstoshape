@@ -1,3 +1,5 @@
+import pytest
+
 from veccy.controllers.app_controller import AppController
 from veccy.models.app_state import AppState, Tool
 from veccy.models.shapes import PathShape, RectShape, TextShape
@@ -66,22 +68,43 @@ def test_stroke_width_changes_merge_into_one_undo_step():
     assert _shapes(c)[0].style.stroke_width == 2
 
 
-def test_style_without_selection_only_changes_defaults():
+def test_selection_style_without_selection_is_noop():
     c = _controller()
+    before = dict(c.state.tool_styles)
     c.set_fill("#00ff00")
-    assert c.state.default_style.fill == "#00ff00"
+    assert c.state.tool_styles == before
     assert not c.can_undo
-    c.add_rectangle((0, 0), (10, 10))
-    assert _shapes(c)[0].style.fill == "#00ff00"
 
 
-def test_pen_path_has_no_fill_and_text_has_no_stroke():
+def test_selection_style_leaves_tool_styles_alone():
     c = _controller()
+    c.add_rectangle((0, 0), (10, 10))
+    c.set_fill("#00ff00")
+    assert _shapes(c)[0].style.fill == "#00ff00"
+    assert c.state.tool_styles[Tool.RECTANGLE].fill != "#00ff00"
+
+
+def test_tool_style_applies_to_that_tool_only_and_is_not_undoable():
+    c = _controller()
+    c.set_tool_style(Tool.ELLIPSE, fill="#00ff00", stroke_width=-3)
+    assert not c.can_undo and not c.state.dirty
+    assert c.state.tool_styles[Tool.ELLIPSE].stroke_width == 0
+    c.add_rectangle((0, 0), (10, 10))
+    c.add_ellipse((0, 0), (10, 10))
+    rect, ellipse = _shapes(c)
+    assert rect.style.fill != "#00ff00"
+    assert ellipse.style.fill == "#00ff00"
+
+
+def test_default_pen_has_no_fill_and_text_has_no_stroke():
+    c = _controller()
+    c.set_font_size(40)
     c.add_path([(0, 0), (10, 10), (20, 0)])
     c.add_text((5, 5), "hi")
     path, text = _shapes(c)
     assert isinstance(path, PathShape) and path.style.fill is None
     assert isinstance(text, TextShape) and text.style.stroke is None
+    assert text.font_size == 40
 
 
 def test_union_replaces_selection_at_bottom_position():
@@ -173,3 +196,34 @@ def test_open_bad_file_reports_and_keeps_document(tmp_path):
     assert not c.open_file(str(bad))
     assert "Could not open" in c.state.status_message
     assert len(_shapes(c)) == 1
+
+
+def test_set_shape_field_edits_geometry_with_merged_undo():
+    c = _controller()
+    sid = c.add_rectangle((0, 0), (10, 10))
+    for w in (20, 30, 40):
+        c.set_shape_field(sid, "width", w)
+    c.set_shape_field(sid, "x", 5)
+    assert (_shapes(c)[0].width, _shapes(c)[0].x) == (40, 5)
+    c.undo()
+    assert (_shapes(c)[0].width, _shapes(c)[0].x) == (40, 0)
+    c.undo()
+    assert _shapes(c)[0].width == 10
+
+
+def test_set_shape_field_clamps_sizes_and_rejects_empty_text():
+    c = _controller()
+    sid = c.add_ellipse((0, 0), (10, 10))
+    c.set_shape_field(sid, "rx", -5)
+    assert _shapes(c)[0].rx == 0.1
+    tid = c.add_text((0, 0), "hello")
+    c.set_shape_field(tid, "text", "   ")
+    c.set_shape_field(tid, "text", "bye")
+    assert _shapes(c)[1].text == "bye"
+
+
+def test_set_shape_field_rejects_fields_of_other_shape_kinds():
+    c = _controller()
+    sid = c.add_rectangle((0, 0), (10, 10))
+    with pytest.raises(ValueError):
+        c.set_shape_field(sid, "rx", 3)

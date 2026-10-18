@@ -10,12 +10,13 @@ from veccy.views.actions import AppActions
 from veccy.views.canvas_view import CanvasView
 from veccy.views.layers_view import LayersPanel
 from veccy.views.left_sidebar_view import ToolPalette
-from veccy.views.properties_view import PropertiesPanel
 from veccy.views.status_bar_view import StatusBar
+from veccy.views.tool_options_view import TITLES, ToolOptionsPanel
 from veccy.views.toolbar_view import MainToolbar
 
 _SVG_FILTER = "SVG files (*.svg);;All files (*)"
 _DOCK_WIDTH = 240
+_TOOL_DOCK_WIDTH = 200
 
 
 class MainWindow(QMainWindow):
@@ -36,9 +37,11 @@ class MainWindow(QMainWindow):
         self.addToolBar(self._toolbar)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, ToolPalette(self._actions))
 
-        self._properties = PropertiesPanel(controller)
+        self._tool_options = ToolOptionsPanel(controller)
+        # Left dock area sits inside the left toolbar area, so this lands between tool strip and canvas.
+        self._tool_dock = self._add_dock("Tool", self._tool_options, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self._tool_dock.setFixedWidth(_TOOL_DOCK_WIDTH)
         self._layers = LayersPanel(controller)
-        self._add_dock("Properties", self._properties)
         self._add_dock("Layers", self._layers)
 
         self._status = StatusBar()
@@ -47,18 +50,30 @@ class MainWindow(QMainWindow):
         controller.subscribe(self.refresh)
         self.refresh()
 
-    def _add_dock(self, title: str, widget: QWidget) -> None:
+    def _add_dock(
+        self, title: str, widget: QWidget, area: Qt.DockWidgetArea = Qt.DockWidgetArea.RightDockWidgetArea
+    ) -> QDockWidget:
         dock = QDockWidget(title)
         dock.setWidget(widget)
         dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         dock.setMinimumWidth(_DOCK_WIDTH)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+        self.addDockWidget(area, dock)
+        return dock
 
     def refresh(self) -> None:
         state = self._state
         self.setWindowTitle(f"{self._document_name()}[*] — veccy")
         self.setWindowModified(state.dirty)
-        for view in (self._actions, self._toolbar, self.canvas, self._properties, self._layers, self._status):
+        self._tool_dock.setWindowTitle(TITLES[state.active_tool])
+        views = (
+            self._actions,
+            self._toolbar,
+            self.canvas,
+            self._tool_options,
+            self._layers,
+            self._status,
+        )
+        for view in views:
             view.refresh(state)
 
     def _document_name(self) -> str:

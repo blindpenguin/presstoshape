@@ -1,4 +1,4 @@
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QTransform
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem, QGraphicsScene, QGraphicsView, QInputDialog
 
@@ -83,6 +83,7 @@ class CanvasView(QGraphicsView):
         self._pan_from: QPointF | None = None
         self._zoom_anchor: QPointF | None = None
         self._scroll_residual = QPointF()
+        self._viewport_origin: QPoint | None = None
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         # Anchoring is done by hand in _apply_zoom: Qt's AnchorUnderMouse uses a scene point cached in
@@ -184,6 +185,18 @@ class CanvasView(QGraphicsView):
             self._controller.set_zoom(min(vw / w, vh / h) * 100)
         self.center_artboard()
 
+    def resizeEvent(self, event):
+        # Docks opening/closing beside the canvas move the viewport; scroll by the same amount so the
+        # drawing stays put on screen instead of sliding with the viewport edge.
+        old = self._viewport_origin
+        super().resizeEvent(event)
+        new = self.viewport().mapTo(self.window(), QPoint(0, 0))
+        if old is not None and new != old:
+            shift = new - old
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + shift.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + shift.y())
+        self._viewport_origin = new
+
     def drawBackground(self, painter, rect):
         painter.fillRect(rect, QColor(theme.PASTEBOARD))
         painter.fillRect(self._artboard, QColor(theme.ARTBOARD))
@@ -212,10 +225,9 @@ class CanvasView(QGraphicsView):
     def _scene_pos(self, event) -> QPointF:
         return self.mapToScene(event.position().toPoint())
 
-    def _new_preview(self, filled: bool) -> QGraphicsPathItem:
+    def _new_preview(self) -> QGraphicsPathItem:
         item = QGraphicsPathItem()
-        style = self._state.default_style if self._state else Style()
-        _apply_style(item, style if filled else Style(fill=None, stroke=style.stroke, stroke_width=style.stroke_width))
+        _apply_style(item, self._state.tool_styles.get(self._tool, Style()) if self._state else Style())
         if item.pen().style() == Qt.PenStyle.NoPen:
             item.setPen(QPen(QColor(theme.PREVIEW_STROKE), 0))
         item.setZValue(1e9)
@@ -235,10 +247,10 @@ class CanvasView(QGraphicsView):
         pos = self._scene_pos(event)
         if self._tool in (Tool.RECTANGLE, Tool.ELLIPSE):
             self._drag_start = pos
-            self._preview = self._new_preview(filled=True)
+            self._preview = self._new_preview()
         elif self._tool is Tool.PEN:
             if self._preview is None:
-                self._preview = self._new_preview(filled=False)
+                self._preview = self._new_preview()
             self._pen_points.append(pos)
             self._preview.setPath(_qpath(geometry.smooth_segments(self._pen_tuples(self._pen_points))))
         elif self._tool is Tool.TEXT:

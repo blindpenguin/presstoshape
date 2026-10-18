@@ -1,7 +1,8 @@
 """Dev-only: renders the main window once offscreen and saves a PNG, for visual review without a human
-watching the window. Seeds a few demo shapes unless `--empty` is passed.
+watching the window. Seeds a few demo shapes unless `--empty` is passed; `--tool rectangle` (etc.) activates a
+tool first, e.g. to check its options panel.
 
-Usage: uv run python scripts/screenshot_app.py [--empty]
+Usage: uv run python scripts/screenshot_app.py [--empty] [--tool NAME]
 Output: dev-screenshots/app.png (gitignored)
 """
 
@@ -14,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from veccy.app import App  # noqa: E402
 from veccy.controllers.app_controller import AppController  # noqa: E402
+from veccy.models.app_state import Tool  # noqa: E402
 
 _OUTPUT = Path(__file__).resolve().parent.parent / "dev-screenshots" / "app.png"
 
@@ -32,5 +34,7 @@ if __name__ == "__main__":
     app = App()
     if "--empty" not in sys.argv:
         _seed(app.controller)
+    if "--tool" in sys.argv:
+        app.controller.select_tool(Tool[sys.argv[sys.argv.index("--tool") + 1].upper()])
     app.run(screenshot_path=_OUTPUT)
     print(_OUTPUT)

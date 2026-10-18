@@ -13,7 +13,9 @@ uv run python main.py
 - Pen: click points for a smooth curve; double-click or Enter finishes, Esc cancels.
 - Mouse wheel zooms under the cursor, middle-drag pans. Touchpad scrolling pans; Ctrl+scroll zooms.
 - Union (Ctrl++) and difference (Ctrl+-) of selected shapes.
-- Fill / stroke / stroke width per shape; last-used style applies to new shapes.
+- Tool options panel (next to the tool strip) follows the active tool:
+  - Select: properties of the selection — position/size (rectangle, ellipse), text content/position/size for a single object, fill / stroke / stroke width for one or many.
+  - Drawing tools: the style that tool gives new shapes; text tool also sets font size.
 - Layers: add, delete, rename (double-click), hide (checkbox).
 - Undo/redo for all document edits.
 - Opens and saves SVG (Inkscape-compatible layers). Imported shapes under rotate/skew/scale transforms are flattened to paths; gradients, clip paths, `<use>` and images aren't supported yet.

@@ -12,6 +12,12 @@ _UNDO_LIMIT = 200
 _MIN_ZOOM, _MAX_ZOOM = 10, 800
 _ZOOM_STEP = 1.25
 _BOOLEAN_OPS = ("union", "difference")
+# Shape fields the selection panel may edit directly, with their minimum value (None = unbounded).
+_EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
+    RectShape: {"x": None, "y": None, "width": 0.1, "height": 0.1},
+    EllipseShape: {"cx": None, "cy": None, "rx": 0.1, "ry": 0.1},
+    TextShape: {"x": None, "y": None, "font_size": 1.0, "text": None},
+}
 
 
 @dataclass
@@ -158,28 +164,27 @@ class AppController:
         x, y, w, h = geometry.box_from_drag(start, end, square)
         if w < 1 or h < 1:
             return None
-        style = self.state.default_style
+        style = self.state.tool_styles[Tool.RECTANGLE]
         return self._add(lambda id_: RectShape(id_, x, y, w, h, style), "rectangle")
 
     def add_ellipse(self, start: Point, end: Point, circle: bool = False) -> int | None:
         x, y, w, h = geometry.box_from_drag(start, end, circle)
         if w < 1 or h < 1:
             return None
-        style = self.state.default_style
+        style = self.state.tool_styles[Tool.ELLIPSE]
         return self._add(lambda id_: EllipseShape(id_, x + w / 2, y + h / 2, w / 2, h / 2, style), "ellipse")
 
     def add_path(self, points: list[Point]) -> int | None:
         if len(points) < 2:
             return None
         segments = geometry.smooth_segments(points)
-        style = replace(self.state.default_style, fill=None)
+        style = self.state.tool_styles[Tool.PEN]
         return self._add(lambda id_: PathShape(id_, segments, style), "path")
 
     def add_text(self, position: Point, text: str) -> int | None:
         if not text.strip():
             return None
-        default = self.state.default_style
-        style = replace(default, fill=default.fill or default.stroke or "#000000", stroke=None)
+        style = self.state.tool_styles[Tool.TEXT]
         size = self.state.font_size
         return self._add(lambda id_: TextShape(id_, position[0], position[1], text, size, style), "text")
 
@@ -202,6 +207,38 @@ class AppController:
         self._checkpoint()
         self._map_selected(lambda s: geometry.translate(s, dx, dy))
         self.state.status_message = f"Moved {len(self.state.selection)} object(s)"
+        self._notify()
+
+    def find_shape(self, shape_id: int) -> Shape | None:
+        for layer in self.state.document.layers:
+            for s in layer.shapes:
+                if s.id == shape_id:
+                    return s
+        return None
+
+    def set_shape_field(self, shape_id: int, field: str, value: float | str) -> None:
+        """Edits one geometry/content field. Consecutive edits of the same field form one undo step."""
+        shape = self.find_shape(shape_id)
+        if shape is None:
+            return
+        fields = _EDITABLE_FIELDS.get(type(shape), {})
+        if field not in fields:
+            raise ValueError(f"{type(shape).__name__}.{field} is not editable")
+        if field == "text":
+            value = str(value)
+            if not value.strip():
+                # Notify anyway so the view drops the rejected empty text.
+                self._notify()
+                return
+        else:
+            minimum = fields[field]
+            value = float(value) if minimum is None else max(minimum, float(value))
+        if getattr(shape, field) == value:
+            return
+        self._checkpoint(merge_key=f"{shape_id}:{field}")
+        updated = replace(shape, **{field: value})
+        for layer in self.state.document.layers:
+            layer.shapes = [updated if s.id == shape_id else s for s in layer.shapes]
         self._notify()
 
     def delete_selection(self) -> None:
@@ -251,11 +288,22 @@ class AppController:
         self._restyle(merge_key="stroke_width", stroke_width=max(0.0, width))
 
     def _restyle(self, merge_key: str | None = None, **changes) -> None:
-        """Applies to the selection and to the defaults for new shapes (last-used style)."""
-        self.state.default_style = replace(self.state.default_style, **changes)
-        if self.state.selection:
-            self._checkpoint(merge_key)
-            self._map_selected(lambda s: replace(s, style=replace(s.style, **changes)))
+        """Restyles the selection only; tool defaults are separate (set_tool_style)."""
+        if not self.state.selection:
+            return
+        self._checkpoint(merge_key)
+        self._map_selected(lambda s: replace(s, style=replace(s.style, **changes)))
+        self._notify()
+
+    def set_tool_style(self, tool: Tool, **changes) -> None:
+        """Changes the style `tool` gives new shapes. Not a document edit, so no undo step."""
+        if "stroke_width" in changes:
+            changes["stroke_width"] = max(0.0, changes["stroke_width"])
+        self.state.tool_styles[tool] = replace(self.state.tool_styles[tool], **changes)
+        self._notify()
+
+    def set_font_size(self, size: float) -> None:
+        self.state.font_size = max(1.0, size)
         self._notify()
 
     # --- layers -------------------------------------------------------------

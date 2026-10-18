@@ -28,6 +28,15 @@ class Document:
     next_id: int = 1
 
 
+def _default_tool_styles() -> dict[Tool, Style]:
+    return {
+        Tool.PEN: Style(fill=None),
+        Tool.RECTANGLE: Style(),
+        Tool.ELLIPSE: Style(),
+        Tool.TEXT: Style(fill="#18181b", stroke=None),
+    }
+
+
 @dataclass
 class AppState:
     """Plain data, no Qt/view/controller imports. Owned by App, read by views, mutated only by controllers."""
@@ -36,7 +45,8 @@ class AppState:
     active_tool: Tool = Tool.SELECT
     selected_layer_index: int = 0
     selection: set[int] = field(default_factory=set)
-    default_style: Style = field(default_factory=Style)
+    # Style each drawing tool gives new shapes, edited in the tool options panel.
+    tool_styles: dict[Tool, Style] = field(default_factory=_default_tool_styles)
     font_size: float = 24.0
     zoom_percent: int = 100
     status_message: str = "Ready"
