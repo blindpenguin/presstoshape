@@ -24,7 +24,7 @@
   - _Requirements: 1.2, 1.5, NFR Performance (cache)_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python graphics developer experienced with Skia | Task: Create render/text.py and render/paths.py per design.md, converting model segments to skia.Path (MoveTo/LineTo/CubicTo/Close, kWinding) and text to glyph outlines at font_size with baseline (x, y); test cache identity on unchanged shapes, rebuild on change, prune, non-empty text path, stroke_path width | Restrictions: No Qt imports; reuse geometry.outline instead of re-deriving rect/ellipse geometry; booleans keep excluding text (geometry.outline unchanged) | Success: tests pass, text path bounds scale with font_size. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 4. Implement document drawing in veccy/render/scene.py
+- [x] 4. Implement document drawing in veccy/render/scene.py
   - Files: veccy/render/scene.py, veccy/render/overlay.py, tests/test_render_scene.py
   - `CanvasColors` dataclass (pasteboard, artboard, border, preview, selection — passed in by views since render can't import views/theme), `Overlay` dataclass, `parse_color`, `draw_background`, `draw_document(canvas, doc, cache, overrides)`
   - Purpose: Pixel-parity drawing of the document on any skia.Canvas
@@ -32,7 +32,7 @@
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.8, 3.5, 6.1, 6.3_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python graphics developer experienced with Skia | Task: Implement render/overlay.py and the background/document part of render/scene.py per design.md: antialiased fill then stroke, butt cap, miter join, miter limit 4, skip None paints and zero width, visible layers bottom-to-top, overrides substitute shapes; CPU-surface pytest with sampled pixels (filled interior, no-fill interior transparent, stroke edge, hidden layer skipped, top shape wins, override position) | Restrictions: No Qt imports; render must not import veccy.views or controller state mutation; pixel assertions only on render CPU output | Success: tests pass; colors match model hex values. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 5. Implement overlay drawing
+- [-] 5. Implement overlay drawing
   - Files: veccy/render/scene.py (continue), tests/test_render_scene.py (extend)
   - `draw_overlays(canvas, overlay, cache, vp, colors)`: dashed selection boxes at 1 screen px, rubber band (translucent fill + outline), preview path with tool style or hairline preview color
   - Purpose: All canvas feedback drawn in Skia, never in export
