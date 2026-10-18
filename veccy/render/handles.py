@@ -5,9 +5,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
-from veccy.controllers import affine, nodes
-from veccy.controllers.affine import Affine
-from veccy.controllers.geometry import Point
+from veccy.geometry import affine, nodes
+from veccy.geometry.affine import Affine
+from veccy.geometry.boxes import Point, Rect
 from veccy.models.shapes import IDENTITY_TRANSFORM, EllipseShape, PathShape, RectShape, Shape, TextShape
 from veccy.render.paths import PathCache
 from veccy.render.text import text_path
@@ -18,8 +18,6 @@ _GRAB_PX = HANDLE_PX / 2 + 2
 _ROTATE_REACH_PX = 22.0
 # Below this on-screen length an axis shows only its corner handles, leaving room to grab the shape.
 _MIN_EDGE_HANDLES_PX = 3 * HANDLE_PX
-
-Rect = tuple[float, float, float, float]
 
 
 class Handle(Enum):

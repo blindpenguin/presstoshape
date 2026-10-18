@@ -4,6 +4,7 @@ from collections.abc import Iterator
 
 import skia
 
+from veccy.geometry import nodes as path_nodes
 from veccy.models.app_state import Document
 from veccy.models.shapes import (
     IDENTITY_TRANSFORM,
@@ -15,7 +16,6 @@ from veccy.models.shapes import (
     TextShape,
     Transform,
 )
-from veccy.controllers import nodes as path_nodes
 from veccy.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
 from veccy.render.overlay import CanvasColors, NodeOverlay, Overlay
 from veccy.render.paths import PathCache, stroke_paint, to_skia_matrix, to_skia_path

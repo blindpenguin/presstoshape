@@ -12,22 +12,25 @@ Desktop application for Linux and Windows (macOS not a target for now): a profes
 
 ### Key Dependencies/Libraries
 - **pyside6-essentials (==6.12.0, pinned)**: Qt 6 bindings — QtCore/QtGui/QtWidgets/QtOpenGLWidgets/QtSvg/QtTest. UI, input, GL context hosting. Pinned with `==` because Qt behavior and binding details shift between minors. `pyside6-essentials`, not the `pyside6` metapackage (WebEngine/addons, hundreds of MB, unused).
-- **skia-pathops (0.9.2)**: boolean path operations (union, difference, later the full set). Used from `veccy/controllers/geometry.py` so controllers stay Qt-free. Works in float32; results are rounded on conversion.
+- **skia-pathops (0.9.2)**: boolean path operations (union, difference, later the full set) in `veccy/geometry/booleans.py`. Works in float32; results are rounded on conversion.
 - **svgelements (1.9.6)**: parsing SVG path data, colors, lengths and transform strings only. Its `SVG.parse` document reader is not used — it drops `display:none` groups (hidden layers) and `<text>`. Document traversal uses `xml.etree.ElementTree`.
 - **skia-python (==144.0.post2)**: canvas and PNG export renderer (`veccy/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
 - **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker, `pyinstaller`.
 
 ### Application Architecture
-Model / View / Controller with Elm-like state ownership inside Qt's retained-mode widgets:
+Session / operations / tools / views, as in professional editors (Blender's operators, Krita's commands, Inkscape's verbs), with Elm-like state ownership inside Qt's retained-mode widgets:
 
-- **Models** (`veccy/models/`): plain dataclasses. `AppState` (document, active tool, selection, tool styles, zoom, file path, dirty flag) is the single source of truth, one instance per app, passed explicitly. Shapes and path segments are **frozen** dataclasses changed via `dataclasses.replace`.
-- **Controllers** (`veccy/controllers/`): the only writers of state. `AppController` holds all mutations, undo/redo, file I/O and a subscribe/notify mechanism. `geometry.py` (pure geometry + booleans) and `svg_io.py` (SVG read/write) are pure functions over models.
-- **Views** (`veccy/views/`): Qt widgets. They render from state in an idempotent, cheap `refresh(state)`, and forward user input to controller methods. Transient gesture state (drag in progress, pen points, previews, panning) lives in the view until committed.
-- **Data flow**: input → view calls controller → controller `_checkpoint()` (undo) → mutate `AppState` → `_notify()` → `MainWindow.refresh()` → every view's `refresh(state)`.
-- **Render** (`veccy/render/`): Qt-free Skia drawing of the model — document, overlays, hit-testing, viewport math, PNG export.
-- **Dependency direction**: `views → controllers → render → models` (views also use `render`). **No Qt imports in models, controllers or render** — they are unit-testable without a display.
-- **Canvas**: `CanvasView` (QAbstractScrollArea) hosts a Skia surface widget and redraws the document from state each frame, replaying recorded Skia pictures; gestures live in Qt-free `CanvasGestures`. Shape geometry is always in absolute document coordinates.
-- **Undo**: snapshot-based. Snapshots copy layer lists and share immutable shape objects; consecutive edits with the same merge key collapse into one step; 200-step limit.
+- **Models** (`veccy/models/`): plain dataclasses. `AppState` (document, active tool, selection, node selection, tool styles, zoom, file path, dirty flag) is the single source of truth. Shapes and path segments are **frozen** dataclasses changed via `dataclasses.replace`.
+- **Geometry** (`veccy/geometry/`) and **formats** (`veccy/formats/`): pure functions over models — affine math, segments, booleans, shape transforms, node editing; SVG read/write.
+- **Render** (`veccy/render/`): Skia drawing of the model — document, overlays, picking (shapes, handles, nodes), viewport math, PNG export.
+- **Session** (`veccy/editing/session.py`): owns the one `AppState`, the undo history with labelled steps and the subscriber list. `with session.edit("Label"):` records one undo step, marks the document dirty and notifies once.
+- **Operations** (`veccy/editing/operations/`): the only code that changes state — plain functions `operation(session, ...)`, one module per feature. Commands that need no extra input are registered (`veccy/editing/registry.py`: id, menu label, "can run?" check), so menus, shortcuts and later a command search or scripting API come from one list.
+- **Tools** (`veccy/tools/`): Qt-free input state machines (`BaseTool` subclasses, listed in `tools/registry.py`). They hold gesture state and previews and commit through one operation call.
+- **Views** (`veccy/views/`): Qt widgets. They render from state in an idempotent, cheap `refresh(state)`; menus and toolbars are built from the registries plus `views/keymap.py` (shortcuts, icons, layouts); `CanvasView` forwards input to the active tool. Dialogs live here and pass plain values to operations.
+- **Data flow**: input → tool/view → operation → `session.edit()` (undo, mutate `AppState`) → `session.notify()` → `MainWindow.refresh()` → every view's `refresh(state)`.
+- **Dependency direction**: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render. **No Qt below views.** Enforced by `tests/test_architecture.py`.
+- **Canvas**: `CanvasView` (QAbstractScrollArea) hosts a Skia surface widget and redraws the document from state each frame, replaying recorded Skia pictures. Shape geometry is in document coordinates with a canonical per-shape transform.
+- **Undo**: snapshot-based, behind `Session.edit`. Snapshots copy layer lists and share immutable shape objects; consecutive edits with the same merge key collapse into one step; 200-step limit. Steps carry labels shown in the Edit menu.
 
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
@@ -54,7 +57,7 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 ### Code Quality Tools
 - **Static Analysis**: `ruff check` (planned) and a static type checker — mypy or pyright, chosen when adding it. Code is already fully type-annotated.
 - **Formatting**: `ruff format` (planned).
-- **Testing Framework**: `pytest` for models, controllers, geometry and SVG I/O. No pixel assertions in the suite; visual/interaction checks are done with offscreen screenshots and QTest scratch scripts.
+- **Testing Framework**: `pytest` for everything below views (models, geometry, formats, render, editing, tools), mirrored in `tests/<package>/`; an architecture test enforces the layer rules. No pixel assertions in the suite; visual/interaction checks are done with offscreen screenshots and QTest scratch scripts.
 - **Documentation**: `README.md` (features, dev commands), `CLAUDE.md` (agent/contributor rules), spec-workflow steering docs and specs in `.spec-workflow/`.
 
 ### Version Control & Collaboration
@@ -97,7 +100,7 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 
 ### Decision Log
 1. **PySide6 (Qt 6 Widgets)**: mature cross-platform desktop UI with tablet input, high-DPI and native dialogs; official Qt binding under LGPL. Never mixed with PyQt (incompatible objects).
-2. **MVC with single-source-of-truth state, Qt-free models/controllers**: keeps logic unit-testable without a display and keeps rendering a pure function of state. Trade-off: rendering must stay fast enough to redraw from state (path cache, recorded pictures).
+2. **Session / operations / tools / views with single-source-of-truth state, no Qt below views**: the shape professional editors use. Every edit is a named operation running through one session (undo and refresh for free, one place to change undo or notification later); tools are separate input state machines; menus and shortcuts come from registries. Keeps logic unit-testable without a display and rendering a pure function of state. Trade-off: rendering must stay fast enough to redraw from state (path cache, recorded pictures). Replaced an earlier MVC layout whose controller had grown into one large class.
 3. **Frozen shape dataclasses + snapshot undo**: snapshots are cheap (shared immutable shapes), undo is trivially correct, views diff by equality. Trade-off: every edit replaces objects; snapshot cost grows with layer/shape count.
 4. **Commit to Skia for rendering (skia-python)**: QPainter/QGraphicsScene can't deliver the target feature set at scale — mesh gradients, blend modes, live effects (blur, shadows, filters), variable-width brush strokes, GPU acceleration. Skia is the renderer behind Chrome and many design tools, already used here via skia-pathops, and the same renderer serves canvas and raster/PDF export (WYSIWYG). Plan: keep Qt for UI and input; render the canvas with Skia (GPU via an OpenGL surface, CPU raster fallback); the renderer boundary is `veccy/render/` (implemented by the skia-renderer spec).
 5. **Own native format + SVG for exchange**: SVG can't hold everything veccy will support (live effects, brush definitions, editable booleans); a native format guarantees fidelity, while SVG export degrades predictably (flatten/rasterize) and keeps Inkscape interop. Format choice deferred to a spec.
@@ -110,9 +113,9 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 
 ## Known Limitations
 - **Renderer**: Skia renders shapes with solid paint only so far; gradients, blend modes and effects are future specs. Continuous zoom on documents with many text objects re-rasterizes glyphs at each scale (~20 ms/frame at 10k shapes on an integrated GPU); pan and drag stay under 16 ms. The CPU fallback is ~25–30 ms/frame at 10k shapes.
-- **Undo scaling**: snapshot undo copies every layer's shape list per step — fine now, may need structural sharing or command-based undo for very large documents.
+- **Undo scaling**: snapshot undo copies every layer's shape list per step — fine now, may need structural sharing or command-based undo for very large documents (a change inside `Session`, operations stay as they are).
 - **Full-state notify**: every change refreshes every view; views must keep diffing cheap, and finer-grained change notification may be needed as the UI grows.
 - **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; skew on text is dropped.
-- **Text**: single-line, single font; rendered via `QPainterPath.addText` with a generic font.
+- **Text**: single-line, single font; rendered with Skia using a generic sans-serif font.
 - **Shape model**: no groups. Each shape has an affine `transform`, kept canonical: rect/ellipse/text store unrotated geometry plus a rotation about their center (a full matrix only when skewed); paths always have the transform baked into their segments. Handle scaling changes geometry, so strokes don't scale.
 - **No native format, no packaging or CI yet**.

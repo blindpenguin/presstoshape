@@ -1,10 +1,11 @@
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QWidget
 
-from veccy.controllers.app_controller import AppController
-from veccy.models.app_state import AppState
+from veccy.editing.operations import documents
+from veccy.editing.session import Session
 from veccy.views import menu_bar_view
 from veccy.views.actions import AppActions
 from veccy.views.canvas_view import CanvasView
@@ -22,35 +23,35 @@ _TOOL_DOCK_WIDTH = 200
 
 
 class MainWindow(QMainWindow):
-    """Top view: assembles the panels and re-renders all of them from state on every controller change."""
+    """Top view: assembles the panels and re-renders all of them from state after every session change."""
 
-    def __init__(self, state: AppState, controller: AppController) -> None:
+    def __init__(self, session: Session) -> None:
         super().__init__()
-        self._state = state
-        self._controller = controller
+        self._state = session.state
+        self._session = session
         self._force_close = False
 
-        self.canvas = CanvasView(controller)
+        self.canvas = CanvasView(session)
         self.setCentralWidget(self.canvas)
 
-        self._actions = AppActions(self, self, controller)
+        self._actions = AppActions(self, session, self._window_commands())
         menu_bar_view.build(self.menuBar(), self._actions)
         self._toolbar = MainToolbar(self._actions)
         self.addToolBar(self._toolbar)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, ToolPalette(self._actions))
 
-        self._tool_options = ToolOptionsPanel(controller)
+        self._tool_options = ToolOptionsPanel(session)
         # Left dock area sits inside the left toolbar area, so this lands between tool strip and canvas.
         self._tool_dock = self._add_dock("Tool", self._tool_options, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._tool_dock.setFixedWidth(_TOOL_DOCK_WIDTH)
-        self._layers = LayersPanel(controller)
+        self._layers = LayersPanel(session)
         self._add_dock("Layers", self._layers)
 
         self._status = StatusBar()
         self.setStatusBar(self._status)
         self.canvas.hint_changed.connect(self._status.show_hint)
 
-        controller.subscribe(self.refresh)
+        session.subscribe(self.refresh)
         self.refresh()
 
     def _add_dock(
@@ -79,6 +80,18 @@ class MainWindow(QMainWindow):
         for view in views:
             view.refresh(state)
 
+    def _window_commands(self) -> dict[str, Callable[[], object]]:
+        return {
+            "file.new": self.new_document,
+            "file.open": self.open_document,
+            "file.save": self.save_document,
+            "file.save_as": self.save_document_as,
+            "file.export_png": self.export_png,
+            "file.quit": self.close,
+            "view.zoom_fit": self.fit_to_window,
+            "help.about": self.show_about,
+        }
+
     def _document_name(self) -> str:
         return Path(self._state.file_path).name if self._state.file_path else "Untitled"
 
@@ -86,7 +99,7 @@ class MainWindow(QMainWindow):
 
     def new_document(self) -> None:
         if self._confirm_discard():
-            self._controller.new_document()
+            documents.new_document(self._session)
             self.canvas.center_artboard()
 
     def open_document(self) -> None:
@@ -94,13 +107,13 @@ class MainWindow(QMainWindow):
             return
         start = str(Path(self._state.file_path).parent) if self._state.file_path else ""
         path, _ = QFileDialog.getOpenFileName(self, "Open SVG", start, _SVG_FILTER)
-        if path and self._controller.open_file(path):
+        if path and documents.open_file(self._session, path):
             self.canvas.fit_artboard()
 
     def save_document(self) -> bool:
         if self._state.file_path is None:
             return self.save_document_as()
-        return self._controller.save_file()
+        return documents.save_file(self._session)
 
     def save_document_as(self) -> bool:
         path, _ = QFileDialog.getSaveFileName(self, "Save SVG", self._state.file_path or "untitled.svg", _SVG_FILTER)
@@ -108,7 +121,7 @@ class MainWindow(QMainWindow):
             return False
         if not path.lower().endswith(".svg"):
             path += ".svg"
-        return self._controller.save_file(path)
+        return documents.save_file(self._session, path)
 
     def export_png(self) -> None:
         scale = ExportPngDialog.ask(self._state.document, self._state.export.scale, self)
@@ -120,7 +133,7 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".png"):
             path += ".png"
-        self._controller.export_png(path, scale)
+        documents.export_png(self._session, path, scale)
 
     def fit_to_window(self) -> None:
         self.canvas.fit_artboard()

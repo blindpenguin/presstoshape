@@ -9,11 +9,9 @@ from dataclasses import dataclass, replace
 
 import skia
 
-from veccy.controllers.geometry import Point
+from veccy.geometry.boxes import Point, Rect
 
 SCENE_MARGIN = 4000.0
-
-Rect = tuple[float, float, float, float]
 
 
 def scene_rect(doc_width: float, doc_height: float) -> Rect:

@@ -2,8 +2,9 @@
 
 from dataclasses import dataclass
 
+from veccy.geometry.boxes import Rect
 from veccy.models.shapes import IDENTITY_TRANSFORM, Segment, Shape, Style, Transform
-from veccy.render.handles import Frame, Rect
+from veccy.render.handles import Frame
 
 
 @dataclass(frozen=True)

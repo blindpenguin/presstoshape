@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/editor-architecture/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T12:54:20.879Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792328060876_2zan2fbtr",
+      "approvalTitle": "editor-architecture: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T12:55:10.890Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792328060876_2zan2fbtr",
+      "approvalTitle": "editor-architecture: requirements"
+    }
+  ]
+}

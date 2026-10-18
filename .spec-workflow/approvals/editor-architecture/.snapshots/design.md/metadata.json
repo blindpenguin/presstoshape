@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/editor-architecture/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T12:57:13.794Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792328233791_tdcafspy6",
+      "approvalTitle": "editor-architecture: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T12:59:54.090Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792328233791_tdcafspy6",
+      "approvalTitle": "editor-architecture: design"
+    }
+  ]
+}

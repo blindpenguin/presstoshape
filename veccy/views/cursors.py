@@ -8,7 +8,7 @@ from PySide6.QtGui import QCursor, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
 from veccy import icons
-from veccy.views.gesture_types import CursorType
+from veccy.tools.base import CursorType
 
 _SIZE_PX = 24
 _INK = "#18181b"

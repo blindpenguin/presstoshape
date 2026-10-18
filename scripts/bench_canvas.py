@@ -22,14 +22,16 @@ from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from veccy.app import _set_surface_format  # noqa: E402
-from veccy.controllers.app_controller import AppController  # noqa: E402
+from veccy.editing import queries  # noqa: E402
+from veccy.editing.operations import selection, view  # noqa: E402
+from veccy.editing.session import Session  # noqa: E402
 from veccy.models.app_state import AppState, Document, Layer  # noqa: E402
 from veccy.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape  # noqa: E402
-from veccy.views import theme  # noqa: E402
 from veccy.render.handles import Handle  # noqa: E402
-from veccy.views.gesture_types import Mods  # noqa: E402
+from veccy.tools.base import Mods  # noqa: E402
+from veccy.tools.select import _Mode  # noqa: E402
+from veccy.views import theme  # noqa: E402
 from veccy.views.main_window import MainWindow  # noqa: E402
-from veccy.views.select_gesture import _Mode  # noqa: E402
 from veccy.views.skia_surface import SkiaGLWidget  # noqa: E402
 
 
@@ -91,7 +93,7 @@ def _start_gesture(select, mode: _Mode, handle: Handle | None = None) -> tuple[f
     """Puts the select gesture mid-gesture on the current selection without hit-testing a start point."""
     frame = select.frame()
     select._mode, select._handle, select._frame0 = mode, handle, frame
-    select._moving = select._ctx.controller.selected_shapes()
+    select._moving = queries.selected_shapes(select._context.state)
     select._start = frame.point(*handle.fraction) if handle is not None else (0.0, 0.0)
     return select._start
 
@@ -111,13 +113,13 @@ def main() -> None:
     app = QApplication(sys.argv)
     theme.apply(app)
     state = AppState(document=_document(args.shapes))
-    controller = AppController(state)
-    window = MainWindow(state, controller)
+    session = Session(state)
+    window = MainWindow(session)
     window.resize(1600, 1000)
     window.show()
     QTest.qWaitForWindowExposed(window)
     canvas = window.canvas
-    controller.set_zoom(25)
+    view.set_zoom(session, 25)
     canvas.center_artboard()
     viewport = canvas.viewport()
     if isinstance(viewport, SkiaGLWidget):
@@ -127,12 +129,12 @@ def main() -> None:
 
     _report("pan", _measure(viewport, lambda i: canvas._scroll_by(7 if i % 40 < 20 else -7, 3), args.frames))
     zooms = [25 * 1.02**k for k in range(30)]
-    _report("zoom", _measure(viewport, lambda i: controller.set_zoom(zooms[i % 30]), args.frames))
+    _report("zoom", _measure(viewport, lambda i: view.set_zoom(session, zooms[i % 30]), args.frames))
 
-    controller.set_zoom(25)
+    view.set_zoom(session, 25)
     shapes = state.document.layers[0].shapes
-    controller.set_selection({s.id for s in shapes[:500]})
-    select = canvas._gestures._select
+    selection.set_selection(session, {shape.id for shape in shapes[:500]})
+    select = canvas._toolbox.active
     none = Mods()
 
     _start_gesture(select, _Mode.MOVE)
@@ -153,7 +155,7 @@ def main() -> None:
     for _ in range(args.frames):
         point = (rng.uniform(0, side), rng.uniform(0, side))
         start = time.perf_counter()
-        canvas._gestures.hover(point)
+        canvas._toolbox.active.hover(point)
         hover_times.append((time.perf_counter() - start) * 1000)
     _report("hover", hover_times)
 

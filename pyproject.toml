@@ -22,3 +22,5 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# Test modules mirror the package layout and may share basenames (tests/render/test_paths.py, ...).
+addopts = ["--import-mode=importlib"]

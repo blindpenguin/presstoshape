@@ -4,7 +4,8 @@ from collections.abc import Iterable
 
 import skia
 
-from veccy.controllers import geometry
+from veccy.geometry import transforms
+from veccy.geometry.segments import quad_to_cubic
 from veccy.models.shapes import IDENTITY_TRANSFORM, Close, CubicTo, LineTo, MoveTo, Segment, Shape, TextShape, Transform
 from veccy.render.text import text_path
 
@@ -43,11 +44,11 @@ def from_skia_path(path: skia.Path) -> tuple[Segment, ...]:
             case skia.Path.kLine_Verb:
                 out.append(LineTo(pts[1].x(), pts[1].y()))
             case skia.Path.kQuad_Verb:
-                out.append(geometry.quad_to_cubic(*((p.x(), p.y()) for p in pts)))
+                out.append(quad_to_cubic(*((p.x(), p.y()) for p in pts)))
             case skia.Path.kConic_Verb:
                 quads = skia.Path.ConvertConicToQuads(pts[0], pts[1], pts[2], it.conicWeight(), 2)
                 for i in range(0, len(quads) - 2, 2):
-                    out.append(geometry.quad_to_cubic(*((p.x(), p.y()) for p in quads[i : i + 3])))
+                    out.append(quad_to_cubic(*((p.x(), p.y()) for p in quads[i : i + 3])))
             case skia.Path.kCubic_Verb:
                 out.append(CubicTo(*(v for p in pts[1:] for v in (p.x(), p.y()))))
             case skia.Path.kClose_Verb:
@@ -78,7 +79,7 @@ def _build(shape: Shape) -> skia.Path:
         if shape.transform != IDENTITY_TRANSFORM:
             path.transform(to_skia_matrix(shape.transform))
         return path
-    return to_skia_path(geometry.outline(shape) or ())
+    return to_skia_path(transforms.outline(shape) or ())
 
 
 def _bounds(shape: Shape, path: skia.Path) -> skia.Rect:

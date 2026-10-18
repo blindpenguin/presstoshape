@@ -2,7 +2,7 @@
 
 ## Directory Organization
 
-Grouped by layer (Model / View / Controller), one module per concern inside each layer.
+Grouped by layer, one module per concern inside each layer. Layers, bottom to top: models → geometry / formats → render → editing (session + operations) → tools → views.
 
 ```
 veccy/                          # repo root
@@ -14,30 +14,44 @@ veccy/                          # repo root
 ├── README.md / CLAUDE.md       # user-facing overview / contributor + agent rules
 ├── scripts/                    # dev tools, never imported by the app
 │   ├── screenshot_app.py       # offscreen window render -> dev-screenshots/app.png
+│   ├── bench_canvas.py         # canvas frame times on a 10k-shape document
 │   ├── generate_icons.py       # copies Tabler SVGs from pytablericons into veccy/assets/icons
 │   └── spec_dashboard.sh       # starts the spec-workflow dashboard
-├── tests/                      # pytest, Qt-free logic only
-│   └── test_<module>.py
+├── tests/                      # pytest, Qt-free code only; mirrors the package layout
+│   ├── conftest.py / helpers.py   # `session` fixture; ToolDriver, all_shapes, bbox, …
+│   ├── test_architecture.py    # layer and Qt-free rules
+│   └── geometry/ formats/ render/ editing/ tools/ views/   # test_<module>.py per module
 └── veccy/                      # application package
-    ├── app.py                  # App: creates AppState + AppController + MainWindow, owns QApplication
-    ├── icons.py                # semantic icon path constants
+    ├── app.py                  # App: creates the Session + MainWindow, owns QApplication
+    ├── icons.py                # semantic icon path constants (views only)
     ├── assets/icons/*.svg      # generated Tabler outline icons (currentColor)
     ├── models/                 # plain dataclasses, no logic beyond defaults
     │   ├── app_state.py        # AppState, Document, Layer, Tool
-    │   └── shapes.py           # frozen shapes, Style, path segments
-    ├── controllers/            # all state mutation + pure logic, no Qt
-    │   ├── app_controller.py   # mutations, undo/redo, file I/O, subscribe/notify
+    │   └── shapes.py           # frozen shapes, Style, path segments, Transform
+    ├── geometry/               # pure shape math
     │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
-    │   ├── geometry.py         # pure geometry + boolean ops (skia-pathops), canonical shape transforms
-    │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)
-    │   └── svg_io.py           # SVG read/write
-    └── views/                  # Qt widgets
-        ├── main_window.py      # assembles panels, fans out refresh(), owns dialogs
-        ├── actions.py          # every QAction, shared by menus and toolbars
-        ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, paints from state
-        ├── canvas_gestures.py  # gesture dispatcher + drawing tools (Qt-free) -> controller
-        ├── select_gesture.py / node_gesture.py   # Select (move, scale, rotate) and Node tool gestures
-        ├── gesture_types.py    # Mods, CursorType, GestureContext shared by gestures
+    │   ├── boxes.py            # Point, Rect, drag boxes
+    │   ├── segments.py         # building/mapping path segments
+    │   ├── booleans.py         # union/difference (skia-pathops)
+    │   ├── transforms.py       # outline, translate, canonical shape transforms
+    │   └── nodes.py            # path node editing (move, smooth handles, insert, delete)
+    ├── formats/
+    │   └── svg.py              # SVG read/write
+    ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay
+    ├── editing/
+    │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()
+    │   ├── registry.py         # Operation table: id, menu label, can_run
+    │   ├── queries.py          # read-only questions about state
+    │   └── operations/         # history, view, selection, shapes, transform, paths, node_editing, style, layers, documents
+    ├── tools/
+    │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
+    │   ├── registry.py         # TOOLS + Toolbox
+    │   └── select.py / node.py / pen.py / shapes.py / text.py
+    └── views/                  # Qt widgets only
+        ├── main_window.py      # assembles panels, fans out refresh(), window commands (dialogs)
+        ├── keymap.py           # shortcuts, icons, menu/toolbar layouts per command id
+        ├── actions.py          # QActions built from the registries + keymap
+        ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, forwards input to the active tool
         ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
@@ -46,15 +60,13 @@ veccy/                          # repo root
         └── icon_engine.py      # SvgIconEngine (vector icons, currentColor recoloring)
 ```
 
-Renderer (Qt-free, Skia): `veccy/render/` — `scene.py`, `picture.py`, `paths.py`, `text.py`, `hit_test.py`, `handles.py` (selection frame, handle and node picking), `viewport.py`, `export.py`, `overlay.py`. Shared by the canvas (via `views/skia_surface.py`) and PNG export.
-
 Planned additions (each introduced by its own spec):
 ```
 veccy/
-├── controllers/
-│   ├── <format>_io.py          # native document format read/write, next to svg_io.py
-│   └── <feature>.py            # pure logic per feature (brushes, effects, text layout, …)
-└── views/
+├── formats/<format>.py         # native document format, next to svg.py
+├── geometry/<topic>.py         # more pure math (offset, simplify, brush outlines, …)
+├── editing/operations/<feature>.py   # new commands
+└── tools/<tool>.py             # new tools (pencil, brush, gradient, …)
 ```
 
 ## Naming Conventions
@@ -62,15 +74,17 @@ veccy/
 ### Files
 - **Modules**: `snake_case.py`.
 - **Views**: panels and bars as `<name>_view.py` (`layers_view.py`, `tool_options_view.py`); shared widgets/helpers by purpose (`style_editor.py`, `widgets.py`, `theme.py`).
-- **Controllers**: by responsibility (`app_controller.py`, `geometry.py`); file formats as `<format>_io.py`.
-- **Tests**: `tests/test_<module>.py`, one per tested module; test functions `test_<behavior>` describing the expected behavior (`test_tiny_drag_adds_nothing`).
+- **Operations**: one module per feature in `editing/operations/` (`layers.py`, `node_editing.py`); tools one module per tool or family in `tools/`; file formats as `formats/<format>.py`.
+- **Tests**: `tests/<package>/test_<module>.py`, mirroring the package layout; test functions `test_<behavior>` describing the expected behavior (`test_tiny_drag_adds_nothing`).
 
 ### Code
 - **Classes/Types**: `PascalCase`. Shapes end in `Shape` (`RectShape`); Qt panels end in `Panel`/`View`/descriptive widget names (`LayersPanel`, `CanvasView`, `StyleEditor`).
-- **Functions/Methods**: `snake_case`. Controller methods are verbs on the domain (`add_rectangle`, `move_selection`, `set_layer_visible`); views expose `refresh(state)`.
+- **Functions/Methods**: `snake_case`. Operations are verbs on the domain taking the session first (`add_rectangle(session, ...)`, `move_selection`, `set_layer_visible`); views expose `refresh(state)`.
+- **Command ids**: dotted `<area>.<command>` (`edit.delete`, `path.object_to_path`, `tool.node`), shared by registries and the keymap.
+- **Names**: speaking but not overlong (`session`, `shape`, `segments`, `frame`; short names only for math and tiny scopes); say "type", not "kind".
 - **Constants**: `UPPER_SNAKE_CASE`; module-private with a leading underscore (`_UNDO_LIMIT`, `_WHEEL_ZOOM`).
 - **Variables**: `snake_case`; private members/helpers with a leading underscore.
-- **Type aliases**: `PascalCase` (`Shape`, `Segment`, `Point`, `Matrix`).
+- **Type aliases**: `PascalCase` (`Shape`, `Segment`, `Point`, `Rect`, `Affine`).
 
 ## Import Patterns
 
@@ -83,8 +97,8 @@ Groups separated by a blank line (ruff `I` / isort order once ruff is added).
 
 ### Module/Package Organization
 - Absolute imports with the `veccy.` prefix everywhere (`from veccy.models.app_state import AppState`); no relative imports.
-- Dependency direction is strict: `views → controllers → render → models`, and views may use `render` directly. Never import a view from a model, controller or renderer.
-- **No Qt imports in `models/`, `controllers/` or `render/`.**
+- Dependency direction is strict: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render. `tests/test_architecture.py` enforces it.
+- **No Qt imports below `views/`.**
 - PySide6 only — never PyQt5/6.
 - Dev-only packages (`pytablericons`, `pytest`) are never imported by `veccy/`.
 
@@ -97,39 +111,41 @@ Groups separated by a blank line (ruff `I` / isort order once ruff is added).
 4. Small private helpers
 5. Main class(es) / public functions
 
-Large classes are sectioned with `# --- section ---` comments (e.g. `# --- undo ---`, `# --- queries ---` in `AppController`).
+Large classes are sectioned with `# --- section ---` comments (e.g. `# --- editing ---`, `# --- undo / redo ---` in `Session`).
 
 ### Function/Method Organization
-- **Controller mutations**: validate / early-return on no-op input → `self._checkpoint(merge_key)` before mutating the document → mutate via `dataclasses.replace` → set `status_message` → `self._notify()`. Notify even on rejected input when a view needs to revert.
+- **Operations**: validate / early-return on no-op input → `with session.edit("Label", merge_key):` → mutate via `dataclasses.replace` and the `_document` helpers → set `status_message`. Non-document changes mutate and call `session.notify()`. Notify even on rejected input when a view needs to revert. Register with `@operation(id, label, can_run)` when a menu or shortcut can run it without extra input.
 - **View `refresh(state)`**: idempotent and cheap; skip work when the relevant slice of state is unchanged; `blockSignals(True)` while writing values back into widgets.
-- **Gestures**: transient state lives in view attributes until the gesture commits through one controller call.
+- **Tools**: subclass `BaseTool`; transient gesture state lives in the tool until it commits through one operation call; list new tools in `tools/registry.py`.
 - **Signals**: connect `triggered` / `clicked` via `lambda: slot()` so the `checked` bool doesn't land in an optional parameter.
 - Error handling only at real I/O boundaries (file load/save, parsing foreign files); no defensive try/except around Qt calls.
 
 ### File Organization Principles
 - One panel/view class per module; reusable widgets in shared modules.
-- Pure logic goes in controllers (or `render/`) with tests, not in views.
-- New state goes into nested dataclasses in `models/` per feature — no module-level state or singletons; one `AppState` passed explicitly.
-- Dialogs (file pickers, confirmations, text input) live in views; controllers receive plain values.
+- Pure logic goes in `geometry/`, `render/`, `editing/` or `tools/` with tests, not in views.
+- New state goes into nested dataclasses in `models/` per feature — no module-level state or singletons; one `Session` (owning the `AppState`) passed explicitly. Registries hold definitions only.
+- Dialogs (file pickers, confirmations, text input) live in views; operations receive plain values.
 
 ## Code Organization Principles
 
-1. **Single source of truth**: `AppState` holds all persistent app state; views render from it, controllers alone write it.
+1. **Single source of truth**: `AppState` holds all persistent app state; views render from it, operations alone write it, through the session.
 2. **Immutability**: shapes and geometry are frozen dataclasses; undo snapshots share them.
 3. **Testability**: everything not inherently Qt lives Qt-free and is covered by pytest.
 4. **Single responsibility**: one clear purpose per module.
-5. **Consistency**: follow existing patterns (controller method shape, `refresh(state)`, icon loading via `icon_engine.icon(path)`).
+5. **Consistency**: follow existing patterns (operation shape with `session.edit`, `BaseTool`, `refresh(state)`, icon loading via `icon_engine.icon(path)`).
 
 ## Module Boundaries
-- **Models**: data only. No imports from controllers, views or Qt.
-- **Controllers**: the only code that mutates `AppState`. Pure functions for geometry/I/O; `AppController` is the façade views call. No Qt.
-- **Render**: pure model → Skia drawing, hit-testing and viewport math; no state mutation, no Qt. Used by the canvas surface and exporters, guaranteeing canvas = export.
-- **Views**: Qt only; read state, call controllers. Own transient gesture state, dialogs and Qt object lifetimes (parents set, signals disconnected on teardown — see `CanvasView.shutdown()`).
+- **Models**: data only. No veccy or Qt imports.
+- **Geometry / formats**: pure functions over models; no state.
+- **Render**: pure model → Skia drawing, picking and viewport math; no state mutation. Used by the canvas surface and exporters, guaranteeing canvas = export.
+- **Editing**: the session and the operations — the only code that changes `AppState`.
+- **Tools**: input state machines; read state, call operations; no Qt.
+- **Views**: Qt only; read state, call operations, forward canvas input to the active tool. Own dialogs, the keymap and Qt object lifetimes (parents set, signals disconnected on teardown — see `CanvasView.shutdown()`).
 - **Scripts / tests**: may import anything from `veccy`; nothing in `veccy` imports them.
 - **Assets**: generated files in `veccy/assets/` are only changed by their generator scripts.
 
 ## Code Size Guidelines
-- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `app_controller.py` ≈ 550 — over the guideline; next candidate for splitting into per-feature controller modules, e.g. node editing and transforms).
+- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `geometry/nodes.py` and `formats/svg.py` ≈ 350).
 - **Function/Method size**: aim for ≤ ~40 lines; extract helpers for distinct steps.
 - **Nesting depth**: ≤ 3 levels; prefer early returns and `match` on shape/segment types.
 - **Line length**: 120 characters.

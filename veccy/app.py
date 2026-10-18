@@ -5,8 +5,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtWidgets import QApplication
 
-from veccy.controllers.app_controller import AppController
-from veccy.models.app_state import AppState
+from veccy.editing.session import Session
 from veccy.views import theme
 from veccy.views.main_window import MainWindow
 
@@ -26,8 +25,7 @@ def _set_surface_format() -> None:
 
 class App:
     def __init__(self) -> None:
-        self.state = AppState()
-        self.controller = AppController(self.state)
+        self.session = Session()
 
     def run(self, *, screenshot_path: Path | None = None) -> int:
         """`screenshot_path` is a dev-only hook: render once, save a PNG and exit — see scripts/screenshot_app.py."""
@@ -37,7 +35,7 @@ class App:
         app.setApplicationName("veccy")
         theme.apply(app)
 
-        window = MainWindow(self.state, self.controller)
+        window = MainWindow(self.session)
         window.resize(*_WINDOW_SIZE)
         window.show()
 

@@ -4,9 +4,9 @@ from collections.abc import Iterator
 
 import skia
 
+from veccy.geometry.boxes import Rect
 from veccy.models.app_state import Document
 from veccy.models.shapes import Shape
-from veccy.render.overlay import Rect
 from veccy.render.paths import PathCache
 
 

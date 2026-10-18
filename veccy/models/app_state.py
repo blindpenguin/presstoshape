@@ -46,7 +46,7 @@ def _default_tool_styles() -> dict[Tool, Style]:
 
 @dataclass
 class AppState:
-    """Plain data, no Qt/view/controller imports. Owned by App, read by views, mutated only by controllers."""
+    """Plain data, no Qt or app-logic imports. Owned by the Session, changed only by operations."""
 
     document: Document = field(default_factory=Document)
     active_tool: Tool = Tool.SELECT

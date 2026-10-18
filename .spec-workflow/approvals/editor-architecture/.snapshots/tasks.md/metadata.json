@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/editor-architecture/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T13:00:40.054Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792328440052_lse3k6059",
+      "approvalTitle": "editor-architecture: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T13:01:16.449Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792328440052_lse3k6059",
+      "approvalTitle": "editor-architecture: tasks"
+    }
+  ]
+}

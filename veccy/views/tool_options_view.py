@@ -1,6 +1,9 @@
+from functools import partial
+
 from PySide6.QtWidgets import QDoubleSpinBox, QLabel, QStackedWidget, QVBoxLayout, QWidget
 
-from veccy.controllers.app_controller import AppController
+from veccy.editing.operations import view
+from veccy.editing.session import Session
 from veccy.models.app_state import AppState, Tool
 from veccy.views.selection_view import SelectionOptions
 from veccy.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
@@ -37,9 +40,9 @@ TITLES = {
 class ToolOptionsPanel(QStackedWidget):
     """One page per tool: the selection's properties for Select, the new-shape style for drawing tools."""
 
-    def __init__(self, controller: AppController) -> None:
+    def __init__(self, session: Session) -> None:
         super().__init__()
-        self._selection = SelectionOptions(controller)
+        self._selection = SelectionOptions(session)
         self.addWidget(self._selection)
         self._pages: dict[Tool, QWidget] = {Tool.SELECT: self._selection}
         self._editors: dict[Tool, StyleEditor] = {}
@@ -48,15 +51,15 @@ class ToolOptionsPanel(QStackedWidget):
         for tool, fields in _FIELDS.items():
             editor = StyleEditor(
                 fields,
-                on_fill=lambda c, t=tool: controller.set_tool_style(t, fill=c),
-                on_stroke=lambda c, t=tool: controller.set_tool_style(t, stroke=c),
-                on_width=lambda w, t=tool: controller.set_tool_style(t, stroke_width=w),
+                on_fill=lambda color, t=tool: view.set_tool_style(session, t, fill=color),
+                on_stroke=lambda color, t=tool: view.set_tool_style(session, t, stroke=color),
+                on_width=lambda width, t=tool: view.set_tool_style(session, t, stroke_width=width),
             )
             if tool is Tool.TEXT:
                 self._font_size = QDoubleSpinBox()
                 self._font_size.setRange(1, 999)
                 self._font_size.setDecimals(1)
-                self._font_size.valueChanged.connect(controller.set_font_size)
+                self._font_size.valueChanged.connect(partial(view.set_font_size, session))
                 editor.form.addRow("Size", self._font_size)
 
             page = QWidget()

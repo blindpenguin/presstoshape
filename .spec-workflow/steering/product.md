@@ -59,7 +59,7 @@ Core feature pillars (target):
 Not applicable — veccy is a local desktop app with no telemetry. User feedback is through the status bar (tool, zoom, messages) and window title (file name, unsaved state).
 
 ## Future Vision
-veccy grows from its current shape-editor core into a full professional illustration application, pillar by pillar, while the MVC architecture keeps it maintainable.
+veccy grows from its current shape-editor core into a full professional illustration application, pillar by pillar, while its session / operations / tools architecture keeps it maintainable.
 
 ### Potential Enhancements
 - **Pro workflows**: artboards, symbols/components, swatches and color libraries, global colors, styles libraries.
