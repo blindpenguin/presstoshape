@@ -26,6 +26,7 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 - Lifetime: Qt may delete C++ objects before their Python wrappers. Give widgets/scenes a parent, and disconnect signals that fire during teardown (see `CanvasView.shutdown()` — scene destruction emits `selectionChanged`).
 - Don't rebuild a widget (e.g. `QListWidget.clear()`) from inside one of its own item signals; defer with `QTimer.singleShot(0, ...)` (see `LayersPanel._on_item_changed`).
 - `QPainterPath` defaults to odd-even fill; SVG's default is nonzero → always `setFillRule(Qt.FillRule.WindingFill)` when converting model paths.
+- Don't use `QGraphicsView.AnchorUnderMouse`: it anchors on a scene point cached in `QGraphicsView.mouseMoveEvent`, which goes stale whenever a gesture handler skips `super()` (pan, shape drags) → zoom jumps far away. `CanvasView._apply_zoom` anchors manually.
 - Pen defaults must match SVG (flat cap, miter join) so canvas and saved file look the same.
 
 ## Architecture: Model / View / Controller

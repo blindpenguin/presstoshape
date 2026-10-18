@@ -81,9 +81,13 @@ class CanvasView(QGraphicsView):
         self._preview: QGraphicsPathItem | None = None
         self._pen_points: list[QPointF] = []
         self._pan_from: QPointF | None = None
+        self._zoom_anchor: QPointF | None = None
+        self._scroll_residual = QPointF()
 
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        # Anchoring is done by hand in _apply_zoom: Qt's AnchorUnderMouse uses a scene point cached in
+        # QGraphicsView.mouseMoveEvent, which goes stale whenever our gesture handlers skip super().
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         self.setMouseTracking(True)
         scene.selectionChanged.connect(self._on_scene_selection)
@@ -106,10 +110,21 @@ class CanvasView(QGraphicsView):
         if state.active_tool is not self._tool:
             self._set_tool(state.active_tool)
         if state.zoom_percent != self._zoom:
-            self._zoom = state.zoom_percent
-            scale = self._zoom / 100
-            self.setTransform(QTransform.fromScale(scale, scale))
+            self._apply_zoom(state.zoom_percent)
         self._sync_items(state)
+
+    def _apply_zoom(self, zoom: int) -> None:
+        """Rescales keeping the scene point under the anchor fixed: the cursor for wheel zoom, else the center."""
+        anchor = self._zoom_anchor or QPointF(self.viewport().rect().center())
+        scene_point = self.viewportTransform().inverted()[0].map(anchor)
+        self._zoom = zoom
+        self.setTransform(QTransform.fromScale(zoom / 100, zoom / 100))
+        drift = self.viewportTransform().map(scene_point) - anchor + self._scroll_residual
+        # Scrollbars are integer px; carry the remainder so repeated zoom steps don't creep.
+        step = QPointF(round(drift.x()), round(drift.y()))
+        self._scroll_residual = drift - step
+        self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + int(step.x()))
+        self.verticalScrollBar().setValue(self.verticalScrollBar().value() + int(step.y()))
 
     def _sync_items(self, state: AppState) -> None:
         self._syncing = True
@@ -176,8 +191,21 @@ class CanvasView(QGraphicsView):
         painter.drawRect(self._artboard)
 
     def wheelEvent(self, event):
-        factor = _WHEEL_ZOOM if event.angleDelta().y() > 0 else 1 / _WHEEL_ZOOM
+        # Middle button is the wheel on most mice, so a pan drag emits stray wheel ticks.
+        if self._pan_from is not None or event.buttons() & Qt.MouseButton.MiddleButton:
+            event.accept()
+            return
+        dy = event.angleDelta().y()
+        # Smooth pixel scrolling (touchpad, libinput middle-button scrolling) pans; wheel notches zoom.
+        notched = event.pixelDelta().isNull()
+        ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        if dy == 0 or not (notched or ctrl):
+            super().wheelEvent(event)
+            return
+        factor = _WHEEL_ZOOM if dy > 0 else 1 / _WHEEL_ZOOM
+        self._zoom_anchor = event.position()
         self._controller.set_zoom((self._zoom or 100) * factor)
+        self._zoom_anchor = None
 
     # --- gestures -----------------------------------------------------------
 

@@ -11,7 +11,7 @@ uv run python main.py
 
 - Tools: select (V), bezier pen (P), rectangle (R), ellipse (E), text (T). Shift constrains rectangles/ellipses to squares/circles.
 - Pen: click points for a smooth curve; double-click or Enter finishes, Esc cancels.
-- Mouse wheel zooms under the cursor, middle-drag pans.
+- Mouse wheel zooms under the cursor, middle-drag pans. Touchpad scrolling pans; Ctrl+scroll zooms.
 - Union (Ctrl++) and difference (Ctrl+-) of selected shapes.
 - Fill / stroke / stroke width per shape; last-used style applies to new shapes.
 - Layers: add, delete, rename (double-click), hide (checkbox).
