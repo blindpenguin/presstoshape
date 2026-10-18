@@ -1,8 +1,10 @@
 import skia
 
+from veccy.controllers import affine, geometry
 from veccy.models.app_state import Document, Layer
 from veccy.models.shapes import EllipseShape, LineTo, MoveTo, RectShape, Style
-from veccy.render.overlay import CanvasColors, Overlay
+from veccy.render.handles import Frame
+from veccy.render.overlay import CanvasColors, NodeOverlay, Overlay
 from veccy.render.paths import PathCache
 from veccy.render.scene import draw_background, draw_document, draw_overlays, parse_color
 
@@ -10,13 +12,13 @@ COLORS = CanvasColors("#101010", "#ffffff", "#808080", "#0000ff", "#00ff00")
 TRANSPARENT = (0, 0, 0, 0)
 
 
-def _render(doc: Document, moving=frozenset(), offset=(0.0, 0.0), background: bool = False) -> skia.Surface:
+def _render(doc: Document, moving=frozenset(), matrix=affine.IDENTITY, background: bool = False, live=()) -> skia.Surface:
     surface = skia.Surface(int(doc.width), int(doc.height))
     canvas = surface.getCanvas()
     canvas.clear(skia.ColorTRANSPARENT)
     if background:
         draw_background(canvas, doc, COLORS)
-    draw_document(canvas, doc, PathCache(), moving, offset)
+    draw_document(canvas, doc, PathCache(), moving, matrix, live)
     return surface
 
 
@@ -68,7 +70,7 @@ def test_later_shape_paints_on_top():
 
 def test_moving_shapes_draw_at_offset():
     shape = RectShape(1, 0, 0, 20, 20, Style(fill="#ff0000", stroke=None))
-    surface = _render(_doc(shape), moving=frozenset({1}), offset=(60, 60))
+    surface = _render(_doc(shape), moving=frozenset({1}), matrix=affine.translation(60, 60))
     assert _pixel(surface, 10, 10) == TRANSPARENT
     assert _pixel(surface, 70, 70) == (255, 0, 0, 255)
 
@@ -125,3 +127,45 @@ def test_preview_with_stroke_uses_tool_style():
 def test_draw_document_ignores_overlay_state():
     shape = RectShape(1, 10, 10, 50, 50, Style(fill=None, stroke=None))
     assert _pixel(_render(_doc(shape)), 10, 30) == TRANSPARENT
+
+
+def test_rotated_rect_renders_rotated():
+    # 60x20 bar rotated 90° about its center (50, 50) becomes a 20x60 bar.
+    rect = geometry.with_rotation(RectShape(1, 20, 40, 60, 20, Style(fill="#ff0000", stroke=None)), 90)
+    surface = _render(_doc(rect))
+    assert _pixel(surface, 50, 25) == (255, 0, 0, 255)
+    assert _pixel(surface, 25, 50) == TRANSPARENT
+
+
+def test_live_shapes_replace_moving_shapes():
+    shape = RectShape(1, 0, 0, 20, 20, Style(fill="#ff0000", stroke=None))
+    live = (RectShape(1, 50, 50, 40, 40, Style(fill="#ff0000", stroke=None)),)
+    surface = _render(_doc(shape), moving=frozenset({1}), live=live)
+    assert _pixel(surface, 10, 10) == TRANSPARENT
+    assert _pixel(surface, 85, 85) == (255, 0, 0, 255)
+
+
+def test_frame_handles_are_eight_screen_px():
+    doc = _doc(RectShape(1, 20, 20, 20, 20, Style(fill=None, stroke=None)))
+    frame = Frame((20, 20, 20, 20))
+    surface = _render_overlay(doc, Overlay(selection=frozenset({1}), frame=frame), 2.0)
+    # SE handle centered at (40, 40) doc = (80, 80) px; 8 px wide white square with a 1 px border.
+    row = [_pixel(surface, x, 82) != TRANSPARENT for x in range(70, 91)]
+    assert sum(row) == 9
+    assert _pixel(surface, 82, 82) == (255, 255, 255, 255)
+
+
+def test_single_selection_with_frame_has_no_dashed_box():
+    doc = _doc(RectShape(1, 20, 20, 40, 40, Style(fill=None, stroke=None)))
+    frame = Frame((20, 20, 40, 40))
+    surface = _render_overlay(doc, Overlay(selection=frozenset({1}), frame=frame), 1.0)
+    edge = {_pixel(surface, 20, y) for y in range(26, 34)}
+    assert edge == {(0, 255, 0, 255)}
+
+
+def test_selected_node_is_filled_unselected_is_white():
+    segments = (MoveTo(20, 20), LineTo(80, 20))
+    overlay = Overlay(nodes=(NodeOverlay(segments, selected=frozenset({1})),))
+    surface = _render_overlay(_doc(), overlay, 1.0)
+    assert _pixel(surface, 20, 20) == (255, 255, 255, 255)
+    assert _pixel(surface, 80, 20) == (0, 255, 0, 255)

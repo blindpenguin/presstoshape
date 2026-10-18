@@ -32,7 +32,7 @@ Model / View / Controller with Elm-like state ownership inside Qt's retained-mod
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
 - **Native format (planned)**: a veccy document format that stores everything veccy supports losslessly. Requirements: versioned with forward migration, exact reload of what was saved, able to embed resources (images, fonts as needed). Concrete format (e.g. zip + JSON, SQLite) is decided in its own spec.
-- **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; transforms that can't be represented are flattened to paths; unsupported paint is approximated.
+- **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; rect/ellipse/text keep rotate/scale/skew transforms as a per-shape `transform` (written back as `rotate(...)` or `matrix(...)`), paths get transforms applied to their points; unsupported paint is approximated.
 - **Raster export**: PNG, rendered by the same renderer as the canvas (transparent background, any scale up to 16384 px per side).
 - **Caching**: in-memory only (Skia path cache and recorded document pictures in the canvas).
 
@@ -112,7 +112,7 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 - **Renderer**: Skia renders shapes with solid paint only so far; gradients, blend modes and effects are future specs. Continuous zoom on documents with many text objects re-rasterizes glyphs at each scale (~20 ms/frame at 10k shapes on an integrated GPU); pan and drag stay under 16 ms. The CPU fallback is ~25–30 ms/frame at 10k shapes.
 - **Undo scaling**: snapshot undo copies every layer's shape list per step — fine now, may need structural sharing or command-based undo for very large documents.
 - **Full-state notify**: every change refreshes every view; views must keep diffing cheap, and finer-grained change notification may be needed as the UI grows.
-- **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; non-translation transforms are flattened to paths.
+- **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; skew on text is dropped.
 - **Text**: single-line, single font; rendered via `QPainterPath.addText` with a generic font.
-- **Shape model**: no groups, no per-shape transforms; geometry is in absolute document coordinates.
+- **Shape model**: no groups. Each shape has an affine `transform`, kept canonical: rect/ellipse/text store unrotated geometry plus a rotation about their center (a full matrix only when skewed); paths always have the transform baked into their segments. Handle scaling changes geometry, so strokes don't scale.
 - **No native format, no packaging or CI yet**.

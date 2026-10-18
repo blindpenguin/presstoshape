@@ -1,9 +1,11 @@
 from dataclasses import replace
 
 import pytest
+import skia
 
-from veccy.models.shapes import Close, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
-from veccy.render.paths import PathCache, to_skia_path
+from veccy.controllers import geometry
+from veccy.models.shapes import Close, CubicTo, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from veccy.render.paths import PathCache, from_skia_path, to_skia_path
 
 _STYLE = Style(fill="#ff0000", stroke=None)
 
@@ -72,3 +74,33 @@ def test_stroke_path_respects_min_width():
     wide = cache.stroke_path(line, min_width=6).computeTightBounds()
     assert thin.height() == pytest.approx(1)
     assert wide.height() == pytest.approx(6)
+
+
+def test_rotated_rect_path_and_bounds_are_world_space():
+    rect = geometry.with_rotation(RectShape(1, 0, 0, 20, 10, _STYLE), 90)
+    b = PathCache().geometry_bounds(rect)
+    assert (b.left(), b.top(), b.right(), b.bottom()) == pytest.approx((5, -5, 15, 15))
+
+
+def test_rotated_text_path_is_transformed():
+    text = TextShape(1, 10, 50, "Hello", 20.0, _STYLE)
+    upright = PathCache().geometry_bounds(text)
+    turned = PathCache().geometry_bounds(geometry.with_rotation(text, 90))
+    assert turned.width() == pytest.approx(upright.height(), abs=1e-3)
+    assert turned.height() == pytest.approx(upright.width(), abs=1e-3)
+
+
+def test_from_skia_path_round_trip():
+    segments = (MoveTo(0, 0), LineTo(10, 0), CubicTo(10, 5, 5, 10, 0, 10), Close())
+    assert from_skia_path(to_skia_path(segments)) == segments
+
+
+def test_from_skia_path_converts_quads_and_conics():
+    path = skia.Path()
+    path.moveTo(0, 0)
+    path.quadTo(5, 5, 10, 0)
+    path.conicTo(10, 10, 0, 10, 0.7)
+    segments = from_skia_path(path)
+    assert isinstance(segments[0], MoveTo)
+    assert all(isinstance(s, CubicTo) for s in segments[1:])
+    assert (segments[-1].x, segments[-1].y) == pytest.approx((0, 10))

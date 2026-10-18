@@ -32,6 +32,10 @@ class Close:
 
 Segment = MoveTo | LineTo | CubicTo | Close
 
+# Affine (a, b, c, d, e, f) as in SVG matrix(); applied on top of the shape's geometry.
+Transform = tuple[float, float, float, float, float, float]
+IDENTITY_TRANSFORM: Transform = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
 
 @dataclass(frozen=True)
 class Style:
@@ -48,6 +52,7 @@ class RectShape:
     width: float
     height: float
     style: Style
+    transform: Transform = IDENTITY_TRANSFORM
 
 
 @dataclass(frozen=True)
@@ -58,6 +63,7 @@ class EllipseShape:
     rx: float
     ry: float
     style: Style
+    transform: Transform = IDENTITY_TRANSFORM
 
 
 @dataclass(frozen=True)
@@ -65,6 +71,7 @@ class PathShape:
     id: int
     segments: tuple[Segment, ...]
     style: Style
+    transform: Transform = IDENTITY_TRANSFORM
 
 
 @dataclass(frozen=True)
@@ -75,6 +82,7 @@ class TextShape:
     text: str
     font_size: float
     style: Style
+    transform: Transform = IDENTITY_TRANSFORM
 
 
 Shape = RectShape | EllipseShape | PathShape | TextShape

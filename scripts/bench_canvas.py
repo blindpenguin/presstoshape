@@ -1,7 +1,8 @@
 """Dev-only: canvas frame-time benchmark on a generated large document.
 
-Repaints the real canvas while panning, zooming and dragging a selection, and reports average and 95th-percentile
-frame time. GL frames wait for the GPU to finish, so times include GPU work.
+Repaints the real canvas while panning, zooming, and moving/scaling/rotating a selection, and reports average and
+95th-percentile frame time. Gesture frames include the gesture's own per-move work (e.g. rebuilding scaled
+shapes). GL frames wait for the GPU to finish, so times include GPU work. `hover` times the cursor query alone.
 
 Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N]
        VECCY_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
@@ -25,7 +26,10 @@ from veccy.controllers.app_controller import AppController  # noqa: E402
 from veccy.models.app_state import AppState, Document, Layer  # noqa: E402
 from veccy.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape  # noqa: E402
 from veccy.views import theme  # noqa: E402
+from veccy.render.handles import Handle  # noqa: E402
+from veccy.views.gesture_types import Mods  # noqa: E402
 from veccy.views.main_window import MainWindow  # noqa: E402
+from veccy.views.select_gesture import _Mode  # noqa: E402
 from veccy.views.skia_surface import SkiaGLWidget  # noqa: E402
 
 
@@ -70,14 +74,26 @@ def _frame(viewport) -> None:
         viewport.repaint()
 
 
-def _measure(viewport, step, frames: int) -> list[float]:
+def _measure(viewport, step, frames: int, include_step: bool = False) -> list[float]:
     times = []
     for i in range(frames):
-        step(i)
+        if not include_step:
+            step(i)
         start = time.perf_counter()
+        if include_step:
+            step(i)
         _frame(viewport)
         times.append((time.perf_counter() - start) * 1000)
     return times
+
+
+def _start_gesture(select, mode: _Mode, handle: Handle | None = None) -> tuple[float, float]:
+    """Puts the select gesture mid-gesture on the current selection without hit-testing a start point."""
+    frame = select.frame()
+    select._mode, select._handle, select._frame0 = mode, handle, frame
+    select._moving = select._ctx.controller.selected_shapes()
+    select._start = frame.point(*handle.fraction) if handle is not None else (0.0, 0.0)
+    return select._start
 
 
 def _report(name: str, times: list[float]) -> None:
@@ -116,12 +132,30 @@ def main() -> None:
     controller.set_zoom(25)
     shapes = state.document.layers[0].shapes
     controller.set_selection({s.id for s in shapes[:500]})
-    # Puts the select gesture mid-drag of 500 shapes without hit-testing a start point.
-    gestures = canvas._gestures
-    gestures._moving = controller.selected_shapes()
-    gestures._drag_start = (0.0, 0.0)
-    _report("drag", _measure(viewport, lambda i: gestures.move((float(i), float(i)), False), args.frames))
-    gestures.cancel()
+    select = canvas._gestures._select
+    none = Mods()
+
+    _start_gesture(select, _Mode.MOVE)
+    _report("drag", _measure(viewport, lambda i: select.move((float(i), float(i)), none), args.frames, True))
+    select.cancel()
+
+    x0, y0 = _start_gesture(select, _Mode.SCALE, Handle.SE)
+    _report("scale", _measure(viewport, lambda i: select.move((x0 + i, y0 + i / 2), none), args.frames, True))
+    select.cancel()
+
+    x0, y0 = _start_gesture(select, _Mode.ROTATE, Handle.ROTATE_NE)
+    _report("rotate", _measure(viewport, lambda i: select.move((x0 - 3 * i, y0 + 5 * i), none), args.frames, True))
+    select.cancel()
+
+    rng = random.Random(2)
+    side = state.document.width
+    hover_times = []
+    for _ in range(args.frames):
+        point = (rng.uniform(0, side), rng.uniform(0, side))
+        start = time.perf_counter()
+        canvas._gestures.hover(point)
+        hover_times.append((time.perf_counter() - start) * 1000)
+    _report("hover", hover_times)
 
     window.close_without_prompt()
 

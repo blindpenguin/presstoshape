@@ -1,6 +1,7 @@
 """Per-tool canvas gestures: holds transient drag/preview state and commits finished gestures to the controller.
 
-Points arrive in doc coordinates; CanvasView owns Qt events, panning and zooming.
+Points arrive in doc coordinates; CanvasView owns Qt events, panning and zooming. The Select tool lives in
+SelectGesture; the drawing tools are short enough to stay here.
 """
 
 from collections.abc import Callable
@@ -9,13 +10,16 @@ from veccy.controllers import geometry
 from veccy.controllers.app_controller import AppController
 from veccy.controllers.geometry import Point
 from veccy.models.app_state import AppState, Tool
-from veccy.models.shapes import Segment, Shape, Style
-from veccy.render import hit_test
+from veccy.models.shapes import Segment, Style
 from veccy.render.overlay import Overlay
 from veccy.render.paths import PathCache
+from veccy.views.gesture_types import CursorType, GestureContext, Mods
+from veccy.views.node_gesture import NodeGesture
+from veccy.views.select_gesture import SelectGesture
 
-_HIT_TOLERANCE_PX = 3.0
 _PEN_DEDUPE_PX = 3.0
+
+_TOOL_CURSORS = {Tool.TEXT: CursorType.IBEAM}
 
 
 class CanvasGestures:
@@ -26,24 +30,29 @@ class CanvasGestures:
         repaint: Callable[[], None],
         ask_text: Callable[[], str | None],
     ) -> None:
+        self._ctx = GestureContext(controller, cache, repaint)
         self._controller = controller
-        self._cache = cache
         self._repaint = repaint
         self._ask_text = ask_text
-        self._state: AppState | None = None
         self._tool = Tool.SELECT
-        # Doc units per screen px.
-        self.pixel_size = 1.0
+        self._select = SelectGesture(self._ctx)
+        self._node = NodeGesture(self._ctx)
 
         self._drag_start: Point | None = None
-        self._drag_end: Point | None = None
-        self._moving: list[Shape] = []
-        self._band_base: set[int] | None = None
         self._preview: tuple[tuple[Segment, ...], Style] | None = None
         self._pen_points: list[Point] = []
 
+    @property
+    def pixel_size(self) -> float:
+        """Doc units per screen px."""
+        return self._ctx.pixel_size
+
+    @pixel_size.setter
+    def pixel_size(self, value: float) -> None:
+        self._ctx.pixel_size = value
+
     def set_state(self, state: AppState) -> None:
-        self._state = state
+        self._ctx.state = state
 
     def set_tool(self, tool: Tool) -> None:
         self.cancel()
@@ -51,31 +60,42 @@ class CanvasGestures:
 
     @property
     def active(self) -> bool:
-        return self._drag_start is not None or self._preview is not None
+        return self._select.active or self._node.active or self._drag_start is not None or self._preview is not None
 
     @property
     def overlay(self) -> Overlay:
-        selection = set(self._state.selection) if self._state else set()
-        rubber_band = None
-        moving: frozenset[int] = frozenset()
-        offset = (0.0, 0.0)
-        if self._band_base is not None and self._drag_start and self._drag_end:
-            rubber_band = self._box(self._drag_start, self._drag_end)
-            selection = self._band_base | self._band_hits()
-        elif self._moving and self._drag_start and self._drag_end:
-            moving = frozenset(s.id for s in self._moving)
-            offset = self._delta()
-        return Overlay(frozenset(selection), rubber_band, self._preview, moving, offset)
+        if self._tool is Tool.SELECT:
+            return self._select.overlay
+        if self._tool is Tool.NODE:
+            return self._node.overlay
+        selection = frozenset(self._ctx.state.selection) if self._ctx.state else frozenset()
+        return Overlay(selection, preview=self._preview)
+
+    @property
+    def hint(self) -> str | None:
+        """Transient status text for the gesture in progress (e.g. rotation angle)."""
+        if self._tool is Tool.SELECT:
+            return self._select.hint
+        return self._node.hint if self._tool is Tool.NODE else None
+
+    def hover(self, point: Point) -> CursorType:
+        if self._tool is Tool.SELECT:
+            return self._select.hover(point)
+        if self._tool is Tool.NODE:
+            return self._node.hover(point)
+        return _TOOL_CURSORS.get(self._tool, CursorType.CROSS)
 
     # --- events ---------------------------------------------------------------
 
-    def press(self, point: Point, shift: bool, ctrl: bool) -> None:
+    def press(self, point: Point, mods: Mods) -> None:
         match self._tool:
             case Tool.SELECT:
-                self._press_select(point, ctrl)
+                self._select.press(point, mods)
+            case Tool.NODE:
+                self._node.press(point, mods)
             case Tool.RECTANGLE | Tool.ELLIPSE:
-                self._drag_start = self._drag_end = point
-                self._preview = (self._box_segments(point, point, shift), self._tool_style())
+                self._drag_start = point
+                self._preview = (self._box_segments(point, point, mods.shift), self._tool_style())
             case Tool.PEN:
                 self._pen_points.append(point)
                 self._preview = (geometry.smooth_segments(self._dedupe(self._pen_points)), self._tool_style())
@@ -85,45 +105,48 @@ class CanvasGestures:
                     self._controller.add_text(point, text)
         self._repaint()
 
-    def move(self, point: Point, shift: bool) -> None:
-        if self._drag_start is not None:
-            self._drag_end = point
-            if self._tool in (Tool.RECTANGLE, Tool.ELLIPSE):
-                self._preview = (self._box_segments(self._drag_start, point, shift), self._tool_style())
+    def move(self, point: Point, mods: Mods) -> None:
+        if self._tool is Tool.SELECT:
+            self._select.move(point, mods)
+        elif self._tool is Tool.NODE:
+            self._node.move(point, mods)
+        elif self._drag_start is not None:
+            self._preview = (self._box_segments(self._drag_start, point, mods.shift), self._tool_style())
             self._repaint()
         elif self._tool is Tool.PEN and self._pen_points:
             points = self._dedupe([*self._pen_points, point])
             self._preview = (geometry.smooth_segments(points), self._tool_style())
             self._repaint()
 
-    def release(self, point: Point, shift: bool) -> None:
+    def release(self, point: Point, mods: Mods) -> None:
+        if self._tool is Tool.SELECT:
+            self._select.release(point, mods)
+            return
+        if self._tool is Tool.NODE:
+            self._node.release(point, mods)
+            return
         if self._drag_start is None:
             return
-        self._drag_end = point
         start = self._drag_start
-        if self._tool is Tool.SELECT:
-            if self._band_base is not None:
-                selection = self._band_base | self._band_hits()
-                self.cancel()
-                self._controller.set_selection(selection)
-            else:
-                dx, dy = self._delta()
-                self.cancel()
-                if dx or dy:
-                    self._controller.move_selection(dx, dy)
-        elif self._tool is Tool.RECTANGLE:
-            self.cancel()
-            self._controller.add_rectangle(start, point, shift)
+        self.cancel()
+        if self._tool is Tool.RECTANGLE:
+            self._controller.add_rectangle(start, point, mods.shift)
         elif self._tool is Tool.ELLIPSE:
-            self.cancel()
-            self._controller.add_ellipse(start, point, shift)
+            self._controller.add_ellipse(start, point, mods.shift)
         self._repaint()
 
-    def double_click(self) -> None:
+    def double_click(self, point: Point, mods: Mods) -> None:
         if self._tool is Tool.PEN:
             self.finish_pen()
+        elif self._tool is Tool.NODE:
+            self._node.double_click(point)
+        else:
+            # Qt sends the second press of a double-click as a double-click event only.
+            self.press(point, mods)
 
     def escape(self) -> None:
+        if self._tool is Tool.NODE and self._node.escape():
+            return
         if self.active:
             self.cancel()
             self._repaint()
@@ -136,42 +159,17 @@ class CanvasGestures:
         self._controller.add_path(points)
 
     def cancel(self) -> None:
-        self._drag_start = self._drag_end = None
-        self._moving = []
-        self._band_base = None
+        self._select.cancel()
+        self._node.cancel()
+        self._drag_start = None
         self._preview = None
         self._pen_points = []
 
     # --- helpers --------------------------------------------------------------
 
-    def _press_select(self, point: Point, ctrl: bool) -> None:
-        state = self._state
-        if state is None:
-            return
-        hit = hit_test.shape_at(state.document, self._cache, point, _HIT_TOLERANCE_PX * self.pixel_size)
-        if hit is None:
-            self._drag_start = self._drag_end = point
-            self._band_base = set(state.selection) if ctrl else set()
-            return
-        if ctrl:
-            self._controller.set_selection(state.selection ^ {hit})
-            return
-        if hit not in state.selection:
-            self._controller.set_selection({hit})
-        self._drag_start = self._drag_end = point
-        self._moving = self._controller.selected_shapes()
-
-    def _band_hits(self) -> set[int]:
-        if self._state is None or self._drag_start is None or self._drag_end is None:
-            return set()
-        return hit_test.shapes_in_rect(self._state.document, self._cache, self._box(self._drag_start, self._drag_end))
-
-    def _delta(self) -> Point:
-        assert self._drag_start is not None and self._drag_end is not None
-        return self._drag_end[0] - self._drag_start[0], self._drag_end[1] - self._drag_start[1]
-
     def _tool_style(self) -> Style:
-        return self._state.tool_styles.get(self._tool, Style()) if self._state else Style()
+        state = self._ctx.state
+        return state.tool_styles.get(self._tool, Style()) if state else Style()
 
     def _box_segments(self, start: Point, end: Point, square: bool) -> tuple[Segment, ...]:
         x, y, w, h = geometry.box_from_drag(start, end, square)
@@ -187,7 +185,3 @@ class CanvasGestures:
             if not out or abs(p[0] - out[-1][0]) + abs(p[1] - out[-1][1]) > threshold:
                 out.append(p)
         return out
-
-    @staticmethod
-    def _box(a: Point, b: Point) -> tuple[float, float, float, float]:
-        return min(a[0], b[0]), min(a[1], b[1]), abs(b[0] - a[0]), abs(b[1] - a[1])

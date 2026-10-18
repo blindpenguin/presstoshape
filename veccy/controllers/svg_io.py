@@ -2,7 +2,8 @@
 
 Writing emits plain SVG with Inkscape-style layer groups. Reading accepts general SVG: rect/circle/ellipse/
 line/polyline/polygon/path/text, nested groups, transforms and inherited presentation styles. Shapes under a
-non-translation transform are flattened to paths. Unsupported features (gradients, clip paths, <use>, images,
+rotate/scale/skew transform keep their element type (rect, ellipse, text) with the transform in canonical form;
+paths get it applied to their segments. Unsupported features (gradients, clip paths, <use>, images,
 CSS stylesheets) are skipped or approximated. svgelements is only used for parsing path data, colors, lengths
 and transforms — its own document parser drops `display:none` layers and `<text>`.
 """
@@ -13,11 +14,11 @@ import xml.etree.ElementTree as ET
 
 import svgelements as se
 
+from veccy.controllers.affine import IDENTITY, Affine, apply, as_rotation, compose, is_identity, translation
 from veccy.controllers.geometry import (
-    ellipse_segments,
     quad_to_cubic,
-    rect_segments,
     transform_segments,
+    transform_shape,
 )
 from veccy.models.app_state import Document, Layer
 from veccy.models.shapes import (
@@ -46,17 +47,24 @@ _DEFAULT_STYLE = {"fill": "black", "stroke": "none", "stroke-width": "1", "font-
 _UNSUPPORTED_PAINT = "#808080"
 _NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 
-Matrix = tuple[float, float, float, float, float, float]
-_IDENTITY: Matrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
-
-
 def _q(tag: str) -> str:
     return f"{{{SVG_NS}}}{tag}"
 
 
-def _num(v: float) -> str:
-    s = f"{v:.3f}".rstrip("0").rstrip(".")
+def _num(v: float, digits: int = 3) -> str:
+    s = f"{v:.{digits}f}".rstrip("0").rstrip(".")
     return "0" if s in ("", "-0") else s
+
+
+def transform_attr(m: Affine) -> str | None:
+    """SVG `transform` value: None for identity, `rotate(a cx cy)` for a pure rotation, else `matrix(...)`."""
+    if is_identity(m):
+        return None
+    rotation = as_rotation(m)
+    if rotation is not None:
+        return f"rotate({' '.join(_num(v) for v in rotation)})"
+    # Matrix entries need more digits than coordinates: 0.001 off in `a` is visible on large shapes.
+    return f"matrix({' '.join(_num(v, 6) for v in m)})"
 
 
 def path_d(segments: tuple[Segment, ...]) -> str:
@@ -89,6 +97,14 @@ def write_svg(doc: Document) -> str:
 
 
 def _shape_element(shape: Shape) -> ET.Element:
+    element = _untransformed_element(shape)
+    transform = transform_attr(shape.transform)
+    if transform is not None:
+        element.set("transform", transform)
+    return element
+
+
+def _untransformed_element(shape: Shape) -> ET.Element:
     style = {
         "fill": shape.style.fill or "none",
         "stroke": shape.style.stroke or "none",
@@ -118,7 +134,7 @@ def read_svg(text: str) -> Document:
     width, height, origin = _document_frame(root)
     reader = _Reader()
     base_style = _merge_style(_DEFAULT_STYLE, root)
-    base_matrix: Matrix = (1.0, 0.0, 0.0, 1.0, -origin[0], -origin[1])
+    base_matrix = translation(-origin[0], -origin[1])
 
     layers: list[Layer] = []
     loose: Layer | None = None
@@ -129,7 +145,7 @@ def read_svg(text: str) -> Document:
             visible = style.pop("display", None) != "none"
             name = child.get(_LABEL) or child.get("id") or f"Layer {len(layers) + 1}"
             layer = Layer(name, visible)
-            matrix = _compose(base_matrix, _parse_transform(child.get("transform")))
+            matrix = compose(base_matrix, _parse_transform(child.get("transform")))
             for grandchild in child:
                 reader.visit(grandchild, style, matrix, layer.shapes)
             layers.append(layer)
@@ -158,11 +174,11 @@ class _Reader:
         self.next_id += 1
         return self.next_id - 1
 
-    def visit(self, element: ET.Element, inherited: dict[str, str], matrix: Matrix, out: list[Shape]) -> None:
+    def visit(self, element: ET.Element, inherited: dict[str, str], matrix: Affine, out: list[Shape]) -> None:
         style = _merge_style(inherited, element)
         if style.get("display") == "none":
             return
-        matrix = _compose(matrix, _parse_transform(element.get("transform")))
+        matrix = compose(matrix, _parse_transform(element.get("transform")))
         tag = element.tag.removeprefix(f"{{{SVG_NS}}}")
         if tag in ("g", "a", "switch"):
             for child in element:
@@ -172,7 +188,7 @@ class _Reader:
         if shape is not None:
             out.append(shape)
 
-    def _shape(self, tag: str, el: ET.Element, style: dict[str, str], m: Matrix) -> Shape | None:
+    def _shape(self, tag: str, el: ET.Element, style: dict[str, str], m: Affine) -> Shape | None:
         scale = math.sqrt(abs(m[0] * m[3] - m[1] * m[2]))
         paint = Style(
             fill=_color(style.get("fill", "black")),
@@ -188,7 +204,7 @@ class _Reader:
                 return None
             if translate_only:
                 return RectShape(self._new_id(), x + tx, y + ty, w, h, paint)
-            return self._path(rect_segments(x, y, w, h), m, paint)
+            return self._transformed(RectShape(self._new_id(), x, y, w, h, paint), m)
 
         if tag in ("circle", "ellipse"):
             cx, cy = _length(el.get("cx")), _length(el.get("cy"))
@@ -200,7 +216,7 @@ class _Reader:
                 return None
             if translate_only:
                 return EllipseShape(self._new_id(), cx + tx, cy + ty, rx, ry, paint)
-            return self._path(ellipse_segments(cx, cy, rx, ry), m, paint)
+            return self._transformed(EllipseShape(self._new_id(), cx, cy, rx, ry, paint), m)
 
         if tag == "line":
             x1, y1, x2, y2 = (_length(el.get(k)) for k in ("x1", "y1", "x2", "y2"))
@@ -224,16 +240,22 @@ class _Reader:
             content = "".join(el.itertext()).strip()
             if not content:
                 return None
-            # Only the anchor point is transformed; rotated/skewed text comes in upright.
-            x, y = _apply(m, _first_number(el.get("x")), _first_number(el.get("y")))
-            size = _length(style.get("font-size"), 16.0) * scale
-            return TextShape(self._new_id(), x, y, content, size, paint)
+            x, y = _first_number(el.get("x")), _first_number(el.get("y"))
+            size = _length(style.get("font-size"), 16.0)
+            # Rotation and uniform scale are kept; skew can't be represented on text and is dropped.
+            return self._transformed(TextShape(self._new_id(), x, y, content, size, paint), m)
 
         return None
 
-    def _path(self, segments: tuple[Segment, ...], m: Matrix, paint: Style) -> PathShape:
-        if m != _IDENTITY:
-            segments = transform_segments(segments, lambda x, y: _apply(m, x, y))
+    def _transformed(self, shape: Shape, m: Affine) -> Shape | None:
+        try:
+            return transform_shape(shape, m)
+        except ValueError:
+            return None
+
+    def _path(self, segments: tuple[Segment, ...], m: Affine, paint: Style) -> PathShape:
+        if m != IDENTITY:
+            segments = transform_segments(segments, lambda x, y: apply(m, x, y))
         return PathShape(self._new_id(), segments, paint)
 
 
@@ -281,32 +303,14 @@ def _first_number(value: str | None) -> float:
     return float(match.group()) if match else 0.0
 
 
-def _parse_transform(value: str | None) -> Matrix:
+def _parse_transform(value: str | None) -> Affine:
     if not value:
-        return _IDENTITY
+        return IDENTITY
     try:
         m = se.Matrix(value)
     except (ValueError, TypeError):
-        return _IDENTITY
+        return IDENTITY
     return (m.a, m.b, m.c, m.d, m.e, m.f)
-
-
-def _compose(outer: Matrix, inner: Matrix) -> Matrix:
-    """Matrix applying `inner` first, then `outer`."""
-    a1, b1, c1, d1, e1, f1 = outer
-    a2, b2, c2, d2, e2, f2 = inner
-    return (
-        a1 * a2 + c1 * b2,
-        b1 * a2 + d1 * b2,
-        a1 * c2 + c1 * d2,
-        b1 * c2 + d1 * d2,
-        a1 * e2 + c1 * f2 + e1,
-        b1 * e2 + d1 * f2 + f1,
-    )
-
-
-def _apply(m: Matrix, x: float, y: float) -> tuple[float, float]:
-    return m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]
 
 
 def _parse_path_data(d: str) -> tuple[Segment, ...]:

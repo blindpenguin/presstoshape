@@ -14,6 +14,7 @@ Shortcut = str | QKeySequence.StandardKey | list[QKeySequence]
 
 TOOLS = (
     (Tool.SELECT, icons.TOOL_SELECT, "&Select", "V"),
+    (Tool.NODE, icons.TOOL_NODE, "&Node", "N"),
     (Tool.PEN, icons.TOOL_PEN, "&Pen", "P"),
     (Tool.RECTANGLE, icons.TOOL_RECTANGLE, "&Rectangle", "R"),
     (Tool.ELLIPSE, icons.TOOL_ELLIPSE, "&Ellipse", "E"),
@@ -56,6 +57,7 @@ class AppActions:
         self.delete = self._make("&Delete", c.delete_selection, icons.DELETE, QKeySequence.StandardKey.Delete)
         self.union = self._make("&Union", lambda: c.combine("union"), icons.UNION, "Ctrl++")
         self.difference = self._make("D&ifference", lambda: c.combine("difference"), icons.DIFFERENCE, "Ctrl+-")
+        self.object_to_path = self._make("&Object to Path", c.object_to_path, shortcut="Ctrl+Shift+C")
 
         self.zoom_in = self._make("Zoom &In", c.zoom_in, icons.ZOOM_IN, [QKeySequence("+"), QKeySequence("=")])
         self.zoom_out = self._make("Zoom &Out", c.zoom_out, icons.ZOOM_OUT, "-")
@@ -95,4 +97,5 @@ class AppActions:
         self.delete.setEnabled(bool(state.selection))
         self.union.setEnabled(c.can_combine())
         self.difference.setEnabled(c.can_combine())
+        self.object_to_path.setEnabled(c.can_object_to_path())
         self.tools[state.active_tool].setChecked(True)

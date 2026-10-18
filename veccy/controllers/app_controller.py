@@ -3,16 +3,21 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from veccy.controllers import geometry, svg_io
+from veccy.controllers import affine, geometry, nodes, svg_io
+from veccy.controllers.affine import Affine
 from veccy.controllers.geometry import Point
 from veccy.models.app_state import AppState, Document, Layer, Tool
-from veccy.models.shapes import EllipseShape, PathShape, RectShape, Shape, TextShape
+from veccy.models.shapes import CubicTo, EllipseShape, PathShape, RectShape, Shape, TextShape
 from veccy.render import export
+from veccy.render.paths import from_skia_path
+from veccy.render.text import text_path
 
 _UNDO_LIMIT = 200
 _MIN_ZOOM, _MAX_ZOOM = 10, 800
 _ZOOM_STEP = 1.25
 _BOOLEAN_OPS = ("union", "difference")
+# Smallest width/height (doc units) a handle scale may leave; same floor as the panel's size fields.
+_MIN_EXTENT = 0.1
 # Shape fields the selection panel may edit directly, with their minimum value (None = unbounded).
 _EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
     RectShape: {"x": None, "y": None, "width": 0.1, "height": 0.1},
@@ -31,6 +36,22 @@ def _copy_document(doc: Document) -> Document:
     # Shapes are frozen, so copying the layer lists is enough to isolate a snapshot.
     layers = [Layer(layer.name, layer.visible, list(layer.shapes)) for layer in doc.layers]
     return Document(doc.width, doc.height, layers, doc.next_id)
+
+
+def _to_path(shape: Shape) -> Shape:
+    if isinstance(shape, PathShape):
+        return shape
+    if isinstance(shape, TextShape):
+        local = from_skia_path(text_path(shape))
+        segments = geometry.transform_segments(local, lambda x, y: affine.apply(shape.transform, x, y))
+    else:
+        segments = geometry.outline(shape) or ()
+    return PathShape(shape.id, segments, shape.style)
+
+
+def _is_control(segments: tuple, ref: tuple[int, int]) -> bool:
+    index, which = ref
+    return 0 <= index < len(segments) and isinstance(segments[index], CubicTo) and which in (1, 2)
 
 
 class AppController:
@@ -70,6 +91,7 @@ class AppController:
         self._merge_key = None
         self.state.dirty = True
         self._prune_selection()
+        self.state.node_selection = frozenset()
 
     @property
     def can_undo(self) -> bool:
@@ -110,6 +132,9 @@ class AppController:
         """Selected shapes in paint order, bottom first."""
         return [s for s in self._visible_shapes() if s.id in self.state.selection]
 
+    def can_object_to_path(self) -> bool:
+        return any(isinstance(s, (RectShape, EllipseShape, TextShape)) for s in self.selected_shapes())
+
     def can_combine(self) -> bool:
         return sum(geometry.outline(s) is not None for s in self.selected_shapes()) >= 2
 
@@ -130,6 +155,7 @@ class AppController:
 
     def select_tool(self, tool: Tool) -> None:
         self.state.active_tool = tool
+        self.state.node_selection = frozenset()
         self.state.status_message = f"Tool: {tool.name.title()}"
         self._notify()
 
@@ -196,6 +222,7 @@ class AppController:
         if selection == self.state.selection:
             return
         self.state.selection = selection
+        self.state.node_selection = frozenset()
         self._merge_key = None
         self._notify()
 
@@ -208,6 +235,110 @@ class AppController:
         self._checkpoint()
         self._map_selected(lambda s: geometry.translate(s, dx, dy))
         self.state.status_message = f"Moved {len(self.state.selection)} object(s)"
+        self._notify()
+
+    def transform_selection(self, m: Affine) -> None:
+        """Applies `m` (doc space) to every selected shape as one undo step: handle scaling and rotation."""
+        if not self.state.selection or affine.is_identity(m) or abs(affine.determinant(m)) < 1e-12:
+            return
+        self._checkpoint()
+        self._map_selected(lambda s: geometry.transform_shape(s, m, _MIN_EXTENT))
+        self.state.status_message = f"Transformed {len(self.state.selection)} object(s)"
+        self._notify()
+
+    def set_rotation(self, shape_id: int, degrees: float) -> None:
+        """Rotation about the shape's own center. Consecutive edits of one shape form one undo step."""
+        shape = self.find_shape(shape_id)
+        if not isinstance(shape, (RectShape, EllipseShape, TextShape)):
+            return
+        current = geometry.rotation_of(shape)
+        if current is None or abs(current - degrees) < 1e-9:
+            return
+        self._checkpoint(merge_key=f"{shape_id}:rotation")
+        self._replace_shape(geometry.with_rotation(shape, degrees))
+        self._notify()
+
+    def _replace_shape(self, updated: Shape) -> None:
+        for layer in self.state.document.layers:
+            layer.shapes = [updated if s.id == updated.id else s for s in layer.shapes]
+
+    def object_to_path(self) -> None:
+        """Turns selected rects, ellipses and text into paths with the same outline, ids and place."""
+        if not self.can_object_to_path():
+            return
+        self._checkpoint()
+        self._map_selected(_to_path)
+        self.state.status_message = "Object to path"
+        self._notify()
+
+    # --- node editing -------------------------------------------------------
+
+    def _edited_path(self, shape_id: int) -> PathShape | None:
+        shape = self.find_shape(shape_id)
+        return shape if isinstance(shape, PathShape) and shape_id in self.state.selection else None
+
+    def set_node_selection(self, refs: set[tuple[int, int]]) -> None:
+        """Selected nodes of selected paths; invalid refs are dropped. Not a document edit."""
+        valid: set[tuple[int, int]] = set()
+        for shape_id in {ref[0] for ref in refs}:
+            path = self._edited_path(shape_id)
+            if path is not None:
+                indices = nodes.valid_nodes(path.segments, (i for sid, i in refs if sid == shape_id))
+                valid.update((shape_id, i) for i in indices)
+        if frozenset(valid) != self.state.node_selection:
+            self.state.node_selection = frozenset(valid)
+            self._notify()
+
+    def _edit_path(
+        self, path: PathShape, segments: tuple, message: str, node_selection: frozenset | None = None
+    ) -> None:
+        self._checkpoint()
+        self._replace_shape(replace(path, segments=segments))
+        if node_selection is not None:
+            self.state.node_selection = node_selection
+        self.state.status_message = message
+        self._notify()
+
+    def move_nodes(self, shape_id: int, indices: set[int], dx: float, dy: float) -> None:
+        path = self._edited_path(shape_id)
+        if path is None or (dx, dy) == (0, 0) or not nodes.valid_nodes(path.segments, indices):
+            return
+        self._edit_path(path, nodes.move_nodes(path.segments, indices, dx, dy), f"Moved {len(indices)} node(s)")
+
+    def move_control(self, shape_id: int, ref: tuple[int, int], point: Point, keep_smooth: bool = True) -> None:
+        path = self._edited_path(shape_id)
+        if path is None or not _is_control(path.segments, ref):
+            return
+        self._edit_path(path, nodes.move_control(path.segments, ref, point, keep_smooth), "Moved handle")
+
+    def insert_node(self, shape_id: int, segment_index: int, t: float) -> None:
+        path = self._edited_path(shape_id)
+        if path is None or not 0 < segment_index < len(path.segments) or not 0 < t < 1:
+            return
+        segments, index = nodes.insert_node(path.segments, segment_index, t)
+        self._edit_path(path, segments, "Inserted node", frozenset({(shape_id, index)}))
+
+    def delete_nodes(self) -> None:
+        """Deletes the selected nodes; a path left without nodes is deleted with them (same undo step)."""
+        by_shape: dict[int, set[int]] = {}
+        for shape_id, index in self.state.node_selection:
+            by_shape.setdefault(shape_id, set()).add(index)
+        targets = {sid: (p, idx) for sid, idx in by_shape.items() if (p := self._edited_path(sid)) is not None}
+        if not targets:
+            return
+        self._checkpoint()
+        emptied = set()
+        for shape_id, (path, indices) in targets.items():
+            segments = nodes.delete_nodes(path.segments, indices)
+            if segments is None:
+                emptied.add(shape_id)
+            else:
+                self._replace_shape(replace(path, segments=segments))
+        for layer in self.state.document.layers:
+            layer.shapes = [s for s in layer.shapes if s.id not in emptied]
+        self.state.selection -= emptied
+        self.state.node_selection = frozenset()
+        self.state.status_message = f"Deleted {sum(len(i) for _, i in targets.values())} node(s)"
         self._notify()
 
     def find_shape(self, shape_id: int) -> Shape | None:
@@ -238,11 +369,17 @@ class AppController:
             return
         self._checkpoint(merge_key=f"{shape_id}:{field}")
         updated = replace(shape, **{field: value})
-        for layer in self.state.document.layers:
-            layer.shapes = [updated if s.id == shape_id else s for s in layer.shapes]
+        rotation = geometry.rotation_of(shape)
+        if rotation:
+            # The rotation is about the center; keep the angle while the center moves with the new geometry.
+            updated = geometry.with_rotation(updated, rotation)
+        self._replace_shape(updated)
         self._notify()
 
     def delete_selection(self) -> None:
+        if self.state.active_tool is Tool.NODE and self.state.node_selection:
+            self.delete_nodes()
+            return
         selection = self.state.selection
         if not selection:
             return

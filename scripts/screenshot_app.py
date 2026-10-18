@@ -26,7 +26,8 @@ def _seed(c: AppController) -> None:
     c.set_stroke_width(4)
     c.set_stroke("#7c3aed")
     c.add_path([(40, 330), (140, 250), (240, 360), (360, 300), (540, 360)])
-    c.add_text((390, 90), "veccy")
+    text = c.add_text((390, 90), "veccy")
+    c.set_rotation(text, -12)
     c.set_selection({a, b})
 
 

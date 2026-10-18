@@ -2,7 +2,7 @@ import logging
 from dataclasses import replace
 
 import skia
-from PySide6.QtCore import QEvent, QPoint, Qt, QTimer
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt, QTimer, Signal
 from PySide6.QtWidgets import QAbstractScrollArea, QInputDialog
 
 from veccy.controllers.app_controller import AppController
@@ -14,15 +14,12 @@ from veccy.render.scene import draw_background, draw_overlays, parse_color
 from veccy.render.viewport import Viewport, scene_rect
 from veccy.views import theme
 from veccy.views.canvas_gestures import CanvasGestures
+from veccy.views.cursors import qt_cursor
+from veccy.views.gesture_types import CursorType, Mods
 from veccy.views.skia_surface import SkiaGLWidget, SkiaRasterWidget, create_surface
 
 _FIT_MARGIN_PX = 40
 _WHEEL_ZOOM = 1.15
-
-_CURSORS = {
-    Tool.SELECT: Qt.CursorShape.ArrowCursor,
-    Tool.TEXT: Qt.CursorShape.IBeamCursor,
-}
 
 _COLORS = CanvasColors(
     pasteboard=theme.PASTEBOARD,
@@ -42,6 +39,9 @@ class CanvasView(QAbstractScrollArea):
     zooming here.
     """
 
+    # Transient gesture text for the status bar (e.g. rotation angle); None when nothing is in progress.
+    hint_changed = Signal(object)
+
     def __init__(self, controller: AppController) -> None:
         super().__init__()
         self._controller = controller
@@ -56,6 +56,9 @@ class CanvasView(QAbstractScrollArea):
         self._doc_size: tuple[float, float] | None = None
 
         self._pan_from = None
+        self._hover_pos: QPointF | None = None
+        self._cursor_type: CursorType | None = None
+        self._hint: str | None = None
         self._zoom_anchor: tuple[float, float] | None = None
         self._viewport_origin: QPoint | None = None
 
@@ -69,8 +72,8 @@ class CanvasView(QAbstractScrollArea):
         if isinstance(surface, SkiaGLWidget):
             surface.gl_failed.connect(lambda: QTimer.singleShot(0, self._fall_back_to_raster))
         self.setViewport(surface)
-        if self._tool is not None:
-            surface.setCursor(_CURSORS.get(self._tool, Qt.CursorShape.CrossCursor))
+        if self._cursor_type is not None:
+            surface.setCursor(qt_cursor(self._cursor_type, surface.devicePixelRatioF()))
 
     def _fall_back_to_raster(self) -> None:
         _log.warning("OpenGL unavailable for Skia; falling back to CPU rendering")
@@ -88,6 +91,8 @@ class CanvasView(QAbstractScrollArea):
         if event.type() == QEvent.Type.Resize:
             super().viewportEvent(event)
             return False
+        if event.type() == QEvent.Type.Leave:
+            self._hover_pos = None
         return super().viewportEvent(event)
 
     # --- state -> view ------------------------------------------------------
@@ -102,12 +107,13 @@ class CanvasView(QAbstractScrollArea):
         if state.active_tool is not self._tool:
             self._tool = state.active_tool
             self._gestures.set_tool(state.active_tool)
-            self.viewport().setCursor(_CURSORS.get(state.active_tool, Qt.CursorShape.CrossCursor))
         if state.zoom_percent != self._zoom:
             self._apply_zoom(state.zoom_percent)
         self._cache.prune(s.id for layer in doc.layers for s in layer.shapes)
         self._sync_scrollbars()
         self._repaint()
+        # Undo, selection or zoom can change what's under a pointer that hasn't moved.
+        self._update_cursor()
 
     def _apply_zoom(self, zoom: int) -> None:
         """Keeps the doc point under the anchor fixed: the cursor for wheel zoom, else the viewport center."""
@@ -132,6 +138,7 @@ class CanvasView(QAbstractScrollArea):
         vp = self._vp
         self._vp = replace(vp, scroll_x=vp.scroll_x if x is None else x, scroll_y=vp.scroll_y if y is None else y)
         self._repaint()
+        self._update_cursor()
 
     def _scroll_by(self, dx: float, dy: float) -> None:
         self._vp = self._vp.scrolled(dx, dy)
@@ -140,6 +147,22 @@ class CanvasView(QAbstractScrollArea):
 
     def _repaint(self) -> None:
         self.viewport().update()
+        hint = self._gestures.hint
+        if hint != self._hint:
+            self._hint = hint
+            self.hint_changed.emit(hint)
+
+    def _update_cursor(self) -> None:
+        """Cursor for whatever a press would do under the pointer; left alone while panning."""
+        if self._pan_from is not None:
+            return
+        if self._hover_pos is None:
+            cursor_type = self._gestures.hover((float("inf"), float("inf")))
+        else:
+            cursor_type = self._gestures.hover(self._vp.to_doc((self._hover_pos.x(), self._hover_pos.y())))
+        if cursor_type is not self._cursor_type:
+            self._cursor_type = cursor_type
+            self.viewport().setCursor(qt_cursor(cursor_type, self.viewport().devicePixelRatioF()))
 
     def _paint(self, canvas: skia.Canvas, width: int, height: int, dpr: float) -> None:
         state = self._state
@@ -149,7 +172,7 @@ class CanvasView(QAbstractScrollArea):
         canvas.setMatrix(self._vp.matrix(dpr))
         overlay = self._gestures.overlay
         draw_background(canvas, state.document, _COLORS)
-        self._picture.draw(canvas, state.document, overlay.moving, overlay.offset)
+        self._picture.draw(canvas, state.document, overlay.moving, overlay.matrix, overlay.live)
         draw_overlays(canvas, state.document, overlay, self._cache, self._vp.zoom, _COLORS)
 
     # --- view navigation ----------------------------------------------------
@@ -213,9 +236,13 @@ class CanvasView(QAbstractScrollArea):
         return self._vp.to_doc((pos.x(), pos.y()))
 
     @staticmethod
-    def _mods(event) -> tuple[bool, bool]:
+    def _mods(event) -> Mods:
         mods = event.modifiers()
-        return bool(mods & Qt.KeyboardModifier.ShiftModifier), bool(mods & Qt.KeyboardModifier.ControlModifier)
+        return Mods(
+            shift=bool(mods & Qt.KeyboardModifier.ShiftModifier),
+            ctrl=bool(mods & Qt.KeyboardModifier.ControlModifier),
+            alt=bool(mods & Qt.KeyboardModifier.AltModifier),
+        )
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:
@@ -223,7 +250,9 @@ class CanvasView(QAbstractScrollArea):
             self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
             return
         if event.button() == Qt.MouseButton.LeftButton:
-            self._gestures.press(self._doc_pos(event), *self._mods(event))
+            self._hover_pos = event.position()
+            self._gestures.press(self._doc_pos(event), self._mods(event))
+            self._update_cursor()
 
     def mouseMoveEvent(self, event):
         if self._pan_from is not None:
@@ -231,30 +260,33 @@ class CanvasView(QAbstractScrollArea):
             self._pan_from = event.position()
             self._scroll_by(-round(delta.x()), -round(delta.y()))
             return
-        self._gestures.move(self._doc_pos(event), self._mods(event)[0])
+        self._hover_pos = event.position()
+        self._gestures.move(self._doc_pos(event), self._mods(event))
+        self._update_cursor()
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton and self._pan_from is not None:
             self._pan_from = None
-            self.viewport().setCursor(_CURSORS.get(self._tool, Qt.CursorShape.CrossCursor))
+            self._cursor_type = None
+            self._update_cursor()
             return
         if event.button() == Qt.MouseButton.LeftButton:
-            self._gestures.release(self._doc_pos(event), self._mods(event)[0])
+            self._gestures.release(self._doc_pos(event), self._mods(event))
+            self._update_cursor()
+
 
     def mouseDoubleClickEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        if self._tool is Tool.PEN:
-            self._gestures.double_click()
-        else:
-            # Qt sends the second press of a double-click as this event only.
-            self._gestures.press(self._doc_pos(event), *self._mods(event))
+        self._gestures.double_click(self._doc_pos(event), self._mods(event))
+        self._update_cursor()
 
     def keyPressEvent(self, event):
         if self._tool is Tool.PEN and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self._gestures.finish_pen()
         elif event.key() == Qt.Key.Key_Escape:
             self._gestures.escape()
+            self._update_cursor()
         else:
             super().keyPressEvent(event)
 

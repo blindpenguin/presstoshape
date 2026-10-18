@@ -15,13 +15,14 @@ Today veccy is at an early stage (shapes, bezier pen, text, styling, layers, boo
 
 ## Key Features
 Current:
-1. **Drawing tools**: select, bezier pen, rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
-2. **Styling**: fill, stroke, stroke width per shape or multi-selection; per-tool default styles in a context-sensitive tool options panel.
-3. **Layers**: add, delete, rename, hide; Inkscape-compatible.
-4. **Boolean operations**: union, difference.
-5. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
-6. **Undo/redo** for every document edit.
-7. **SVG open/save**.
+1. **Drawing tools**: select, node, bezier pen, rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
+2. **Direct manipulation**: scale/rotate handles on the selection, path node and bezier handle editing, object to path, cursors that show the action.
+3. **Styling**: fill, stroke, stroke width per shape or multi-selection; per-tool default styles in a context-sensitive tool options panel.
+4. **Layers**: add, delete, rename, hide; Inkscape-compatible.
+5. **Boolean operations**: union, difference.
+6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
+7. **Undo/redo** for every document edit.
+8. **SVG open/save**.
 
 Core feature pillars (target):
 1. **Freehand & brushes**: pressure-sensitive tablet input, pencil with smoothing, vector brushes, variable-width strokes, width profiles.

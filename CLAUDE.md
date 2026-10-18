@@ -58,20 +58,25 @@ veccy/
 │   └── shapes.py             # frozen shape + path-segment dataclasses
 ├── controllers/
 │   ├── app_controller.py     # all state mutation, undo/redo, file I/O, export, subscribe/notify
-│   ├── geometry.py           # pure geometry + booleans (skia-pathops)
+│   ├── affine.py             # 2D affine tuples (SVG matrix order)
+│   ├── geometry.py           # pure geometry + booleans (skia-pathops), canonical shape transforms
+│   ├── nodes.py              # path node editing
 │   └── svg_io.py             # SVG read/write
 ├── render/                   # Qt-free Skia drawing: model -> skia.Canvas
 │   ├── scene.py              # document, background, overlays (selection, rubber band, preview)
 │   ├── picture.py            # recorded-picture replay for the canvas
 │   ├── paths.py / text.py    # cached shape paths, text outlines
 │   ├── hit_test.py           # click + rubber-band picking
+│   ├── handles.py            # selection frame, handle + node picking (screen-px sizes)
 │   ├── viewport.py           # doc <-> screen mapping, zoom anchoring, scroll model
 │   └── export.py             # PNG export
 └── views/
     ├── main_window.py        # assembles panels, refresh() fans out, dialogs
     ├── actions.py            # every QAction (shared by menus + toolbars)
     ├── canvas_view.py        # scroll area + Skia surface: zoom/pan, paints from state
-    ├── canvas_gestures.py    # per-tool gesture state (Qt-free) -> controller
+    ├── canvas_gestures.py    # gesture dispatcher + drawing tools (Qt-free) -> controller
+    ├── select_gesture.py / node_gesture.py / gesture_types.py   # Select + Node tool gestures, Mods, CursorType
+    ├── cursors.py            # CursorType -> QCursor
     ├── skia_surface.py       # GL / raster Skia surface widgets
     └── *_view.py / widgets.py / theme.py / icon_engine.py / export_dialog.py
 ```
@@ -84,8 +89,10 @@ Rules:
 - Every controller method that changes state must call `self._notify()` (even on rejected input when a view needs to revert, e.g. `rename_layer`). Document mutations call `self._checkpoint()` *before* mutating to record undo.
 - View `refresh(state)` must be idempotent and cheap; block widget signals while writing values back (`blockSignals(True)`), and skip expensive rebuilds when the relevant slice of state is unchanged.
 - Transient gesture state (drag start, pen points in progress, preview item, pan) lives in the view; it's not app state until the gesture commits to a controller call.
-- The canvas redraws everything from state each frame. `PathCache` keys Skia geometry by shape id and rebuilds when the frozen shape changes. While dragging, `CanvasGestures` reports the moving ids + offset in its `Overlay`; on release the offset goes to `controller.move_selection` — shape geometry is always in absolute document coordinates.
+- The canvas redraws everything from state each frame. `PathCache` keys Skia geometry by shape id and rebuilds when the frozen shape changes. While a gesture runs, it reports the moving ids plus a doc-space `matrix` (move/rotate) or exact `live` replacement shapes (scale, node drags) in its `Overlay`, so the recorded picture is reused; on release one controller call commits (`move_selection`, `transform_selection`, `move_nodes`, …).
 - Shapes are frozen; change them with `dataclasses.replace`. Undo snapshots copy layer lists only and share shape objects.
+- Shape `transform` stays canonical: go through `geometry.transform_shape` / `translate` / `with_rotation` rather than composing matrices onto shapes by hand. Paths keep an identity transform (baked into segments).
+- Gestures decide cursors as `CursorType` (Qt-free, tested); only `views/cursors.py` maps them to Qt.
 - One `AppState` per app, passed explicitly through `App` — no module-level globals for state. Nest sub-dataclasses per feature in `models/` rather than separate singletons.
 - Dialogs (file pickers, confirmations, text input) live in views; controllers receive plain values (paths, strings).
 
@@ -97,7 +104,7 @@ Rules:
 
 ## Testing
 
-- Models/controllers/geometry/svg_io/render and `canvas_gestures` are tested with `pytest`: `uv run pytest`. New logic goes there with tests. Pixel assertions are fine on `render/` CPU-surface output.
+- Models/controllers/geometry/svg_io/render and the gesture modules (`canvas_gestures`, `select_gesture`, `node_gesture`) are tested with `pytest`: `uv run pytest`. New logic goes there with tests. Pixel assertions are fine on `render/` CPU-surface output.
 - **Visual checks**: `uv run python scripts/screenshot_app.py` renders the window offscreen (`QT_QPA_PLATFORM=offscreen`) with demo shapes (`--empty` for none) and saves `dev-screenshots/app.png` (gitignored). Read the PNG; crop/zoom small regions with Pillow (dev dep via pytablericons) before reading when checking fine detail. Delete scratch crops after use.
 - For interaction checks, drive the real window headless with `PySide6.QtTest.QTest` (mouse press/move/release on `canvas.viewport()`, doc → screen via `canvas._vp.to_screen`) in a scratch script; run once offscreen (raster) and once on the desktop (GL). Don't add whole-window pixel assertions to the pytest suite.
 - Canvas performance: `uv run python scripts/bench_canvas.py` (10k shapes; `VECCY_RENDERER=cpu` for the raster path).

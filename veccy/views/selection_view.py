@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QDoubleSpinBox, QFormLayout, QFrame, QLabel, QLineEdit, QVBoxLayout, QWidget
 
+from veccy.controllers import geometry
 from veccy.controllers.app_controller import AppController
 from veccy.models.app_state import AppState
 from veccy.models.shapes import EllipseShape, PathShape, RectShape, Shape, Style, TextShape
@@ -16,7 +17,12 @@ _GEOMETRY: dict[type, tuple[tuple[str, str, float | None], ...]] = {
 
 _KIND_NAMES = {RectShape: "Rectangle", EllipseShape: "Ellipse", PathShape: "Path", TextShape: "Text"}
 
-_HINT = "Click to select, Ctrl+click to add or remove, drag on empty canvas for box select."
+_HINT = (
+    "Click to select, Ctrl+click to add or remove, drag on empty canvas for box select. "
+    "Drag handles to scale (Shift keeps proportions, Alt scales from the center); "
+    "drag just outside a corner to rotate (Shift snaps to 15°)."
+)
+_ROTATABLE = (RectShape, EllipseShape, TextShape)
 
 
 class SelectionOptions(QWidget):
@@ -39,8 +45,8 @@ class SelectionOptions(QWidget):
         self._hint.setEnabled(False)
         layout.addWidget(self._hint)
 
-        geometry = QWidget()
-        self._form = QFormLayout(geometry)
+        geometry_box = QWidget()
+        self._form = QFormLayout(geometry_box)
         self._form.setContentsMargins(0, 0, 0, 0)
         self._text = QLineEdit()
         self._text.editingFinished.connect(self._on_text_edited)
@@ -57,8 +63,15 @@ class SelectionOptions(QWidget):
                 spin.valueChanged.connect(lambda v, f=field: self._on_spin(f, v))
                 self._spins[field] = spin
                 self._form.addRow(label, spin)
-        layout.addWidget(geometry)
-        self._geometry = geometry
+        self._rotation = QDoubleSpinBox()
+        self._rotation.setDecimals(1)
+        # One below -180 is the "skewed" placeholder (special value text shows at the minimum).
+        self._rotation.setRange(-180.1, 180.0)
+        self._rotation.setSuffix("°")
+        self._rotation.valueChanged.connect(self._on_rotation)
+        self._form.addRow("Rotation", self._rotation)
+        layout.addWidget(geometry_box)
+        self._geometry = geometry_box
 
         self._separator = QFrame()
         self._separator.setFrameShape(QFrame.Shape.HLine)
@@ -100,10 +113,31 @@ class SelectionOptions(QWidget):
                     spin.blockSignals(True)
                     spin.setValue(value)
                     spin.blockSignals(False)
+        self._refresh_rotation(single)
         is_text = isinstance(single, TextShape)
         self._form.setRowVisible(self._text, is_text)
         if is_text and not self._text.hasFocus() and self._text.text() != single.text:
             self._text.setText(single.text)
+
+    def _refresh_rotation(self, single: Shape | None) -> None:
+        rotatable = isinstance(single, _ROTATABLE)
+        self._form.setRowVisible(self._rotation, rotatable)
+        if not rotatable:
+            return
+        angle = geometry.rotation_of(single)
+        skewed = angle is None
+        self._rotation.setEnabled(not skewed)
+        self._rotation.setSpecialValueText("skewed" if skewed else "")
+        value = self._rotation.minimum() if skewed else angle
+        if self._rotation.value() != value:
+            self._rotation.blockSignals(True)
+            self._rotation.setValue(value)
+            self._rotation.blockSignals(False)
+
+    def _on_rotation(self, value: float) -> None:
+        if self._shape is None or value < -180:
+            return
+        self._controller.set_rotation(self._shape.id, value)
 
     def _on_spin(self, field: str, value: float) -> None:
         if self._shape is not None:

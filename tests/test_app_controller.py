@@ -1,8 +1,10 @@
 import pytest
 
+from veccy.controllers import affine, geometry
 from veccy.controllers.app_controller import AppController
 from veccy.models.app_state import AppState, Tool
-from veccy.models.shapes import PathShape, RectShape, TextShape
+from veccy.models.shapes import EllipseShape, PathShape, RectShape, TextShape
+from veccy.render.paths import PathCache
 
 
 def _controller() -> AppController:
@@ -227,3 +229,152 @@ def test_set_shape_field_rejects_fields_of_other_shape_kinds():
     sid = c.add_rectangle((0, 0), (10, 10))
     with pytest.raises(ValueError):
         c.set_shape_field(sid, "rx", 3)
+
+
+# --- transforms ------------------------------------------------------------------
+
+
+def _rect_controller(rotation: float = 0.0):
+    c = _controller()
+    sid = c.add_rectangle((0, 0), (20, 10))
+    if rotation:
+        c.set_rotation(sid, rotation)
+    return c, sid
+
+
+def test_transform_selection_is_one_undo_step():
+    c, sid = _rect_controller()
+    undo_depth = len(c._undo_stack)
+    c.transform_selection(affine.scaling(2, 2))
+    assert len(c._undo_stack) == undo_depth + 1
+    rect = c.find_shape(sid)
+    assert (rect.width, rect.height) == (40, 20)
+    c.undo()
+    assert c.find_shape(sid).width == 20
+
+
+def test_transform_selection_ignores_identity_and_singular():
+    c, _ = _rect_controller()
+    undo_depth = len(c._undo_stack)
+    c.transform_selection(affine.IDENTITY)
+    c.transform_selection(affine.scaling(0, 1))
+    assert len(c._undo_stack) == undo_depth
+
+
+def test_set_rotation_merges_consecutive_edits():
+    c, sid = _rect_controller()
+    undo_depth = len(c._undo_stack)
+    c.set_rotation(sid, 10)
+    c.set_rotation(sid, 20)
+    assert len(c._undo_stack) == undo_depth + 1
+    assert geometry.rotation_of(c.find_shape(sid)) == pytest.approx(20)
+    c.undo()
+    assert geometry.rotation_of(c.find_shape(sid)) == 0
+
+
+def test_set_rotation_ignores_skewed_shapes():
+    c, sid = _rect_controller()
+    c.transform_selection(affine.compose(affine.scaling(2, 1), affine.rotation(0.5)))
+    skewed = c.find_shape(sid)
+    assert geometry.rotation_of(skewed) is None
+    c.set_rotation(sid, 10)
+    assert c.find_shape(sid) == skewed
+
+
+def test_editing_x_keeps_rotation_about_new_center():
+    c, sid = _rect_controller(rotation=30)
+    c.set_shape_field(sid, "x", 100)
+    rect = c.find_shape(sid)
+    angle, cx, cy = affine.as_rotation(rect.transform)
+    assert angle == pytest.approx(30)
+    assert (cx, cy) == pytest.approx((110, 5))
+
+
+def test_object_to_path_keeps_id_place_style_and_outline():
+    c = _controller()
+    below = c.add_rectangle((0, 0), (5, 5))
+    sid = c.add_ellipse((0, 0), (20, 10))
+    text = c.add_text((0, 40), "Hi")
+    c.set_rotation(sid, 45)
+    before = {s.id: s for s in _shapes(c)}
+    cache = PathCache()
+    bounds = {i: cache.geometry_bounds(s) for i, s in before.items()}
+    c.set_selection({sid, text})
+    assert c.can_object_to_path()
+    c.object_to_path()
+    shapes = _shapes(c)
+    assert [s.id for s in shapes] == [below, sid, text]
+    assert isinstance(shapes[0], RectShape)
+    for shape in shapes[1:]:
+        assert isinstance(shape, PathShape) and shape.style == before[shape.id].style
+        after = PathCache().geometry_bounds(shape)
+        assert (after.left(), after.top(), after.right(), after.bottom()) == pytest.approx(
+            (bounds[shape.id].left(), bounds[shape.id].top(), bounds[shape.id].right(), bounds[shape.id].bottom()),
+            abs=1e-3,
+        )
+    assert c.state.selection == {sid, text}
+    assert not c.can_object_to_path()
+    c.undo()
+    assert isinstance(c.find_shape(sid), EllipseShape)
+
+
+# --- node editing ------------------------------------------------------------------
+
+
+def _path_controller():
+    c = _controller()
+    sid = c.add_path([(0, 0), (50, 0), (100, 50), (150, 0)])
+    c.select_tool(Tool.NODE)
+    return c, sid
+
+
+def test_set_node_selection_drops_invalid_refs():
+    c, sid = _path_controller()
+    c.set_node_selection({(sid, 1), (sid, 99), (12345, 0)})
+    assert c.state.node_selection == {(sid, 1)}
+
+
+def test_node_commands_are_one_undo_step_each():
+    c, sid = _path_controller()
+    depth = len(c._undo_stack)
+    c.move_nodes(sid, {1}, 5, 5)
+    c.move_control(sid, (2, 1), (60, 30))
+    c.insert_node(sid, 1, 0.5)
+    assert len(c._undo_stack) == depth + 3
+    assert c.state.node_selection == {(sid, 1)}
+    assert len(c.find_shape(sid).segments) == 5
+
+
+def test_delete_with_selected_nodes_keeps_shape():
+    c, sid = _path_controller()
+    c.set_node_selection({(sid, 1)})
+    c.delete_selection()
+    path = c.find_shape(sid)
+    assert isinstance(path, PathShape) and len(path.segments) == 3
+    assert c.state.node_selection == frozenset()
+
+
+def test_deleting_all_nodes_removes_shape_and_undo_restores_it():
+    c, sid = _path_controller()
+    c.set_node_selection({(sid, i) for i in range(4)})
+    c.delete_selection()
+    assert c.find_shape(sid) is None and c.state.selection == set()
+    c.undo()
+    assert isinstance(c.find_shape(sid), PathShape)
+
+
+def test_undo_and_tool_change_clear_node_selection():
+    c, sid = _path_controller()
+    c.set_node_selection({(sid, 1)})
+    c.move_nodes(sid, {1}, 5, 5)
+    c.undo()
+    assert c.state.node_selection == frozenset()
+    c.set_node_selection({(sid, 1)})
+    c.select_tool(Tool.SELECT)
+    assert c.state.node_selection == frozenset()
+
+
+def test_delete_without_node_selection_deletes_shape_under_node_tool():
+    c, sid = _path_controller()
+    c.delete_selection()
+    assert c.find_shape(sid) is None

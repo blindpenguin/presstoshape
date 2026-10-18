@@ -13,6 +13,11 @@ _FIELDS = {
 }
 
 _HINTS = {
+    Tool.NODE: (
+        "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select "
+        "several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, "
+        "Delete removes selected nodes."
+    ),
     Tool.RECTANGLE: "Drag to draw. Shift: square.",
     Tool.ELLIPSE: "Drag to draw. Shift: circle.",
     Tool.PEN: "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel.",
@@ -21,6 +26,7 @@ _HINTS = {
 
 TITLES = {
     Tool.SELECT: "Selection",
+    Tool.NODE: "Node tool",
     Tool.PEN: "Pen tool",
     Tool.RECTANGLE: "Rectangle tool",
     Tool.ELLIPSE: "Ellipse tool",
@@ -38,6 +44,7 @@ class ToolOptionsPanel(QStackedWidget):
         self._pages: dict[Tool, QWidget] = {Tool.SELECT: self._selection}
         self._editors: dict[Tool, StyleEditor] = {}
         self._font_size: QDoubleSpinBox | None = None
+        self._pages[Tool.NODE] = self._hint_page(_HINTS[Tool.NODE])
         for tool, fields in _FIELDS.items():
             editor = StyleEditor(
                 fields,
@@ -65,11 +72,24 @@ class ToolOptionsPanel(QStackedWidget):
             self._pages[tool] = page
             self._editors[tool] = editor
 
+    def _hint_page(self, text: str) -> QWidget:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        hint = QLabel(text)
+        hint.setWordWrap(True)
+        hint.setEnabled(False)
+        layout.addWidget(hint)
+        layout.addStretch(1)
+        self.addWidget(page)
+        return page
+
     def refresh(self, state: AppState) -> None:
         tool = state.active_tool
         self.setCurrentWidget(self._pages[tool])
         if tool is Tool.SELECT:
             self._selection.refresh(state)
+            return
+        if tool is Tool.NODE:
             return
         self._editors[tool].refresh(state.tool_styles[tool])
         if tool is Tool.TEXT and self._font_size is not None:

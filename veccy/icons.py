@@ -22,6 +22,7 @@ TOOL_PEN = _DIR / "tool_pen.svg"
 TOOL_RECTANGLE = _DIR / "tool_rectangle.svg"
 TOOL_ELLIPSE = _DIR / "tool_ellipse.svg"
 TOOL_TEXT = _DIR / "tool_text.svg"
+TOOL_NODE = _DIR / "tool_node.svg"
 
 UNION = _DIR / "union.svg"
 DIFFERENCE = _DIR / "difference.svg"
@@ -29,3 +30,6 @@ DELETE = _DIR / "delete.svg"
 
 LAYER_ADD = _DIR / "layer_add.svg"
 LAYER_DELETE = _DIR / "layer_delete.svg"
+
+CURSOR_ROTATE = _DIR / "cursor_rotate.svg"
+CURSOR_NODE_INSERT = _DIR / "cursor_node_insert.svg"

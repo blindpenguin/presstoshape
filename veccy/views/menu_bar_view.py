@@ -18,6 +18,8 @@ def build(menu_bar: QMenuBar, actions: AppActions) -> None:
 
     path = menu_bar.addMenu("&Path")
     path.addActions([actions.union, actions.difference])
+    path.addSeparator()
+    path.addAction(actions.object_to_path)
 
     view = menu_bar.addMenu("&View")
     view.addActions([actions.zoom_in, actions.zoom_out, actions.zoom_fit, actions.zoom_actual])

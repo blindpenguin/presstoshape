@@ -2,9 +2,8 @@
 
 from dataclasses import dataclass
 
-from veccy.models.shapes import Segment, Style
-
-Rect = tuple[float, float, float, float]
+from veccy.models.shapes import IDENTITY_TRANSFORM, Segment, Shape, Style, Transform
+from veccy.render.handles import Frame, Rect
 
 
 @dataclass(frozen=True)
@@ -19,11 +18,25 @@ class CanvasColors:
 
 
 @dataclass(frozen=True)
+class NodeOverlay:
+    """One path being node-edited: its (live) segments, selected node indices and the controls to show."""
+
+    segments: tuple[Segment, ...]
+    selected: frozenset[int] = frozenset()
+    controls: frozenset[tuple[int, int]] = frozenset()
+
+
+@dataclass(frozen=True)
 class Overlay:
     selection: frozenset[int] = frozenset()
     # Doc coordinates x, y, w, h.
     rubber_band: Rect | None = None
     preview: tuple[tuple[Segment, ...], Style] | None = None
-    # Shapes being dragged, drawn shifted by `offset` (doc units) until the drag commits.
+    # Shapes being dragged, drawn through `matrix` (doc space) until the gesture commits, or replaced by `live`
+    # (exact previews, e.g. scaling, where a matrix would also scale strokes).
     moving: frozenset[int] = frozenset()
-    offset: tuple[float, float] = (0.0, 0.0)
+    matrix: Transform = IDENTITY_TRANSFORM
+    live: tuple[Shape, ...] = ()
+    # Selection frame with handles, already following the live gesture.
+    frame: Frame | None = None
+    nodes: tuple[NodeOverlay, ...] = ()

@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
+from veccy.controllers import affine, geometry
 from veccy.controllers.svg_io import read_svg, write_svg
 from veccy.models.app_state import Document, Layer
 from veccy.models.shapes import (
@@ -81,7 +82,7 @@ def test_svg_defaults_black_fill_no_stroke():
     assert doc.layers[0].shapes[0].style == Style(fill="#000000", stroke=None, stroke_width=1)
 
 
-def test_translate_keeps_primitive_rotation_flattens_to_path():
+def test_translate_and_rotation_keep_primitive():
     doc = read_svg(
         _svg(
             '<g transform="translate(10 20)"><rect x="1" y="2" width="5" height="5"/></g>'
@@ -90,9 +91,10 @@ def test_translate_keeps_primitive_rotation_flattens_to_path():
     )
     moved, rotated = doc.layers[0].shapes
     assert isinstance(moved, RectShape) and (moved.x, moved.y) == (11, 22)
-    assert isinstance(rotated, PathShape)
-    first = rotated.segments[1]
+    assert isinstance(rotated, RectShape)
+    first = geometry.outline(rotated)[1]
     assert (first.x, first.y) == pytest.approx((0, 5))
+    assert geometry.rotation_of(rotated) == pytest.approx(90)
 
 
 def test_scale_transform_scales_stroke_width():
@@ -128,3 +130,53 @@ def test_rejects_non_svg():
         read_svg("<html/>")
     with pytest.raises(ET.ParseError):
         read_svg("<svg")
+
+
+def _round_trip(*shapes):
+    doc = Document(100, 100, [Layer("L", shapes=list(shapes))])
+    return read_svg(write_svg(doc)).layers[0].shapes
+
+
+def test_rotated_shapes_round_trip_as_same_types():
+    rect = geometry.with_rotation(RectShape(1, 10, 20, 30, 40, Style()), 30)
+    ellipse = geometry.with_rotation(EllipseShape(2, 50, 60, 5, 7, Style()), -45)
+    text = geometry.with_rotation(TextShape(3, 5, 80, "Hi", 12.0, Style()), 15)
+    for before, after in zip((rect, ellipse, text), _round_trip(rect, ellipse, text)):
+        assert type(after) is type(before)
+        assert after.transform == pytest.approx(before.transform, abs=1e-6)
+        assert geometry.rotation_of(after) == pytest.approx(geometry.rotation_of(before))
+
+
+def test_rotation_written_as_rotate():
+    rect = geometry.with_rotation(RectShape(1, 10, 20, 30, 40, Style()), 30)
+    svg = write_svg(Document(100, 100, [Layer("L", shapes=[rect])]))
+    assert 'transform="rotate(30 25 40)"' in svg
+
+
+def test_skew_written_as_matrix_and_round_trips():
+    rect = RectShape(1, 0, 0, 10, 10, Style(), (1.0, 0.0, 0.5, 1.0, 2.0, 3.0))
+    svg = write_svg(Document(100, 100, [Layer("L", shapes=[rect])]))
+    assert 'transform="matrix(1 0 0.5 1 2 3)"' in svg
+    (after,) = _round_trip(rect)
+    assert isinstance(after, RectShape) and after.transform == pytest.approx(rect.transform)
+
+
+def test_untransformed_shapes_write_no_transform():
+    svg = write_svg(Document(100, 100, [Layer("L", shapes=[RectShape(1, 0, 0, 10, 10, Style())])]))
+    assert "transform" not in svg
+
+
+def test_inkscape_style_transforms_import_as_primitives():
+    doc = read_svg(
+        _svg(
+            '<circle cx="10" cy="10" r="5" transform="matrix(0 1 -1 0 30 0)"/>'
+            '<rect width="10" height="4" transform="scale(2 3)"/>'
+            '<text x="5" y="10" font-size="10" transform="rotate(45 5 10)">Hi</text>'
+        )
+    )
+    circle, rect, text = doc.layers[0].shapes
+    assert isinstance(circle, EllipseShape) and (circle.cx, circle.cy) == pytest.approx((20, 10))
+    assert isinstance(rect, RectShape) and (rect.width, rect.height) == pytest.approx((20, 12))
+    assert rect.transform == affine.IDENTITY
+    assert isinstance(text, TextShape) and (text.x, text.y) == pytest.approx((5, 10))
+    assert geometry.rotation_of(text) == pytest.approx(45)

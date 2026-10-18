@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
 
         self._status = StatusBar()
         self.setStatusBar(self._status)
+        self.canvas.hint_changed.connect(self._status.show_hint)
 
         controller.subscribe(self.refresh)
         self.refresh()

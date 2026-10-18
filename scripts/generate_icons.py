@@ -24,11 +24,14 @@ ICONS = {
     "tool_rectangle": "square",
     "tool_ellipse": "circle",
     "tool_text": "typography",
+    "tool_node": "vector",
     "union": "layers-union",
     "difference": "layers-subtract",
     "delete": "trash",
     "layer_add": "square-plus",
     "layer_delete": "trash",
+    "cursor_rotate": "rotate-clockwise",
+    "cursor_node_insert": "pencil-plus",
 }
 
 

@@ -1,5 +1,6 @@
 import time
 
+from veccy.controllers import geometry
 from veccy.models.app_state import Document, Layer
 from veccy.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
 from veccy.render.hit_test import shape_at, shapes_in_rect
@@ -89,3 +90,10 @@ def test_click_on_10k_shapes_is_fast():
     start = time.perf_counter()
     assert shape_at(doc, cache, (1, 1), 3) == 0
     assert time.perf_counter() - start < 0.010
+
+
+def test_rotated_rect_is_hit_in_world_space():
+    rect = geometry.with_rotation(RectShape(1, 20, 40, 60, 20, Style(stroke=None)), 90)
+    doc = _doc([rect])
+    assert shape_at(doc, PathCache(), (50, 25), 0) == 1
+    assert shape_at(doc, PathCache(), (25, 50), 0) is None

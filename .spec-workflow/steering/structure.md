@@ -27,13 +27,18 @@ veccy/                          # repo root
     │   └── shapes.py           # frozen shapes, Style, path segments
     ├── controllers/            # all state mutation + pure logic, no Qt
     │   ├── app_controller.py   # mutations, undo/redo, file I/O, subscribe/notify
-    │   ├── geometry.py         # pure geometry + boolean ops (skia-pathops)
+    │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
+    │   ├── geometry.py         # pure geometry + boolean ops (skia-pathops), canonical shape transforms
+    │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)
     │   └── svg_io.py           # SVG read/write
     └── views/                  # Qt widgets
         ├── main_window.py      # assembles panels, fans out refresh(), owns dialogs
         ├── actions.py          # every QAction, shared by menus and toolbars
         ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, paints from state
-        ├── canvas_gestures.py  # per-tool gesture state (Qt-free) -> controller
+        ├── canvas_gestures.py  # gesture dispatcher + drawing tools (Qt-free) -> controller
+        ├── select_gesture.py / node_gesture.py   # Select (move, scale, rotate) and Node tool gestures
+        ├── gesture_types.py    # Mods, CursorType, GestureContext shared by gestures
+        ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
         ├── style_editor.py / widgets.py   # reusable widgets
@@ -41,7 +46,7 @@ veccy/                          # repo root
         └── icon_engine.py      # SvgIconEngine (vector icons, currentColor recoloring)
 ```
 
-Renderer (Qt-free, Skia): `veccy/render/` — `scene.py`, `picture.py`, `paths.py`, `text.py`, `hit_test.py`, `viewport.py`, `export.py`, `overlay.py`. Shared by the canvas (via `views/skia_surface.py`) and PNG export.
+Renderer (Qt-free, Skia): `veccy/render/` — `scene.py`, `picture.py`, `paths.py`, `text.py`, `hit_test.py`, `handles.py` (selection frame, handle and node picking), `viewport.py`, `export.py`, `overlay.py`. Shared by the canvas (via `views/skia_surface.py`) and PNG export.
 
 Planned additions (each introduced by its own spec):
 ```
@@ -50,7 +55,6 @@ veccy/
 │   ├── <format>_io.py          # native document format read/write, next to svg_io.py
 │   └── <feature>.py            # pure logic per feature (brushes, effects, text layout, …)
 └── views/
-    └── tools/                  # per-tool gesture handlers, once canvas_view.py outgrows one module
 ```
 
 ## Naming Conventions
@@ -125,7 +129,7 @@ Large classes are sectioned with `# --- section ---` comments (e.g. `# --- undo 
 - **Assets**: generated files in `veccy/assets/` are only changed by their generator scripts.
 
 ## Code Size Guidelines
-- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `app_controller.py` ≈ 400, `canvas_view.py` ≈ 350 — next candidates for splitting, e.g. per-tool gesture handlers, per-feature controller modules).
+- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `app_controller.py` ≈ 550 — over the guideline; next candidate for splitting into per-feature controller modules, e.g. node editing and transforms).
 - **Function/Method size**: aim for ≤ ~40 lines; extract helpers for distinct steps.
 - **Nesting depth**: ≤ 3 levels; prefer early returns and `match` on shape/segment types.
 - **Line length**: 120 characters.
