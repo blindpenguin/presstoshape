@@ -8,7 +8,7 @@
   - _Requirements: 6.4, 5.1_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer familiar with uv | Task: Add skia-python pinned with == via `uv add skia-python==144.0.post2`, and add an ExportSettings dataclass nested into AppState as `export` per design.md Data Models | Restrictions: Never hand-edit uv.lock, no Qt imports in models, keep AppState plain data | Success: `uv sync` works, `uv run python -c "import skia"` succeeds, existing pytest suite passes. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 2. Implement Viewport math in veccy/render/viewport.py
+- [x] 2. Implement Viewport math in veccy/render/viewport.py
   - Files: veccy/render/__init__.py, veccy/render/viewport.py, tests/test_viewport.py
   - Frozen `Viewport` dataclass: to_screen/to_doc, matrix(dpr) -> skia.Matrix, scroll_range (centered when scene smaller than view), zoom_at(new_zoom, anchor, residual)
   - Purpose: Qt-free replacement for QGraphicsView transform and scrollbar math
@@ -16,7 +16,7 @@
   - _Requirements: 4.7, 1.7_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer with 2D graphics math experience | Task: Create veccy/render/viewport.py per design.md (Viewport component), porting the zoom-anchor and sub-pixel residual logic from CanvasView._apply_zoom, with pytest coverage (round trip, anchor stays fixed across repeated zoom steps, centered small scene, scroll range) | Restrictions: No Qt imports in veccy/render, only skia + stdlib + veccy.models; frozen dataclass; follow code style (no comments unless non-obvious why) | Success: tests/test_viewport.py passes, behavior matches the current zoom anchoring. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 3. Implement text outlines and PathCache
+- [-] 3. Implement text outlines and PathCache
   - Files: veccy/render/text.py, veccy/render/paths.py, tests/test_paths.py
   - `typeface()` (FontMgr match for "sans-serif", cached), `text_path(TextShape) -> skia.Path`; `PathCache.get/stroke_path/bounds/prune`, winding fill type, keyed by id and invalidated by frozen-shape inequality
   - Purpose: One cached geometry source for drawing, hit-testing, bounds and export
