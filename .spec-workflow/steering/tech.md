@@ -11,10 +11,10 @@ Cross-platform desktop application (Linux, Windows, macOS): a professional vecto
 - **Language-specific tools**: `uv` for everything — dependencies (`uv add`, `uv add --dev`), running (`uv run python main.py`), syncing (`uv sync`). `uv.lock` is committed and never hand-edited. No bare `pip` / `venv`.
 
 ### Key Dependencies/Libraries
-- **pyside6-essentials (==6.12.0, pinned)**: Qt 6 bindings — QtCore/QtGui/QtWidgets/QtSvg/QtTest. UI, input, current canvas rendering. Pinned with `==` because Qt behavior and binding details shift between minors. `pyside6-essentials`, not the `pyside6` metapackage (WebEngine/addons, hundreds of MB, unused).
+- **pyside6-essentials (==6.12.0, pinned)**: Qt 6 bindings — QtCore/QtGui/QtWidgets/QtOpenGLWidgets/QtSvg/QtTest. UI, input, GL context hosting. Pinned with `==` because Qt behavior and binding details shift between minors. `pyside6-essentials`, not the `pyside6` metapackage (WebEngine/addons, hundreds of MB, unused).
 - **skia-pathops (0.9.2)**: boolean path operations (union, difference, later the full set). Used from `veccy/controllers/geometry.py` so controllers stay Qt-free. Works in float32; results are rounded on conversion.
 - **svgelements (1.9.6)**: parsing SVG path data, colors, lengths and transform strings only. Its `SVG.parse` document reader is not used — it drops `display:none` groups (hidden layers) and `<text>`. Document traversal uses `xml.etree.ElementTree`.
-- **skia-python (planned)**: target canvas and export renderer (see Decision Log).
+- **skia-python (==144.0.post2)**: canvas and PNG export renderer (`veccy/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
 - **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker, `pyinstaller`.
 
 ### Application Architecture
@@ -24,16 +24,17 @@ Model / View / Controller with Elm-like state ownership inside Qt's retained-mod
 - **Controllers** (`veccy/controllers/`): the only writers of state. `AppController` holds all mutations, undo/redo, file I/O and a subscribe/notify mechanism. `geometry.py` (pure geometry + booleans) and `svg_io.py` (SVG read/write) are pure functions over models.
 - **Views** (`veccy/views/`): Qt widgets. They render from state in an idempotent, cheap `refresh(state)`, and forward user input to controller methods. Transient gesture state (drag in progress, pen points, previews, panning) lives in the view until committed.
 - **Data flow**: input → view calls controller → controller `_checkpoint()` (undo) → mutate `AppState` → `_notify()` → `MainWindow.refresh()` → every view's `refresh(state)`.
-- **Dependency direction**: `views → controllers → models`. **No Qt imports in models or controllers** — they are unit-testable without a display.
-- **Canvas**: `CanvasView` (QGraphicsView) caches scene items keyed by shape id and diffs by frozen-dataclass equality; shape geometry is always in absolute document coordinates.
+- **Render** (`veccy/render/`): Qt-free Skia drawing of the model — document, overlays, hit-testing, viewport math, PNG export.
+- **Dependency direction**: `views → controllers → render → models` (views also use `render`). **No Qt imports in models, controllers or render** — they are unit-testable without a display.
+- **Canvas**: `CanvasView` (QAbstractScrollArea) hosts a Skia surface widget and redraws the document from state each frame, replaying recorded Skia pictures; gestures live in Qt-free `CanvasGestures`. Shape geometry is always in absolute document coordinates.
 - **Undo**: snapshot-based. Snapshots copy layer lists and share immutable shape objects; consecutive edits with the same merge key collapse into one step; 200-step limit.
 
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
 - **Native format (planned)**: a veccy document format that stores everything veccy supports losslessly. Requirements: versioned with forward migration, exact reload of what was saved, able to embed resources (images, fonts as needed). Concrete format (e.g. zip + JSON, SQLite) is decided in its own spec.
 - **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; transforms that can't be represented are flattened to paths; unsupported paint is approximated.
-- **Raster export (planned)**: PNG and similar, rendered by the same renderer as the canvas.
-- **Caching**: in-memory only (scene item cache in the canvas view).
+- **Raster export**: PNG, rendered by the same renderer as the canvas (transparent background, any scale up to 16384 px per side).
+- **Caching**: in-memory only (Skia path cache and recorded document pictures in the canvas).
 
 ### External Integrations (if applicable)
 None. veccy is offline; no network access, accounts or telemetry. Interop is file-based (SVG, raster export, later PDF/AI-compatible import).
@@ -96,9 +97,9 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 
 ### Decision Log
 1. **PySide6 (Qt 6 Widgets)**: mature cross-platform desktop UI with tablet input, high-DPI and native dialogs; official Qt binding under LGPL. Never mixed with PyQt (incompatible objects).
-2. **MVC with single-source-of-truth state, Qt-free models/controllers**: keeps logic unit-testable without a display and keeps rendering a pure function of state. Trade-off: some glue code to diff state into Qt's retained scene.
+2. **MVC with single-source-of-truth state, Qt-free models/controllers**: keeps logic unit-testable without a display and keeps rendering a pure function of state. Trade-off: rendering must stay fast enough to redraw from state (path cache, recorded pictures).
 3. **Frozen shape dataclasses + snapshot undo**: snapshots are cheap (shared immutable shapes), undo is trivially correct, views diff by equality. Trade-off: every edit replaces objects; snapshot cost grows with layer/shape count.
-4. **Commit to Skia for rendering (skia-python)**: QPainter/QGraphicsScene can't deliver the target feature set at scale — mesh gradients, blend modes, live effects (blur, shadows, filters), variable-width brush strokes, GPU acceleration. Skia is the renderer behind Chrome and many design tools, already used here via skia-pathops, and the same renderer serves canvas and raster/PDF export (WYSIWYG). Plan: keep Qt for UI and input; render the canvas with Skia (GPU via an OpenGL surface, CPU raster fallback); introduce a renderer boundary so the switch from QGraphicsScene happens behind it. Migration is its own spec.
+4. **Commit to Skia for rendering (skia-python)**: QPainter/QGraphicsScene can't deliver the target feature set at scale — mesh gradients, blend modes, live effects (blur, shadows, filters), variable-width brush strokes, GPU acceleration. Skia is the renderer behind Chrome and many design tools, already used here via skia-pathops, and the same renderer serves canvas and raster/PDF export (WYSIWYG). Plan: keep Qt for UI and input; render the canvas with Skia (GPU via an OpenGL surface, CPU raster fallback); the renderer boundary is `veccy/render/` (implemented by the skia-renderer spec).
 5. **Own native format + SVG for exchange**: SVG can't hold everything veccy will support (live effects, brush definitions, editable booleans); a native format guarantees fidelity, while SVG export degrades predictably (flatten/rasterize) and keeps Inkscape interop. Format choice deferred to a spec.
 6. **skia-pathops for booleans**: robust, fast, Qt-free. Float32 precision accepted; results rounded.
 7. **svgelements for SVG micro-syntax only, ElementTree for documents**: svgelements' document reader loses hidden layers and text.
@@ -108,10 +109,10 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 11. **GPL-3.0**: protects against closed-source forks, in line with Inkscape/Krita.
 
 ## Known Limitations
-- **Renderer**: canvas currently uses QGraphicsScene/QPainter; no gradients, blend modes or effects until the Skia migration.
+- **Renderer**: Skia renders shapes with solid paint only so far; gradients, blend modes and effects are future specs. Continuous zoom on documents with many text objects re-rasterizes glyphs at each scale (~20 ms/frame at 10k shapes on an integrated GPU); pan and drag stay under 16 ms. The CPU fallback is ~25–30 ms/frame at 10k shapes.
 - **Undo scaling**: snapshot undo copies every layer's shape list per step — fine now, may need structural sharing or command-based undo for very large documents.
 - **Full-state notify**: every change refreshes every view; views must keep diffing cheap, and finer-grained change notification may be needed as the UI grows.
 - **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; non-translation transforms are flattened to paths.
 - **Text**: single-line, single font; rendered via `QPainterPath.addText` with a generic font.
 - **Shape model**: no groups, no per-shape transforms; geometry is in absolute document coordinates.
-- **No native format, no raster export, no packaging or CI yet**.
+- **No native format, no packaging or CI yet**.

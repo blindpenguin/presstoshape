@@ -96,7 +96,7 @@
   - _Requirements: NFR Performance_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python performance engineer | Task: Write scripts/bench_canvas.py per design.md Testing Strategy; run it on GL and CPU and record results in the implementation log; if GL frame time exceeds 16 ms, profile and optimize the renderer (e.g. picture caching) within render/ | Restrictions: Dev-only script, not imported by veccy; no new runtime deps | Success: script runs, GL average ≤ 16 ms at 10,000 shapes on this machine (or documented gap with cause). Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 13. Update documentation
+- [x] 13. Update documentation
   - Files: CLAUDE.md, README.md, .spec-workflow/steering/tech.md (+ structure.md if needed)
   - CLAUDE.md: render/ in architecture tree, Skia/GL lifetime notes, `VECCY_RENDERER`, drop AnchorUnderMouse note, refine pixel-assertion rule (allowed on render CPU output); README: Export PNG; steering: Skia renderer implemented, controllers → render dependency
   - Purpose: Keep contributor and agent docs accurate

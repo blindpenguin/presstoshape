@@ -18,6 +18,8 @@ uv run python main.py
   - Drawing tools: the style that tool gives new shapes; text tool also sets font size.
 - Layers: add, delete, rename (double-click), hide (checkbox).
 - Undo/redo for all document edits.
+- GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
+- Export PNG (Ctrl+Shift+E) at any scale, transparent background.
 - Opens and saves SVG (Inkscape-compatible layers). Imported shapes under rotate/skew/scale transforms are flattened to paths; gradients, clip paths, `<use>` and images aren't supported yet.
 
 ## Development
@@ -25,6 +27,7 @@ uv run python main.py
 ```
 uv run pytest                                          # logic tests
 uv run python scripts/screenshot_app.py                # offscreen screenshot -> dev-screenshots/app.png
+uv run python scripts/bench_canvas.py                  # canvas frame times, 10k shapes (VECCY_RENDERER=cpu|gl)
 uv run --group dev python scripts/generate_icons.py    # re-copy Tabler SVG icons
 scripts/spec_dashboard.sh                              # spec-workflow approval dashboard (http://localhost:5000)
 ```

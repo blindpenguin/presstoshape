@@ -32,18 +32,20 @@ veccy/                          # repo root
     └── views/                  # Qt widgets
         ├── main_window.py      # assembles panels, fans out refresh(), owns dialogs
         ├── actions.py          # every QAction, shared by menus and toolbars
-        ├── canvas_view.py      # QGraphicsView: scene sync from model, gestures -> controller
+        ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, paints from state
+        ├── canvas_gestures.py  # per-tool gesture state (Qt-free) -> controller
+        ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
         ├── style_editor.py / widgets.py   # reusable widgets
         ├── theme.py            # palette, colors, stylesheet
         └── icon_engine.py      # SvgIconEngine (vector icons, currentColor recoloring)
 ```
 
+Renderer (Qt-free, Skia): `veccy/render/` — `scene.py`, `picture.py`, `paths.py`, `text.py`, `hit_test.py`, `viewport.py`, `export.py`, `overlay.py`. Shared by the canvas (via `views/skia_surface.py`) and PNG export.
+
 Planned additions (each introduced by its own spec):
 ```
 veccy/
-├── render/                     # Skia renderer: model -> skia.Canvas. Depends on models only, no Qt.
-│                               # Shared by the canvas (via a thin Qt surface in views/) and raster export.
 ├── controllers/
 │   ├── <format>_io.py          # native document format read/write, next to svg_io.py
 │   └── <feature>.py            # pure logic per feature (brushes, effects, text layout, …)
@@ -77,7 +79,7 @@ Groups separated by a blank line (ruff `I` / isort order once ruff is added).
 
 ### Module/Package Organization
 - Absolute imports with the `veccy.` prefix everywhere (`from veccy.models.app_state import AppState`); no relative imports.
-- Dependency direction is strict: `views → controllers → models` (planned `render` sits beside controllers: `views → render → models`). Never import a view from a model, controller or renderer.
+- Dependency direction is strict: `views → controllers → render → models`, and views may use `render` directly. Never import a view from a model, controller or renderer.
 - **No Qt imports in `models/`, `controllers/` or `render/`.**
 - PySide6 only — never PyQt5/6.
 - Dev-only packages (`pytablericons`, `pytest`) are never imported by `veccy/`.
@@ -117,7 +119,7 @@ Large classes are sectioned with `# --- section ---` comments (e.g. `# --- undo 
 ## Module Boundaries
 - **Models**: data only. No imports from controllers, views or Qt.
 - **Controllers**: the only code that mutates `AppState`. Pure functions for geometry/I/O; `AppController` is the façade views call. No Qt.
-- **Render (planned)**: pure model → Skia drawing; no state mutation, no Qt. Used by the canvas surface and exporters, guaranteeing canvas = export.
+- **Render**: pure model → Skia drawing, hit-testing and viewport math; no state mutation, no Qt. Used by the canvas surface and exporters, guaranteeing canvas = export.
 - **Views**: Qt only; read state, call controllers. Own transient gesture state, dialogs and Qt object lifetimes (parents set, signals disconnected on teardown — see `CanvasView.shutdown()`).
 - **Scripts / tests**: may import anything from `veccy`; nothing in `veccy` imports them.
 - **Assets**: generated files in `veccy/assets/` are only changed by their generator scripts.
