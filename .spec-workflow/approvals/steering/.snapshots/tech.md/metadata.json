@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/steering/tech.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T11:02:01.124Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792321321122_kxb80rvpa",
+      "approvalTitle": "Tech steering document (tech.md)"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T11:03:08.486Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792321321122_kxb80rvpa",
+      "approvalTitle": "Tech steering document (tech.md)"
+    }
+  ]
+}

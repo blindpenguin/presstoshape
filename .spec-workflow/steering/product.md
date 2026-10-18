@@ -1,0 +1,68 @@
+# Product Overview
+
+## Product Purpose
+veccy is an open-source, cross-platform, professional vector drawing application for artists. It aims to combine the best ideas of existing tools — Illustrator's breadth, Affinity Designer's speed and polish, Inkscape's openness, and the approachable, illustration-first feel of Linearity/Vectornator — into one powerful tool that can take on Adobe Illustrator.
+
+The problem it solves: professional vector work is dominated by a proprietary subscription product. Open alternatives exist, but are often not fast, approachable or artist-focused enough for illustration work. veccy is meant to be a tool artists choose because it is good, not only because it is free.
+
+Today veccy is at an early stage (shapes, bezier pen, text, styling, layers, booleans, undo, SVG I/O). This document describes where it is going.
+
+## Target Users
+- **Illustrators and digital artists** drawing with tablets and mice. Need: expressive freehand and brush tools, pressure sensitivity, rich color and paint, a fast canvas that doesn't get in the way.
+- **Graphic and UI designers** making logos, icons, layouts and marketing assets. Need: precise path editing, typography, alignment, snapping, export to common formats.
+- **People leaving Illustrator** (cost, subscription, platform). Need: familiar concepts and workflows, professional feature depth, reliable import/export.
+- **Inkscape users** who want a more modern, artist-focused workflow. Need: their SVG files and layers carry over and back.
+
+## Key Features
+Current:
+1. **Drawing tools**: select, bezier pen, rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
+2. **Styling**: fill, stroke, stroke width per shape or multi-selection; per-tool default styles in a context-sensitive tool options panel.
+3. **Layers**: add, delete, rename, hide; Inkscape-compatible.
+4. **Boolean operations**: union, difference.
+5. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
+6. **Undo/redo** for every document edit.
+7. **SVG open/save**.
+
+Core feature pillars (target):
+1. **Freehand & brushes**: pressure-sensitive tablet input, pencil with smoothing, vector brushes, variable-width strokes, width profiles.
+2. **Rich paint**: linear/radial/mesh gradients, patterns, opacity and blend modes, multiple fills and strokes per object.
+3. **Non-destructive effects**: live effects such as blur, shadows and filters, rendered on canvas and on export.
+4. **Typography**: rich text, text on path, OpenType font features, converting text to outlines.
+5. **Path editing & construction**: node/handle editing, full boolean set, shape builder, stroke-to-path, offset, simplify.
+6. **Precision & layout**: transforms with handles, snapping, grids, guides, align/distribute, artboards.
+7. **File formats**: native veccy format that stores everything veccy can do; SVG import/export with Inkscape interop; raster export (PNG etc.).
+
+## Business Objectives
+- Become a serious open-source alternative to Adobe Illustrator for illustration and design work.
+- Win artists through quality: speed, feel and workflow, not just price.
+- Run on Linux, Windows and macOS with packaged, installable builds.
+- Fit into existing pipelines through solid SVG and Inkscape interop.
+- Keep the architecture clean and the codebase approachable so the project can grow and accept contributors.
+
+## Success Metrics
+- **Feature coverage**: each core pillar above reaches a usable first version.
+- **Performance**: canvas stays fluid (no visible lag in pan/zoom/drag/brush strokes) with complex documents of tens of thousands of shapes; startup to usable window in a couple of seconds.
+- **Interop**: veccy-made SVG round-trips through Inkscape with shapes, styles and layers intact; common Inkscape and Illustrator-exported SVG files open correctly.
+- **Reliability**: no data loss — every edit undoable, native format reloads exactly what was saved.
+- **Adoption**: artists use it for real projects (tracked via releases, downloads, community feedback).
+
+## Product Principles
+1. **Artists first**: optimize for drawing feel and creative flow. Tools respond instantly, gestures feel natural, the UI stays out of the way of the canvas.
+2. **Professional depth, approachable surface**: deep capability is available, but common tasks stay simple and discoverable; panels follow the current tool and selection instead of showing everything at once.
+3. **Non-destructive by default**: effects, booleans and styles should stay editable wherever practical; every edit is undoable.
+4. **Own format for fidelity, SVG for exchange**: the native format stores everything veccy supports without compromise. SVG import/export stays a first-class citizen, and features SVG can't express degrade predictably (e.g. flatten or rasterize) instead of silently disappearing.
+5. **Inkscape interop is a requirement**: layers and supported content survive a round trip with Inkscape.
+6. **What you see is what you export**: canvas rendering matches exported output.
+
+## Monitoring & Visibility (if applicable)
+Not applicable — veccy is a local desktop app with no telemetry. User feedback is through the status bar (tool, zoom, messages) and window title (file name, unsaved state).
+
+## Future Vision
+veccy grows from its current shape-editor core into a full professional illustration application, pillar by pillar, while the MVC architecture keeps it maintainable.
+
+### Potential Enhancements
+- **Pro workflows**: artboards, symbols/components, swatches and color libraries, global colors, styles libraries.
+- **Import**: PDF / AI-compatible import, more SVG features (groups, clip paths, masks, `<use>`, images).
+- **Export**: PNG/JPEG/PDF export with size/DPI and per-artboard/slice export.
+- **Customization**: preferences, customizable shortcuts and workspaces.
+- **Extensibility**: plugin or scripting API in the longer term.
