@@ -16,7 +16,7 @@
   - _Requirements: 4.7, 1.7_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer with 2D graphics math experience | Task: Create veccy/render/viewport.py per design.md (Viewport component), porting the zoom-anchor and sub-pixel residual logic from CanvasView._apply_zoom, with pytest coverage (round trip, anchor stays fixed across repeated zoom steps, centered small scene, scroll range) | Restrictions: No Qt imports in veccy/render, only skia + stdlib + veccy.models; frozen dataclass; follow code style (no comments unless non-obvious why) | Success: tests/test_viewport.py passes, behavior matches the current zoom anchoring. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 3. Implement text outlines and PathCache
+- [x] 3. Implement text outlines and PathCache
   - Files: veccy/render/text.py, veccy/render/paths.py, tests/test_paths.py
   - `typeface()` (FontMgr match for "sans-serif", cached), `text_path(TextShape) -> skia.Path`; `PathCache.get/stroke_path/bounds/prune`, winding fill type, keyed by id and invalidated by frozen-shape inequality
   - Purpose: One cached geometry source for drawing, hit-testing, bounds and export
@@ -24,7 +24,7 @@
   - _Requirements: 1.2, 1.5, NFR Performance (cache)_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python graphics developer experienced with Skia | Task: Create render/text.py and render/paths.py per design.md, converting model segments to skia.Path (MoveTo/LineTo/CubicTo/Close, kWinding) and text to glyph outlines at font_size with baseline (x, y); test cache identity on unchanged shapes, rebuild on change, prune, non-empty text path, stroke_path width | Restrictions: No Qt imports; reuse geometry.outline instead of re-deriving rect/ellipse geometry; booleans keep excluding text (geometry.outline unchanged) | Success: tests pass, text path bounds scale with font_size. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 4. Implement document drawing in veccy/render/scene.py
+- [-] 4. Implement document drawing in veccy/render/scene.py
   - Files: veccy/render/scene.py, veccy/render/overlay.py, tests/test_render_scene.py
   - `CanvasColors` dataclass (pasteboard, artboard, border, preview, selection — passed in by views since render can't import views/theme), `Overlay` dataclass, `parse_color`, `draw_background`, `draw_document(canvas, doc, cache, overrides)`
   - Purpose: Pixel-parity drawing of the document on any skia.Canvas
