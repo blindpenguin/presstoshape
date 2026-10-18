@@ -64,7 +64,7 @@
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6, 1.7_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Qt/OpenGL developer experienced with PySide6 and Skia | Task: Implement views/skia_surface.py per design.md and set the default QSurfaceFormat in App.run before QApplication creation; verify with a scratch script on desktop (GL) and offscreen (raster) that a paint callback drawing a red rect shows up (grabFramebuffer / grab) | Restrictions: Paint callback signature (canvas, width_px, height_px, dpr); QPainter only for blitting the raster image; zero-size early return; no defensive try/except around Qt calls; give widgets parents | Success: both widgets render the callback output; closing the window does not crash or warn. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [-] 9. Implement CanvasGestures
+- [x] 9. Implement CanvasGestures
   - Files: veccy/views/canvas_gestures.py
   - Per-tool gesture state machine producing `Overlay` and committing via controller: select (click, Ctrl toggle, move drag with overrides, rubber band, empty click clears), rectangle/ellipse with Shift, pen (dedupe, double-click/Enter finish), text dialog, Esc cancel
   - Purpose: Interaction logic separated from the scroll/paint shell
@@ -72,7 +72,7 @@
   - _Requirements: 3.3, 3.4, 3.5, 4.1–4.6, 4.8_
   - _Prompt: Implement the task for spec skia-renderer, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Create views/canvas_gestures.py per design.md, porting existing gesture behavior; it receives doc-space points + modifiers from CanvasView, holds transient state, exposes `overlay` and a repaint callback, and commits through AppController (move_selection once per drag, set_selection, add_*) | Restrictions: Never mutate AppState directly; transient state stays here until commit; use lambda wrappers for Qt signal connections where relevant | Success: module compiles and is exercised by task 10 integration; behavior parity reviewed against old canvas_view.py. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
 
-- [ ] 10. Rewrite CanvasView on QAbstractScrollArea + Skia
+- [-] 10. Rewrite CanvasView on QAbstractScrollArea + Skia
   - Files: veccy/views/canvas_view.py, veccy/views/theme.py, veccy/views/main_window.py
   - Scroll area with Skia surface viewport, Viewport-driven scrollbars, wheel/pan/zoom/resize rules ported, paint callback calling draw_background/draw_document/draw_overlays, GL→raster swap on `gl_failed`, `shutdown()` releases GL; add `theme.SELECTION`; remove QGraphicsScene usage
   - Purpose: Integrate renderer, gestures and surfaces with unchanged public API
