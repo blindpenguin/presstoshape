@@ -17,7 +17,7 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 
 - The `spec-workflow` MCP server (`.mcp.json`, pinned to `@pimzino/spec-workflow-mcp@2.2.5`) drives non-trivial features: Requirements → Design → Tasks, each approved by the user in its dashboard before moving on, then implementation task by task with logs. Specs and steering docs live in `.spec-workflow/` and are committed.
 - Use it for new features or cross-cutting changes. Small fixes (single bug, tweak, rename) skip it.
-- Dashboard: `npx -y @pimzino/spec-workflow-mcp@2.2.5 --dashboard` → http://localhost:5000. The user runs it; don't start long-running servers yourself.
+- Dashboard: `scripts/spec_dashboard.sh` (reads the pinned version from `.mcp.json`; `--port N`, `--no-open`) → http://localhost:5000. The user runs it; don't start long-running servers yourself.
 - Bump the pinned version deliberately (check the changelog), never switch to `@latest` — npx would run unreviewed new code on every launch.
 
 ## Libraries

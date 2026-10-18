@@ -26,4 +26,5 @@ uv run python main.py
 uv run pytest                                          # logic tests
 uv run python scripts/screenshot_app.py                # offscreen screenshot -> dev-screenshots/app.png
 uv run --group dev python scripts/generate_icons.py    # re-copy Tabler SVG icons
+scripts/spec_dashboard.sh                              # spec-workflow approval dashboard (http://localhost:5000)
 ```

@@ -11,3 +11,6 @@ wheels/
 
 # Dev screenshot capture output (scripts/screenshot_app.py)
 /dev-screenshots/
+
+# spec-workflow dashboard audit log (scripts/spec_dashboard.sh runs from repo root)
+/audit.log
