@@ -1,0 +1,42 @@
+import sys
+from pathlib import Path
+
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
+
+from veccy.controllers.app_controller import AppController
+from veccy.models.app_state import AppState
+from veccy.views import theme
+from veccy.views.main_window import MainWindow
+
+_WINDOW_SIZE = (1100, 700)
+
+
+class App:
+    def __init__(self) -> None:
+        self.state = AppState()
+        self.controller = AppController(self.state)
+
+    def run(self, *, screenshot_path: Path | None = None) -> int:
+        """`screenshot_path` is a dev-only hook: render once, save a PNG and exit — see scripts/screenshot_app.py."""
+
+        app = QApplication.instance() or QApplication(sys.argv)
+        app.setApplicationName("veccy")
+        theme.apply(app)
+
+        window = MainWindow(self.state, self.controller)
+        window.resize(*_WINDOW_SIZE)
+        window.show()
+
+        if screenshot_path is not None:
+            app.processEvents()
+            window.canvas.center_artboard()
+            app.processEvents()
+            screenshot_path.parent.mkdir(parents=True, exist_ok=True)
+            window.grab().save(str(screenshot_path))
+            window.close_without_prompt()
+            return 0
+
+        # Deferred until the window has its real size, otherwise centering uses the pre-layout viewport.
+        QTimer.singleShot(0, window.canvas.center_artboard)
+        return app.exec()
