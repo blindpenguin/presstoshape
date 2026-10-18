@@ -24,7 +24,7 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 
 - **PySide6** — UI, input and the canvas GL context. Import from `PySide6.QtWidgets` etc.; never mix with PyQt5/6 (different bindings, incompatible objects).
 - **skia-python** — renders the canvas and PNG export (`presstoshape/render/`). GPU through OpenGL inside a `QOpenGLWidget`, CPU raster fallback. No Metal backend, so macOS uses OpenGL 4.1 core.
-- **skia-pathops** — boolean path ops (union/difference) in `presstoshape/geometry/booleans.py`. Works in float32; `_from_skia` rounds results.
+- **skia-pathops** — boolean path ops in `presstoshape/geometry/booleans.py`: `combine_parts` (ordered parts with add/subtract/intersect/exclude modes; shared with the planned Composites), `divide`, `split_regions`. Works in float32; `_from_skia` rounds results.
 - **svgelements** — only for parsing path `d` data, colors, lengths and transform strings in `formats/svg.py`. Don't use its `SVG.parse` document reader: it silently drops `display:none` groups (hidden layers) and `<text>`.
 
 ## Qt specifics
@@ -58,7 +58,7 @@ presstoshape/
 │   ├── affine.py             # 2D affine tuples (SVG matrix order)
 │   ├── boxes.py              # Point, Rect, drag boxes
 │   ├── segments.py           # building/mapping path segments
-│   ├── booleans.py           # union/difference (skia-pathops)
+│   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   └── nodes.py              # path node editing
 ├── formats/svg.py            # SVG read/write

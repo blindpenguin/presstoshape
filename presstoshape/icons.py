@@ -26,6 +26,9 @@ TOOL_NODE = _DIR / "tool_node.svg"
 
 UNION = _DIR / "union.svg"
 DIFFERENCE = _DIR / "difference.svg"
+INTERSECTION = _DIR / "intersection.svg"
+EXCLUDE = _DIR / "exclude.svg"
+DIVIDE = _DIR / "divide.svg"
 DELETE = _DIR / "delete.svg"
 
 LAYER_ADD = _DIR / "layer_add.svg"

@@ -10,13 +10,20 @@ from presstoshape.editing.session import Session
 from presstoshape.models.app_state import AppState, Tool
 from presstoshape.tools.registry import TOOLS
 from presstoshape.views.icon_engine import icon
-from presstoshape.views.keymap import KEYMAP, WINDOW_COMMANDS, Binding
+from presstoshape.views.keymap import KEYMAP, WINDOW_COMMANDS, Binding, Shortcut
 
 
 def _sequences(item: str | QKeySequence.StandardKey) -> list[QKeySequence]:
     if isinstance(item, QKeySequence.StandardKey):
         return QKeySequence.keyBindings(item)
     return [QKeySequence(item)]
+
+
+def _tooltip_keys(shortcut: Shortcut) -> str:
+    """The shortcuts as declared in the keymap, not every platform alias of a standard key."""
+    items = shortcut if isinstance(shortcut, tuple) else (shortcut,)
+    names = [QKeySequence(item).toString() for item in items]
+    return ", ".join(dict.fromkeys(name for name in names if name))
 
 
 class AppActions:
@@ -51,7 +58,7 @@ class AppActions:
         elif binding.shortcut is not None:
             action.setShortcut(QKeySequence(binding.shortcut))
         if binding.shortcut is not None:
-            action.setToolTip(f"{text.replace('&', '')} ({action.shortcut().toString()})")
+            action.setToolTip(f"{text.replace('&', '')} ({_tooltip_keys(binding.shortcut)})")
         # Lambda swallows triggered(checked) so it isn't passed into slots with optional args.
         action.triggered.connect(lambda: slot())
         self._actions[command_id] = action

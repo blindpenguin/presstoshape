@@ -48,8 +48,13 @@ KEYMAP: dict[str, Binding] = {
     "edit.redo": Binding((Keys.Redo, "Ctrl+Y"), icons.REDO),
     "edit.select_all": Binding(Keys.SelectAll),
     "edit.delete": Binding(Keys.Delete, icons.DELETE),
-    "path.union": Binding("Ctrl++", icons.UNION),
-    "path.difference": Binding("Ctrl+-", icons.DIFFERENCE),
+    # Inkscape's shortcuts plus Ctrl+Alt+letter, which works on every keyboard layout (^ is a dead key on
+    # German/French layouts, so Exclude leads with Ctrl+Alt+X).
+    "path.union": Binding(("Ctrl++", "Ctrl+Alt+U"), icons.UNION),
+    "path.difference": Binding(("Ctrl+-", "Ctrl+Alt+D"), icons.DIFFERENCE),
+    "path.intersection": Binding(("Ctrl+*", "Ctrl+Alt+I"), icons.INTERSECTION),
+    "path.exclude": Binding(("Ctrl+Alt+X", "Ctrl+^"), icons.EXCLUDE),
+    "path.divide": Binding(("Ctrl+/", "Ctrl+Alt+V"), icons.DIVIDE),
     "path.object_to_path": Binding("Ctrl+Shift+C"),
     "view.zoom_in": Binding(("+", "="), icons.ZOOM_IN),
     "view.zoom_out": Binding("-", icons.ZOOM_OUT),
@@ -64,12 +69,13 @@ KEYMAP: dict[str, Binding] = {
 }
 
 TOOL_IDS = [entry.id for entry in TOOLS]
+BOOLEAN_IDS = ["path.union", "path.difference", "path.intersection", "path.exclude", "path.divide"]
 
 # None is a separator.
 MENUS: list[tuple[str, list[str | None]]] = [
     ("&File", ["file.new", "file.open", "file.save", "file.save_as", None, "file.export_png", None, "file.quit"]),
     ("&Edit", ["edit.undo", "edit.redo", None, "edit.select_all", "edit.delete"]),
-    ("&Path", ["path.union", "path.difference", None, "path.object_to_path"]),
+    ("&Path", [*BOOLEAN_IDS, None, "path.object_to_path"]),
     ("&View", ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),
     ("&Tools", TOOL_IDS),
     ("&Help", ["help.about"]),
@@ -82,4 +88,4 @@ MAIN_TOOLBAR: list[str | None] = [
     "edit.undo", "edit.redo", None,
     "view.zoom_out", ZOOM_LABEL, "view.zoom_in", "view.zoom_fit",
 ]  # fmt: skip
-TOOL_STRIP: list[str | None] = [*TOOL_IDS, None, "path.union", "path.difference", "edit.delete"]
+TOOL_STRIP: list[str | None] = [*TOOL_IDS, None, *BOOLEAN_IDS, "edit.delete"]

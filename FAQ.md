@@ -24,7 +24,7 @@ It's currently a one-person project.
 
 ### What can PressToShape do today?
 
-Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union and difference; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and installers.
+Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; combine shapes with union, difference, intersection, exclude and divide; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes, a native file format and installers.
 
 ## Using PressToShape
 

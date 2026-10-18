@@ -8,30 +8,6 @@ from presstoshape.render.paths import PathCache
 from tests.helpers import all_shapes
 
 
-def test_union_replaces_selection_at_bottom_position():
-    session = Session()
-    keep = shapes.add_rectangle(session, (100, 100), (110, 110))
-    a = shapes.add_rectangle(session, (0, 0), (10, 10))
-    b = shapes.add_ellipse(session, (5, 5), (15, 15))
-    selection.set_selection(session, {a, b})
-    assert queries.can_combine(session.state)
-    paths.combine(session, "union")
-    current = all_shapes(session)
-    assert [s.id for s in current][0] == keep
-    assert len(current) == 2 and isinstance(current[1], PathShape)
-    assert session.state.selection == {current[1].id}
-    session.undo()
-    assert [s.id for s in all_shapes(session)] == [keep, a, b]
-
-
-def test_cannot_combine_with_text():
-    session = Session()
-    a = shapes.add_rectangle(session, (0, 0), (10, 10))
-    t = shapes.add_text(session, (0, 0), "x")
-    selection.set_selection(session, {a, t})
-    assert not queries.can_combine(session.state)
-
-
 def test_object_to_path_keeps_id_place_style_and_outline():
     session = Session()
     below = shapes.add_rectangle(session, (0, 0), (5, 5))

@@ -14,7 +14,7 @@ uv run python main.py
 - Node tool: drag path nodes and their bezier handles, Shift+click or box-select several, double-click a segment to add a node, Delete removes nodes. Path → Object to Path (Ctrl+Shift+C) turns rectangles, ellipses and text into editable paths.
 - Pen: click points for a smooth curve; double-click or Enter finishes, Esc cancels.
 - Mouse wheel zooms under the cursor, middle-drag pans. Touchpad scrolling pans; Ctrl+scroll zooms.
-- Union (Ctrl++) and difference (Ctrl+-) of selected shapes.
+- Boolean operations on selected shapes: union (Ctrl++), difference (Ctrl+-), intersection (Ctrl+*), exclude (Ctrl+^) and divide (Ctrl+/), which splits overlapping shapes into separate pieces. Each also has a Ctrl+Alt shortcut that works on any keyboard layout: U, D, I, X and V.
 - Tool options panel (next to the tool strip) follows the active tool:
   - Select: properties of the selection — position/size/rotation (rectangle, ellipse), text content/position/size/rotation for a single object, fill / stroke / stroke width for one or many.
   - Drawing tools: the style that tool gives new shapes; text tool also sets font size.

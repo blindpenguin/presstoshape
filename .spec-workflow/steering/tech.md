@@ -12,7 +12,7 @@ Desktop application for Linux and Windows (macOS not a target for now): a profes
 
 ### Key Dependencies/Libraries
 - **pyside6-essentials (==6.12.0, pinned)**: Qt 6 bindings — QtCore/QtGui/QtWidgets/QtOpenGLWidgets/QtSvg/QtTest. UI, input, GL context hosting. Pinned with `==` because Qt behavior and binding details shift between minors. `pyside6-essentials`, not the `pyside6` metapackage (WebEngine/addons, hundreds of MB, unused).
-- **skia-pathops (0.9.2)**: boolean path operations (union, difference, later the full set) in `presstoshape/geometry/booleans.py`. Works in float32; results are rounded on conversion.
+- **skia-pathops (0.9.2)**: boolean path operations (union, difference, intersection, XOR; divide and region splitting built on them) in `presstoshape/geometry/booleans.py`. Works in float32; results are rounded on conversion.
 - **svgelements (1.9.6)**: parsing SVG path data, colors, lengths and transform strings only. Its `SVG.parse` document reader is not used — it drops `display:none` groups (hidden layers) and `<text>`. Document traversal uses `xml.etree.ElementTree`.
 - **skia-python (==144.0.post2)**: canvas and PNG export renderer (`presstoshape/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
 - **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker, `pyinstaller`.

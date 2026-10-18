@@ -19,7 +19,7 @@ Current:
 2. **Direct manipulation**: scale/rotate handles on the selection, path node and bezier handle editing, object to path, cursors that show the action.
 3. **Styling**: fill, stroke, stroke width per shape or multi-selection; per-tool default styles in a context-sensitive tool options panel.
 4. **Layers**: add, delete, rename, hide; Inkscape-compatible.
-5. **Boolean operations**: union, difference.
+5. **Boolean operations**: union, difference, intersection, exclude, divide.
 6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
 7. **Undo/redo** for every document edit.
 8. **SVG open/save**.

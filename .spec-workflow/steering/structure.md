@@ -32,7 +32,7 @@ presstoshape/                   # repo root
     │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
     │   ├── boxes.py            # Point, Rect, drag boxes
     │   ├── segments.py         # building/mapping path segments
-    │   ├── booleans.py         # union/difference (skia-pathops)
+    │   ├── booleans.py         # ordered-parts booleans, divide, regions (skia-pathops)
     │   ├── transforms.py       # outline, translate, canonical shape transforms
     │   └── nodes.py            # path node editing (move, smooth handles, insert, delete)
     ├── formats/
@@ -42,7 +42,7 @@ presstoshape/                   # repo root
     │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()
     │   ├── registry.py         # Operation table: id, menu label, can_run
     │   ├── queries.py          # read-only questions about state
-    │   └── operations/         # history, view, selection, shapes, transform, paths, node_editing, style, layers, documents
+    │   └── operations/         # history, view, selection, shapes, transform, booleans, paths, node_editing, style, layers, documents
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox

@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/full-booleans/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-18T16:10:39.382Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792339839379_8xtbarmm2",
+      "approvalTitle": "full-booleans: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-18T16:19:13.948Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792339839379_8xtbarmm2",
+      "approvalTitle": "full-booleans: design"
+    }
+  ]
+}
