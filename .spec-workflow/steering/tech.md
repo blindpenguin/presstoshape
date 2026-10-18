@@ -1,7 +1,7 @@
 # Technology Stack
 
 ## Project Type
-Cross-platform desktop application (Linux, Windows, macOS): a professional vector drawing tool written in Python with a Qt 6 Widgets UI. Distributed as packaged, installable builds; developed and run from source with `uv`.
+Desktop application for Linux and Windows (macOS not a target for now): a professional vector drawing tool written in Python with a Qt 6 Widgets UI. Distributed as packaged, installable builds; developed and run from source with `uv`.
 
 ## Core Technologies
 
@@ -60,12 +60,12 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 ### Version Control & Collaboration
 - **VCS**: Git.
 - **Branching Strategy**: feature branches + pull requests for spec-driven features and larger changes (one spec → one branch → one PR, e.g. `feat/brush-tool`). Small fixes may go directly to `main` while the project has a single maintainer. `main` should always be green.
-- **CI (planned)**: GitHub Actions — ruff, type check and pytest on Linux, Windows and macOS for every PR and push to `main`; PyInstaller builds per OS for releases.
+- **CI (planned)**: GitHub Actions — ruff, type check and pytest on Linux and Windows for every PR and push to `main`; PyInstaller builds per OS for releases.
 - **Code Review Process**: PRs are reviewed before merge; CI must pass.
 - **Feature process**: spec-workflow MCP (`@pimzino/spec-workflow-mcp`, pinned version in `.mcp.json`) — Requirements → Design → Tasks, each approved in the dashboard, then task-by-task implementation with logs.
 
 ## Deployment & Distribution (if applicable)
-- **Target Platform(s)**: desktop — Linux, Windows, macOS.
+- **Target Platform(s)**: desktop — Linux and Windows. Development and testing happen on Linux; Windows is untested until CI or a Windows machine is available. macOS is not a target for now (it may run, with limitations: no Metal backend in skia-python, deprecated OpenGL).
 - **Distribution Method**: packaged builds (PyInstaller bundles per OS) published as release downloads; running from source with `uv` for developers.
 - **Installation Requirements**: none beyond the bundle for end users; for source: `uv` and a supported CPython.
 - **Update Mechanism**: manual download of new releases (no auto-updater planned yet).
@@ -80,7 +80,7 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 - `refresh(state)` stays cheap: views skip rebuilds when their slice of state is unchanged.
 
 ### Compatibility Requirements
-- **Platform Support**: Linux, Windows, macOS (x86_64 and arm64 where wheels exist).
+- **Platform Support**: Linux and Windows (x86_64 and arm64 where wheels exist).
 - **Dependency Versions**: PySide6 pinned exactly; other runtime deps pinned in `pyproject.toml`/`uv.lock`; Python floor follows PySide6 wheel availability.
 - **Standards Compliance**: SVG 1.1/2 for import/export; Inkscape layer conventions; canvas rendering matches SVG semantics (nonzero fill rule, flat cap, miter join defaults).
 
@@ -105,7 +105,7 @@ None. veccy is offline; no network access, accounts or telemetry. Interop is fil
 7. **svgelements for SVG micro-syntax only, ElementTree for documents**: svgelements' document reader loses hidden layers and text.
 8. **SVG icons with a custom `SvgIconEngine`**: vector icons at any DPI, recolored per mode/state; Qt's default SVG icon engine leaves `currentColor` black.
 9. **uv + exact pins**: reproducible environments; Qt minor upgrades are deliberate.
-10. **PyInstaller for packaging**: mature, supports PySide6 on all three OSes.
+10. **PyInstaller for packaging**: mature, supports PySide6 on Linux and Windows.
 11. **GPL-3.0**: protects against closed-source forks, in line with Inkscape/Krita.
 
 ## Known Limitations

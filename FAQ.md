@@ -8,7 +8,7 @@ An experimental, open-source vector drawing application for artists, built with 
 
 ### Where does the name come from?
 
-It's a play on "vector graphics" — a name was needed, and "veccy" sounded good.
+It's a play on "vector graphics". A name was needed, and "veccy" sounded good.
 
 ### Why another vector editor when Inkscape exists?
 
@@ -16,7 +16,7 @@ Inkscape is an incredible tool, but it can be complex to use. veccy aims to simp
 
 ### Is veccy meant to replace Illustrator?
 
-Not replace it — the goal is to become a viable alternative. Rather than recreating Illustrator feature by feature, veccy takes inspiration from many tools (Illustrator, Inkscape, Affinity and others) and combines their best ideas with its own, to build something new.
+Not replace it. The goal is to become a viable alternative. Rather than recreating Illustrator feature by feature, veccy takes inspiration from many tools (Illustrator, Inkscape, Affinity and others) and combines their best ideas with its own, to build something new.
 
 ### Why is veccy "experimental"?
 
@@ -34,13 +34,13 @@ Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke wi
 
 ### Which platforms does it run on?
 
-veccy targets Linux and Windows. Testing currently happens on Linux only, as no Windows machine is available. macOS isn't a target yet — it may run, but expect limitations.
+veccy targets Linux and Windows. Testing currently happens on Linux only, as no Windows machine is available. macOS isn't a target yet. It may run, but expect limitations.
 
 ### Can I open my existing SVG and Inkscape files?
 
-Mostly, with limits. veccy reads general SVG: rectangles, circles, ellipses, lines, polylines, polygons, paths and text, with nested groups, transforms and inherited styles. Inkscape layers should come through as veccy layers (hidden ones included), and files saved by veccy should open in Inkscape with their layers — but veccy is in early development, so there may be issues.
+Mostly, with limits. veccy reads general SVG: rectangles, circles, ellipses, lines, polylines, polygons, paths and text, with nested groups, transforms and inherited styles. Inkscape layers should come through as veccy layers (hidden ones included), and files saved by veccy should open in Inkscape with their layers. veccy is in early development, though, so there may be issues.
 
-Not supported yet: gradients, clip paths, masks, `<use>`, embedded images and CSS stylesheets — they're skipped or approximated (unsupported paint shows as grey). Shapes under rotate/skew/scale transforms are converted to paths. Re-saving such a file from veccy can lose information, so keep a copy of the original.
+Not supported yet: gradients, clip paths, masks, `<use>`, embedded images and CSS stylesheets. They're skipped or approximated (unsupported paint shows as grey). Shapes under rotate/skew/scale transforms are converted to paths. Re-saving such a file from veccy can lose information, so keep a copy of the original.
 
 ### Will veccy have its own file format?
 
@@ -54,7 +54,7 @@ Not yet. The pen tool currently places bezier points by clicking. Freehand drawi
 
 PNG, yes: File → Export PNG… (Ctrl+Shift+E), with a scale factor and a transparent background. It uses the same renderer as the canvas, so it should match what you see. PDF export is planned.
 
-### The canvas is slow, black or crashes — what can I do?
+### The canvas is slow, black or crashes. What can I do?
 
 The canvas is drawn with Skia on the GPU via OpenGL. If your graphics driver has trouble with that, start veccy with CPU rendering:
 
@@ -72,18 +72,18 @@ No. veccy runs offline: no telemetry, no accounts, no network access. Your files
 
 ### Why Python and not C++ or Rust?
 
-Mainly because the maintainer understands Python well enough to review and adjust the AI-assisted code directly. The heavy lifting happens in native libraries anyway — Qt for the interface, Skia (the graphics engine behind Chrome) for rendering — and Python mostly coordinates them. Whether that holds up for very large drawings is part of the experiment.
+Mainly because the maintainer understands Python well enough to review and adjust the AI-assisted code directly. The heavy lifting happens in native libraries anyway: Qt for the interface and Skia (the graphics engine behind Chrome) for rendering. Python mostly coordinates them. Whether that holds up for very large drawings is part of the experiment.
 
 ### Why Qt and Skia?
 
-Qt (via PySide6) is a mature, cross-platform toolkit for desktop interfaces, with good tablet and HiDPI support. Skia is the 2D graphics engine used by Chrome and many design tools: it draws on the GPU and supports what veccy needs later — gradients, blend modes, effects, brushes. The same engine draws the canvas and exports, so they should look the same.
+Qt (via PySide6) is a mature, cross-platform toolkit for desktop interfaces, with good tablet and HiDPI support. Skia is the 2D graphics engine used by Chrome and many design tools: it draws on the GPU and supports what veccy needs later, such as gradients, blend modes, effects and brushes. The same engine draws the canvas and exports, so they should look the same.
 
 ### What's the `.spec-workflow/` folder?
 
-Planning documents. Larger features are written up as a spec first — requirements, then design, then tasks — and reviewed before code is written. The folder also holds "steering" docs describing the product vision, tech stack and project structure. It's part of how the AI-assisted development is kept on track.
+Planning documents. Larger features are written up as a spec first (requirements, then design, then tasks) and reviewed before code is written. The folder also holds "steering" docs describing the product vision, tech stack and project structure. It's part of how the AI-assisted development is kept on track.
 
 ## Contributing
 
 ### Can I contribute?
 
-Not with code yet — it's too early and the architecture is still moving. Feedback, bug reports and feature ideas are very welcome, though: please [open an issue](https://github.com/blindpenguin/veccy/issues).
+Not with code yet. It's too early and the architecture is still moving. Feedback, bug reports and feature ideas are very welcome, though: please [open an issue](https://github.com/blindpenguin/veccy/issues).

@@ -35,7 +35,7 @@ Core feature pillars (target):
 ## Business Objectives
 - Become a serious open-source alternative to Adobe Illustrator for illustration and design work.
 - Win artists through quality: speed, feel and workflow, not just price.
-- Run on Linux, Windows and macOS with packaged, installable builds.
+- Run on Linux and Windows with packaged, installable builds. macOS is not a target for now.
 - Fit into existing pipelines through solid SVG and Inkscape interop.
 - Keep the architecture clean and the codebase approachable so the project can grow and accept contributors.
 
