@@ -38,6 +38,7 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 ## Skia specifics
 
 - The canvas viewport is a Skia surface widget (`views/skia_surface.py`): `SkiaGLWidget` or `SkiaRasterWidget`. The raster one is used on the `offscreen` platform, with `PRESSTOSHAPE_RENDERER=cpu`, or when GL init fails. `PRESSTOSHAPE_RENDERER=gl` forces GPU.
+- GL init: `GrDirectContext.MakeGL()` loads GL through GLX only; Qt on Wayland runs on EGL, so `SkiaGLWidget` falls back to `MakeGL(GrGLInterface.MakeEGL())` before giving up on the GPU.
 - GL lifetime: Skia's `GrDirectContext` must be released before the GL context dies → `CanvasView.shutdown()` calls `release()` while the widget lives. `aboutToBeDestroyed` also fires from the widget's C++ destructor (the Python `self` is already gone), so that handler only abandons the Skia context and makes no GL calls.
 - `QOpenGLWidget.repaint()` doesn't run `paintGL` synchronously; benchmarks call `paintGL()` with the context current (`scripts/bench_canvas.py`).
 - `QAbstractScrollArea` filters its viewport's events; `CanvasView.viewportEvent` lets Paint/Resize through so the surface widget paints and resizes its framebuffer.

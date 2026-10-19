@@ -33,6 +33,10 @@ class SkiaGLWidget(QOpenGLWidget):
     def initializeGL(self) -> None:
         self._surface = None
         context = skia.GrDirectContext.MakeGL()
+        if context is None:
+            # Skia's native interface loads GL through GLX; Qt on Wayland (and EGL setups on X11) runs on EGL.
+            interface = skia.GrGLInterface.MakeEGL()
+            context = skia.GrDirectContext.MakeGL(interface) if interface is not None else None
         self._context = context
         if context is None:
             self.gl_failed.emit()
