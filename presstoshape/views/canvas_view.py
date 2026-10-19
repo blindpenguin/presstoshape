@@ -62,6 +62,9 @@ class CanvasView(QAbstractScrollArea):
         self._hint: str | None = None
         self._zoom_anchor: tuple[float, float] | None = None
         self._viewport_origin: QPoint | None = None
+        # Until the user scrolls or zooms, resizes keep the artboard centered. The window manager may resize the
+        # window after startup centering (restored maximized state), which would otherwise leave it off-center.
+        self._keeps_artboard_centered = False
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._install_surface(create_surface(self._paint))
@@ -117,6 +120,7 @@ class CanvasView(QAbstractScrollArea):
         """Keeps the doc point under the anchor fixed: the cursor for wheel zoom, else the viewport center."""
         anchor = self._zoom_anchor or (self._vp.width / 2, self._vp.height / 2)
         self._zoom = zoom
+        self._keeps_artboard_centered = False
         self._vp, self._residual = self._vp.zoom_at(zoom / 100, anchor, self._residual)
         self._toolbox.context.pixel_size = 100 / zoom
 
@@ -133,12 +137,14 @@ class CanvasView(QAbstractScrollArea):
             bar.blockSignals(False)
 
     def _on_scroll(self, x: int | None = None, y: int | None = None) -> None:
+        self._keeps_artboard_centered = False
         vp = self._vp
         self._vp = replace(vp, scroll_x=vp.scroll_x if x is None else x, scroll_y=vp.scroll_y if y is None else y)
         self._repaint()
         self._update_cursor()
 
     def _scroll_by(self, dx: float, dy: float) -> None:
+        self._keeps_artboard_centered = False
         self._vp = self._vp.scrolled(dx, dy)
         self._sync_scrollbars()
         self._repaint()
@@ -186,6 +192,7 @@ class CanvasView(QAbstractScrollArea):
         z = self._vp.zoom
         self._vp = replace(self._vp, scroll_x=w / 2 * z - self._vp.width / 2, scroll_y=h / 2 * z - self._vp.height / 2)
         self._vp = self._vp.clamped()
+        self._keeps_artboard_centered = True
         self._sync_scrollbars()
         self._repaint()
 
@@ -220,7 +227,10 @@ class CanvasView(QAbstractScrollArea):
             shift = new - old
             self._vp = self._vp.scrolled(shift.x(), shift.y())
         self._viewport_origin = new
-        self._sync_scrollbars()
+        if self._keeps_artboard_centered:
+            self.center_artboard()
+        else:
+            self._sync_scrollbars()
 
     def wheelEvent(self, event):
         # Middle button is the wheel on most mice, so a pan drag emits stray wheel ticks.
