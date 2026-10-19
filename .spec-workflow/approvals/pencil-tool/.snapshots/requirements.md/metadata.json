@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/pencil-tool/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T17:31:02.034Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792431062016_3g17n7jrc",
+      "approvalTitle": "Pencil tool with smoothing: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T17:32:19.889Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792431062016_3g17n7jrc",
+      "approvalTitle": "Pencil tool with smoothing: requirements"
+    }
+  ]
+}

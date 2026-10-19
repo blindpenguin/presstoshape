@@ -7,6 +7,7 @@ from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import BaseTool, ToolContext
 from presstoshape.tools.node import NodeTool
 from presstoshape.tools.pen import PenTool
+from presstoshape.tools.pencil import PencilTool
 from presstoshape.tools.select import SelectTool
 from presstoshape.tools.shapes import EllipseTool, RectangleTool
 from presstoshape.tools.text import TextTool
@@ -26,6 +27,7 @@ TOOLS = (
     ToolEntry(Tool.SELECT, "tool.select", N_("&Select"), SelectTool),
     ToolEntry(Tool.NODE, "tool.node", N_("&Node"), NodeTool),
     ToolEntry(Tool.PEN, "tool.pen", N_("&Pen"), PenTool),
+    ToolEntry(Tool.PENCIL, "tool.pencil", N_("Penc&il"), PencilTool),
     ToolEntry(Tool.RECTANGLE, "tool.rectangle", N_("&Rectangle"), RectangleTool),
     ToolEntry(Tool.ELLIPSE, "tool.ellipse", N_("&Ellipse"), EllipseTool),
     ToolEntry(Tool.TEXT, "tool.text", N_("&Text"), TextTool),

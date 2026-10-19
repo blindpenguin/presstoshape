@@ -562,6 +562,11 @@ msgstr "Zeichenstift"
 
 #: presstoshape/editing/operations/view.py
 msgctxt "tool"
+msgid "Pencil"
+msgstr "Bleistift"
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
 msgid "Rectangle"
 msgstr "Rechteck"
 
@@ -818,6 +823,10 @@ msgstr "&Knoten"
 #: presstoshape/tools/registry.py
 msgid "&Pen"
 msgstr "&Zeichenstift"
+
+#: presstoshape/tools/registry.py
+msgid "Penc&il"
+msgstr "&Bleistift"
 
 #: presstoshape/tools/registry.py
 msgid "&Rectangle"
@@ -1390,6 +1399,10 @@ msgid "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."
 msgstr "Klicken, um Punkte hinzuzufügen.\nDoppelklick / Eingabe: abschließen.\nEsc: abbrechen."
 
 #: presstoshape/views/tool_options_view.py
+msgid "Drag to draw. Smoothing: how calm the line comes out, from following your hand closely to flowing curves with few nodes. End near the start to close the shape."
+msgstr "Ziehen zum Zeichnen. Glättung: wie ruhig die Linie wird, von eng an der Hand bis zu fließenden Kurven mit wenigen Knoten. Nahe am Anfang enden, um die Form zu schließen."
+
+#: presstoshape/views/tool_options_view.py
 msgid "Click on the canvas to place text."
 msgstr "Auf die Arbeitsfläche klicken, um Text zu platzieren."
 
@@ -1406,6 +1419,10 @@ msgid "Pen tool"
 msgstr "Zeichenstift"
 
 #: presstoshape/views/tool_options_view.py
+msgid "Pencil tool"
+msgstr "Bleistift"
+
+#: presstoshape/views/tool_options_view.py
 msgid "Rectangle tool"
 msgstr "Rechteckwerkzeug"
 
@@ -1420,6 +1437,10 @@ msgstr "Textwerkzeug"
 #: presstoshape/views/tool_options_view.py
 msgid "New part"
 msgstr "Neuer Teil"
+
+#: presstoshape/views/tool_options_view.py
+msgid "Smoothing"
+msgstr "Glättung"
 
 #: presstoshape/views/toolbar_view.py
 msgid "Main toolbar"

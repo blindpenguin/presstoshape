@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **2**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **3**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -109,9 +109,10 @@ Working state. Everything here is optional. Readers drop values that don't match
 |---|---|
 | `view.zoom_percent` | Zoom level in percent. |
 | `view.center` | Document point shown in the middle of the window. |
-| `tools.styles` | Style each drawing tool gives new shapes, keyed by tool name (`pen`, `rectangle`, `ellipse`, `text`). Unknown tool names are ignored. |
+| `tools.styles` | Style each drawing tool gives new shapes, keyed by tool name (`pen`, `pencil`, `rectangle`, `ellipse`, `text`). Unknown tool names are ignored. |
 | `tools.font_size` | Font size for new text. |
 | `tools.new_part_mode` | Mode for parts drawn inside a Composite. |
+| `tools.pencil_smoothing` | Pencil smoothing, 0 to 100. Optional (default 50). |
 | `selection` | Selected shape ids. |
 | `selected_layer` | Index of the active layer. |
 | `edit_path` | Ids of the entered Composites, outer to inner; empty when none is entered. |
@@ -124,6 +125,7 @@ Undo history and the active tool are not stored.
 |---|---|---|
 | 1 | nightlies from October 2026 | First version. |
 | 2 | nightlies from October 2026 | `document.unit` and `document.dpi`. Version 1 files open as `"px"` at 96 DPI. |
+| 3 | nightlies from October 2026 | `state.tools.pencil_smoothing`; the Pencil's style is stored under `tools.styles.pencil`. Version 2 files need no change. |
 
 Rules for changing the format:
 

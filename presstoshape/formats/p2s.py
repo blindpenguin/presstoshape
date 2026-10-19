@@ -53,6 +53,7 @@ class SavedState:
     tool_styles: dict[Tool, Style] = field(default_factory=dict)
     font_size: float | None = None
     new_part_mode: PartMode | None = None
+    pencil_smoothing: int | None = None
     selection: frozenset[int] = frozenset()
     selected_layer: int | None = None
     edit_path: tuple[int, ...] = ()
@@ -338,6 +339,8 @@ def encode_state(state: SavedState) -> dict[str, Any]:
         tools["font_size"] = _number(state.font_size)
     if state.new_part_mode is not None:
         tools["new_part_mode"] = state.new_part_mode
+    if state.pencil_smoothing is not None:
+        tools["pencil_smoothing"] = state.pencil_smoothing
     fields: dict[str, Any] = {"view": view, "tools": tools, "selection": sorted(state.selection)}
     if state.selected_layer is not None:
         fields["selected_layer"] = state.selected_layer
@@ -364,6 +367,11 @@ def decode_state(value: Any, where: str = "state") -> SavedState:
             styles[known_tools[name]] = decode_style(style, f"{where}.tools.styles.{name}")
     font_size = tools.get("font_size")
     mode = tools.get("new_part_mode")
+    smoothing = tools.get("pencil_smoothing")
+    if smoothing is not None:
+        smoothing = read_int(smoothing, f"{where}.tools.pencil_smoothing")
+        if smoothing > 100:
+            raise _damaged(f"{where}.tools.pencil_smoothing", _("should be at most {maximum}").format(maximum=100))
     if mode is not None and mode not in PART_MODES:
         raise _damaged(f"{where}.tools.new_part_mode", _one_of(PART_MODES))
     selection = read_list(fields.get("selection", []), f"{where}.selection")
@@ -375,6 +383,7 @@ def decode_state(value: Any, where: str = "state") -> SavedState:
         tool_styles=styles,
         font_size=None if font_size is None else read_number(font_size, f"{where}.tools.font_size", minimum=0.1),
         new_part_mode=mode,
+        pencil_smoothing=smoothing,
         selection=frozenset(read_int(item, f"{where}.selection[{index}]", 0) for index, item in enumerate(selection)),
         selected_layer=None if layer is None else read_int(layer, f"{where}.selected_layer"),
         edit_path=tuple(read_int(item, f"{where}.edit_path[{index}]", 0) for index, item in enumerate(edit_path)),

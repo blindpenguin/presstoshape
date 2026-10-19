@@ -11,7 +11,7 @@ from presstoshape.geometry.boxes import Point, box_from_drag
 from presstoshape.geometry.segments import smooth_segments
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Tool
-from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Shape, TextShape
+from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Segment, Shape, TextShape
 
 # Shape fields the selection panel may edit directly, with their minimum value (None = unbounded).
 EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
@@ -85,6 +85,16 @@ def add_path(session: Session, points: list[Point]) -> int | None:
         return None
     segments = smooth_segments(points)
     style = session.state.tool_styles[Tool.PEN]
+    def make(shape_id: int) -> Shape:
+        return PathShape(shape_id, segments, style)
+
+    return _add(session, make, _("Add path"), _("Added a path"))
+
+
+def add_drawn_path(session: Session, segments: tuple[Segment, ...], tool: Tool) -> int | None:
+    """A path drawn by `tool` (e.g. the Pencil), in that tool's style."""
+    style = session.state.tool_styles[tool]
+
     def make(shape_id: int) -> Shape:
         return PathShape(shape_id, segments, style)
 

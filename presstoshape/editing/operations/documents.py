@@ -94,6 +94,8 @@ def apply_saved_state(state: AppState, saved: SavedState) -> None:
         state.font_size = saved.font_size
     if saved.new_part_mode is not None:
         state.new_part_mode = saved.new_part_mode
+    if saved.pencil_smoothing is not None:
+        state.pencil_smoothing = saved.pencil_smoothing
     if saved.zoom_percent is not None:
         state.zoom_percent = max(MIN_ZOOM, min(MAX_ZOOM, saved.zoom_percent))
     if saved.selected_layer is not None and saved.selected_layer < len(state.document.layers):
@@ -136,6 +138,7 @@ def saved_state(state: AppState, view_center: tuple[float, float] | None) -> Sav
         tool_styles=dict(state.tool_styles),
         font_size=state.font_size,
         new_part_mode=state.new_part_mode,
+        pencil_smoothing=state.pencil_smoothing,
         selection=frozenset(state.selection),
         selected_layer=state.selected_layer_index,
         edit_path=containers.valid_edit_path(state),

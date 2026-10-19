@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/pencil-tool/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T17:34:23.174Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792431263168_c6y9qk2ze",
+      "approvalTitle": "Pencil tool with smoothing: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T17:34:36.651Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792431263168_c6y9qk2ze",
+      "approvalTitle": "Pencil tool with smoothing: tasks"
+    }
+  ]
+}

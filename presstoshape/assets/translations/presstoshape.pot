@@ -561,6 +561,11 @@ msgstr ""
 
 #: presstoshape/editing/operations/view.py
 msgctxt "tool"
+msgid "Pencil"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
 msgid "Rectangle"
 msgstr ""
 
@@ -816,6 +821,10 @@ msgstr ""
 
 #: presstoshape/tools/registry.py
 msgid "&Pen"
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "Penc&il"
 msgstr ""
 
 #: presstoshape/tools/registry.py
@@ -1389,6 +1398,10 @@ msgid "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
+msgid "Drag to draw. Smoothing: how calm the line comes out, from following your hand closely to flowing curves with few nodes. End near the start to close the shape."
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
 msgid "Click on the canvas to place text."
 msgstr ""
 
@@ -1405,6 +1418,10 @@ msgid "Pen tool"
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
+msgid "Pencil tool"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
 msgid "Rectangle tool"
 msgstr ""
 
@@ -1418,6 +1435,10 @@ msgstr ""
 
 #: presstoshape/views/tool_options_view.py
 msgid "New part"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Smoothing"
 msgstr ""
 
 #: presstoshape/views/toolbar_view.py

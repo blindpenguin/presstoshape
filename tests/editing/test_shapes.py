@@ -1,7 +1,9 @@
 import pytest
 
+from presstoshape.editing import queries
 from presstoshape.editing.operations import shapes
 from presstoshape.editing.session import Session
+from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import RectShape
 from tests.helpers import all_shapes
 
@@ -49,3 +51,38 @@ def test_set_shape_field_rejects_fields_of_other_shape_types():
     sid = shapes.add_rectangle(session, (0, 0), (10, 10))
     with pytest.raises(ValueError):
         shapes.set_shape_field(session, sid, "rx", 3)
+
+
+def test_drawn_paths_use_the_tools_style_and_land_like_other_shapes():
+    from presstoshape.editing.operations import composites, layers, selection, view
+    from presstoshape.models.shapes import LineTo, MoveTo
+
+    segments = (MoveTo(0, 0), LineTo(50, 50))
+    session = Session()
+    path_id = shapes.add_drawn_path(session, segments, Tool.PENCIL)
+    (path,) = all_shapes(session)
+    assert path.id == path_id and path.segments == segments
+    assert path.style == session.state.tool_styles[Tool.PENCIL] and path.style.fill is None
+    assert session.undo_label == "Add path" and session.state.selection == {path_id}
+
+    bottom = shapes.add_rectangle(session, (0, 0), (10, 10))
+    top = shapes.add_rectangle(session, (5, 5), (15, 15))
+    selection.set_selection(session, {bottom, top})
+    composites.make_composite(session)
+    (composite,) = session.state.selection
+    composites.enter(session, composite)
+    composites.set_new_part_mode(session, "subtract")
+    part = shapes.add_drawn_path(session, segments, Tool.PENCIL)
+    assert queries.find_shape(session.state, composite).modes[-1] == "subtract"
+    assert queries.find_shape(session.state, part) is not None
+
+    composites.leave_all(session.state)
+    layers.set_layer_visible(session, 0, False)
+    assert shapes.add_drawn_path(session, segments, Tool.PENCIL) is None
+    assert "hidden" in session.state.status_message
+
+    view.set_pencil_smoothing(session, 140)
+    assert session.state.pencil_smoothing == 100
+    session.state.dirty = False
+    view.set_pencil_smoothing(session, -3)
+    assert session.state.pencil_smoothing == 0 and not session.state.dirty

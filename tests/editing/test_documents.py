@@ -254,3 +254,14 @@ def test_recovered_marker_is_cleared_by_saving_new_and_open(tmp_path):
     session.state.recovered = RecoveredFrom(None, 0.0)
     documents.open_file(session, str(tmp_path / "a.p2s"))
     assert session.state.recovered is None
+
+
+def test_pencil_smoothing_is_kept_in_p2s_files(tmp_path):
+    from presstoshape.editing.operations import view as view_operations
+
+    session = Session()
+    view_operations.set_pencil_smoothing(session, 85)
+    documents.save_file(session, str(tmp_path / "a.p2s"))
+    other = Session()
+    documents.open_file(other, str(tmp_path / "a.p2s"))
+    assert other.state.pencil_smoothing == 85

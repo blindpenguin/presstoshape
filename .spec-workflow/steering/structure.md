@@ -42,7 +42,8 @@ presstoshape/                   # repo root
     │   ├── booleans.py         # ordered-parts booleans, divide, regions (skia-pathops)
     │   ├── transforms.py       # outline, translate, canonical shape transforms
     │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)
-    │   └── units.py            # px/mm/cm/in/pt conversions at a DPI
+    │   ├── units.py            # px/mm/cm/in/pt conversions at a DPI
+    │   └── fitting.py          # freehand strokes → cubic beziers (Schneider fit, corners kept)
     ├── formats/
     │   ├── svg.py              # SVG read/write
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
@@ -57,7 +58,7 @@ presstoshape/                   # repo root
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox
-    │   └── select.py / node.py / pen.py / shapes.py / text.py
+    │   └── select.py / node.py / pen.py / pencil.py / shapes.py / text.py
     └── views/                  # Qt widgets only
         ├── main_window.py      # assembles panels, fans out refresh(), window commands (dialogs)
         ├── keymap.py           # shortcuts, icons, menu/toolbar layouts per command id

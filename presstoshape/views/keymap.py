@@ -82,6 +82,7 @@ KEYMAP: dict[str, Binding] = {
     "tool.select": Binding("V", icons.TOOL_SELECT),
     "tool.node": Binding("N", icons.TOOL_NODE),
     "tool.pen": Binding("P", icons.TOOL_PEN),
+    "tool.pencil": Binding("F", icons.TOOL_PENCIL),
     "tool.rectangle": Binding("R", icons.TOOL_RECTANGLE),
     "tool.ellipse": Binding("E", icons.TOOL_ELLIPSE),
     "tool.text": Binding("T", icons.TOOL_TEXT),

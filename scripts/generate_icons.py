@@ -21,6 +21,7 @@ ICONS = {
     "zoom_fit": "zoom-scan",
     "tool_select": "pointer",
     "tool_pen": "vector-bezier-2",
+    "tool_pencil": "pencil",
     "tool_rectangle": "square",
     "tool_ellipse": "circle",
     "tool_text": "typography",

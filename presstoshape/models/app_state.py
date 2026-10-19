@@ -10,6 +10,7 @@ class Tool(Enum):
     SELECT = auto()
     NODE = auto()
     PEN = auto()
+    PENCIL = auto()
     RECTANGLE = auto()
     ELLIPSE = auto()
     TEXT = auto()
@@ -52,6 +53,7 @@ class ExportSettings:
 def _default_tool_styles() -> dict[Tool, Style]:
     return {
         Tool.PEN: Style(fill=None),
+        Tool.PENCIL: Style(fill=None, stroke="#18181b", stroke_width=2.0),
         Tool.RECTANGLE: Style(),
         Tool.ELLIPSE: Style(),
         Tool.TEXT: Style(fill="#18181b", stroke=None),
@@ -85,6 +87,8 @@ class AppState:
     # Style each drawing tool gives new shapes, edited in the tool options panel.
     tool_styles: dict[Tool, Style] = field(default_factory=_default_tool_styles)
     font_size: float = 24.0
+    # How calm Pencil strokes come out, 0 (follows the hand closely) to 100.
+    pencil_smoothing: int = 50
     export: ExportSettings = field(default_factory=ExportSettings)
     zoom_percent: int = 100
     status_message: str = field(default_factory=lambda: _("Ready"))

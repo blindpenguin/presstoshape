@@ -18,10 +18,11 @@ uv run python main.py
 
 ## Features
 
-- Tools: select (V), node (N), bezier pen (P), rectangle (R), ellipse (E), text (T). Shift constrains rectangles/ellipses to squares/circles.
+- Tools: select (V), node (N), bezier pen (P), pencil (F), rectangle (R), ellipse (E), text (T). Shift constrains rectangles/ellipses to squares/circles.
 - Select tool handles: drag a handle to scale (Shift keeps proportions, Alt scales from the center), drag just outside a corner to rotate (Shift snaps to 15°). The cursor shows what a press will do.
 - Node tool: drag path nodes and their bezier handles, Shift+click or box-select several, double-click a segment to add a node, Delete removes nodes. Path → Object to Path (Ctrl+Shift+C) turns rectangles, ellipses and text into editable paths.
 - Pen: click points for a smooth curve; double-click or Enter finishes, Esc cancels.
+- Pencil: drag to draw freehand; on release the stroke becomes a smooth path with few nodes, ready for node editing. A Smoothing slider sets how calm the line comes out; ending near the start closes the shape. Drawing tablets work like a mouse (no pressure yet).
 - Mouse wheel zooms under the cursor, middle-drag pans. Touchpad scrolling pans; Ctrl+scroll zooms.
 - Boolean operations on selected shapes: union (Ctrl++), difference (Ctrl+-), intersection (Ctrl+*), exclude (Ctrl+Alt+X) and divide (Ctrl+/), which splits overlapping shapes into separate pieces. The others also have Ctrl+Alt shortcuts that work on any keyboard layout: U, D, I and V.
 - Composites (Path → Make Composite, Ctrl+Alt+C): non-destructive booleans. The selected shapes become parts of one shape, bottom to top, each set to add, subtract, intersect or exclude. Double-click (or Enter) to edit the parts with the usual tools while the result updates live; Esc, a double-click outside or Done on the bar above the canvas leaves. Composites can be nested. Release puts the parts back, Flatten bakes the result into a path.

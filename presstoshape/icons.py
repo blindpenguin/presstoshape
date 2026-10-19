@@ -22,6 +22,7 @@ ZOOM_FIT = _DIR / "zoom_fit.svg"
 
 TOOL_SELECT = _DIR / "tool_select.svg"
 TOOL_PEN = _DIR / "tool_pen.svg"
+TOOL_PENCIL = _DIR / "tool_pencil.svg"
 TOOL_RECTANGLE = _DIR / "tool_rectangle.svg"
 TOOL_ELLIPSE = _DIR / "tool_ellipse.svg"
 TOOL_TEXT = _DIR / "tool_text.svg"

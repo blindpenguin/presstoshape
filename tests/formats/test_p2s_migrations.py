@@ -73,3 +73,21 @@ def test_v1_documents_become_pixels_at_96_dpi():
 
 def test_v2_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v2.p2s").read_bytes()) == expected_v2()
+
+
+def expected_v3() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v3.p2s holds: a pencil path, the Pencil's style and its smoothing."""
+    pencil = Style(fill=None, stroke="#18181b", stroke_width=2.0)
+    path = PathShape(1, (MoveTo(10.0, 10.0), LineTo(110.0, 60.0)), pencil)
+    document = Document(width=400.0, height=300.0, layers=[Layer("Layer 1", True, [path])], next_id=2)
+    state = SavedState(zoom_percent=100, tool_styles={Tool.PENCIL: pencil}, pencil_smoothing=80)
+    return document, state
+
+
+def test_v2_files_keep_the_default_smoothing():
+    _document, state = read_p2s((SAMPLES / "v2.p2s").read_bytes())
+    assert state.pencil_smoothing is None
+
+
+def test_v3_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v3.p2s").read_bytes()) == expected_v3()

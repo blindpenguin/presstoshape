@@ -17,6 +17,7 @@ def tool_name(tool: Tool) -> str:
         Tool.SELECT: pgettext("tool", "Select"),
         Tool.NODE: pgettext("tool", "Node"),
         Tool.PEN: pgettext("tool", "Pen"),
+        Tool.PENCIL: pgettext("tool", "Pencil"),
         Tool.RECTANGLE: pgettext("tool", "Rectangle"),
         Tool.ELLIPSE: pgettext("tool", "Ellipse"),
         Tool.TEXT: pgettext("tool", "Text"),
@@ -66,6 +67,12 @@ def set_tool_style(session: Session, tool: Tool, **changes) -> None:
         changes["stroke_width"] = max(0.0, changes["stroke_width"])
     styles = session.state.tool_styles
     styles[tool] = replace(styles[tool], **changes)
+    session.notify()
+
+
+def set_pencil_smoothing(session: Session, value: int) -> None:
+    """Tool setting, not a document edit."""
+    session.state.pencil_smoothing = min(100, max(0, round(value)))
     session.notify()
 
 

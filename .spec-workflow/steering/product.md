@@ -15,7 +15,7 @@ Today PressToShape is at an early stage (shapes, bezier pen, text, styling, laye
 
 ## Key Features
 Current:
-1. **Drawing tools**: select, node, bezier pen, rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
+1. **Drawing tools**: select, node, bezier pen, pencil (freehand with smoothing), rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
 2. **Direct manipulation**: scale/rotate handles on the selection, path node and bezier handle editing, object to path, cursors that show the action.
 3. **Styling**: fill, stroke, stroke width per shape or multi-selection; per-tool default styles in a context-sensitive tool options panel.
 4. **Layers**: add, delete, rename, hide; Inkscape-compatible.

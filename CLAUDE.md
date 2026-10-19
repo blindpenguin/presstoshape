@@ -62,7 +62,8 @@ presstoshape/
 │   ├── segments.py           # building/mapping path segments
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
-│   └── nodes.py              # path node editing
+│   ├── nodes.py              # path node editing
+│   └── fitting.py            # freehand strokes → cubic beziers (Pencil)
 ├── formats/                  # svg.py (SVG read/write), p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
 │                             # clipboard.py (shape payload for copy/paste, not migrated: falls back to SVG)
 ├── render/                   # Skia drawing: model -> skia.Canvas
@@ -80,7 +81,7 @@ presstoshape/
 ├── tools/                    # Qt-free input state machines
 │   ├── base.py               # Mods, CursorType, ToolContext, BaseTool
 │   ├── registry.py           # TOOLS (display order) + Toolbox
-│   └── select.py / node.py / pen.py / shapes.py / text.py
+│   └── select.py / node.py / pen.py / pencil.py / shapes.py / text.py
 └── views/                    # Qt widgets only
     ├── main_window.py        # assembles panels, refresh() fans out, window commands (dialogs)
     ├── keymap.py             # shortcuts, icons, menu/toolbar layouts per command id
