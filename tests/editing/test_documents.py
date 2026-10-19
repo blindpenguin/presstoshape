@@ -180,3 +180,77 @@ def test_invalid_setups_are_refused():
         assert documents.setup_problem(setup) is not None
         with pytest.raises(ValueError):
             documents.new_document(Session(), setup)
+
+
+# --- backups and recovered documents ---------------------------------------------------------
+
+
+def test_saving_over_a_file_keeps_one_backup(tmp_path):
+    session = Session()
+    path = tmp_path / "poster.p2s"
+    assert documents.save_file(session, str(path), keep_backup=True)
+    assert not documents.backup_path(path).exists()
+    first = path.read_bytes()
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    assert documents.save_file(session, keep_backup=True)
+    backup = documents.backup_path(path)
+    assert backup.name == "poster.backup.p2s" and backup.read_bytes() == first
+    second = path.read_bytes()
+    shapes.add_rectangle(session, (20, 0), (30, 10))
+    documents.save_file(session, keep_backup=True)
+    assert backup.read_bytes() == second
+
+
+def test_no_backup_when_turned_off(tmp_path):
+    session = Session()
+    path = tmp_path / "logo.svg"
+    documents.save_file(session, str(path))
+    documents.save_file(session)
+    assert not documents.backup_path(path).exists()
+
+
+def test_failed_backup_still_saves_with_a_note(tmp_path, monkeypatch):
+    session = Session()
+    path = tmp_path / "logo.svg"
+    documents.save_file(session, str(path))
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+
+    def refuse(*args, **kwargs):
+        raise OSError("read-only")
+
+    monkeypatch.setattr(documents.shutil, "copy2", refuse)
+    assert documents.save_file(session, keep_backup=True)
+    assert "<rect" in path.read_text()
+    assert "no backup" in session.state.status_message
+
+
+def test_failed_write_leaves_file_and_backup_alone(tmp_path, monkeypatch):
+    session = Session()
+    path = tmp_path / "poster.p2s"
+    documents.save_file(session, str(path))
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    documents.save_file(session, keep_backup=True)
+    file_bytes, backup_bytes = path.read_bytes(), documents.backup_path(path).read_bytes()
+
+    def fail(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(documents.os, "fsync", fail)
+    shapes.add_rectangle(session, (20, 0), (30, 10))
+    assert not documents.save_file(session, keep_backup=True)
+    assert (path.read_bytes(), documents.backup_path(path).read_bytes()) == (file_bytes, backup_bytes)
+
+
+def test_recovered_marker_is_cleared_by_saving_new_and_open(tmp_path):
+    from presstoshape.models.app_state import RecoveredFrom
+
+    session = Session()
+    session.state.recovered = RecoveredFrom(None, 0.0)
+    documents.save_file(session, str(tmp_path / "a.p2s"))
+    assert session.state.recovered is None
+    session.state.recovered = RecoveredFrom(None, 0.0)
+    documents.new_document(session)
+    assert session.state.recovered is None
+    session.state.recovered = RecoveredFrom(None, 0.0)
+    documents.open_file(session, str(tmp_path / "a.p2s"))
+    assert session.state.recovered is None

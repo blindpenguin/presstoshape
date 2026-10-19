@@ -58,6 +58,16 @@ def _default_tool_styles() -> dict[Tool, Style]:
     }
 
 
+@dataclass(frozen=True)
+class RecoveredFrom:
+    """Where a document recovered after a crash came from; its first save asks for a file (Save As)."""
+
+    # None for documents that were never saved.
+    original_path: str | None
+    # When the recovery snapshot was taken (seconds since the epoch).
+    saved_at: float
+
+
 @dataclass
 class AppState:
     """Plain data, no Qt or app-logic imports. Owned by the Session, changed only by operations."""
@@ -79,6 +89,7 @@ class AppState:
     zoom_percent: int = 100
     status_message: str = field(default_factory=lambda: _("Ready"))
     file_path: str | None = None
+    recovered: RecoveredFrom | None = None
     dirty: bool = False
     # View to show after opening a .p2s file (doc point at the viewport center); the window applies and clears it.
     restore_view_center: tuple[float, float] | None = None

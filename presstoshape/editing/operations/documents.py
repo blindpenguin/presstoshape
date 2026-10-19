@@ -2,6 +2,7 @@
 The format follows the file extension: .p2s is PressToShape's own format, anything else is SVG."""
 
 import os
+import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -59,11 +60,12 @@ def is_native(path: str) -> bool:
     return Path(path).suffix.lower() == NATIVE_SUFFIX
 
 
-def _reset(session: Session, document: Document, path: str | None, message: str) -> None:
+def replace_document(session: Session, document: Document, path: str | None, message: str) -> None:
     state = session.state
     state.document = document
     state.file_path = path
     state.dirty = False
+    state.recovered = None
     state.selection = set()
     state.node_selection = frozenset()
     state.edit_path = ()
@@ -82,10 +84,10 @@ def new_document(session: Session, setup: DocumentSetup = DEFAULT_SETUP) -> None
         raise ValueError(problem)
     width, height = (units.to_px(side, setup.unit, setup.dpi) for side in (setup.width, setup.height))
     document = Document(width=width, height=height, unit=setup.unit, dpi=setup.dpi)
-    _reset(session, document, None, _("New document"))
+    replace_document(session, document, None, _("New document"))
 
 
-def _apply_saved_state(state: AppState, saved: SavedState) -> None:
+def apply_saved_state(state: AppState, saved: SavedState) -> None:
     """Working state from a .p2s file; ids that no longer match the document are dropped, not trusted."""
     state.tool_styles.update(saved.tool_styles)
     if saved.font_size is not None:
@@ -120,14 +122,14 @@ def open_file(session: Session, path: str) -> bool:
     message = _("Opened {name}").format(name=name)
     if notes:
         message += ". " + ". ".join(dict.fromkeys(notes))
-    _reset(session, document, path, message)
+    replace_document(session, document, path, message)
     if saved is not None:
-        _apply_saved_state(session.state, saved)
+        apply_saved_state(session.state, saved)
         session.notify()
     return True
 
 
-def _saved_state(state: AppState, view_center: tuple[float, float] | None) -> SavedState:
+def saved_state(state: AppState, view_center: tuple[float, float] | None) -> SavedState:
     return SavedState(
         zoom_percent=state.zoom_percent,
         view_center=view_center,
@@ -140,28 +142,48 @@ def _saved_state(state: AppState, view_center: tuple[float, float] | None) -> Sa
     )
 
 
-def _preview(document: Document) -> bytes | None:
-    scale = min(1.0, PREVIEW_SIDE / max(document.width, document.height))
+def preview_png(document: Document, side: int = PREVIEW_SIDE) -> bytes | None:
+    scale = min(1.0, side / max(document.width, document.height))
     return export.render_png(document, scale)
 
 
-def _write_atomically(target: Path, data: bytes) -> None:
-    """Writes beside the target and swaps it in only when complete, so a failed save never damages the file."""
+def backup_path(target: Path) -> Path:
+    """`poster.p2s` → `poster.backup.p2s`: keeps the extension, so the backup opens like the file."""
+    return target.with_name(f"{target.stem}.backup{target.suffix}")
+
+
+def write_atomically(target: Path, data: bytes, keep_backup: bool = False) -> bool:
+    """Writes beside the target and swaps it in only when complete, so a failed save never damages the file.
+    With `keep_backup`, the old file is copied to backup_path() right before the swap (a failed write leaves the
+    file and its backup alone). Returns False if a wanted backup couldn't be made; the file is saved anyway."""
     handle = tempfile.NamedTemporaryFile(dir=target.parent, prefix=f".{target.name}.", suffix=".tmp", delete=False)
+    backed_up = True
     try:
         with handle:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
+        if keep_backup and target.is_file():
+            try:
+                shutil.copy2(target, backup_path(target))
+            except OSError:
+                backed_up = False
         os.replace(handle.name, target)
     except BaseException:
         Path(handle.name).unlink(missing_ok=True)
         raise
+    return backed_up
 
 
-def save_file(session: Session, path: str | None = None, view_center: tuple[float, float] | None = None) -> bool:
+def save_file(
+    session: Session,
+    path: str | None = None,
+    view_center: tuple[float, float] | None = None,
+    keep_backup: bool = False,
+) -> bool:
     """Saves to `path`, or the current file, in the format its extension names. `view_center` (doc point at the
-    viewport center) is stored in .p2s files. Returns False if there's no target or writing failed."""
+    viewport center) is stored in .p2s files; `keep_backup` keeps the previous file as a backup. Returns False if
+    there's no target or writing failed."""
     state = session.state
     target = path or state.file_path
     if target is None:
@@ -170,23 +192,28 @@ def save_file(session: Session, path: str | None = None, view_center: tuple[floa
     native = is_native(target)
     try:
         if native:
-            saved = _saved_state(state, view_center)
-            data = p2s.write_p2s(state.document, saved, _preview(state.document), app_version())
+            saved = saved_state(state, view_center)
+            data = p2s.write_p2s(state.document, saved, preview_png(state.document), app_version())
         else:
             data = svg.write_svg(state.document).encode("utf-8")
-        _write_atomically(Path(target), data)
+        backed_up = write_atomically(Path(target), data, keep_backup)
     except (OSError, P2sError) as error:
         state.status_message = _("Could not save {name}: {error}").format(name=name, error=error)
         session.notify()
         return False
     state.file_path = target
     state.dirty = False
+    state.recovered = None
     state.status_message = _("Saved {name}").format(name=name)
     if not native and not state.svg_hint_shown:
         state.svg_hint_shown = True
         state.status_message = _(
             "Saved {name} (view, tool settings and selection are only kept in .p2s files)"
         ).format(name=name)
+    if not backed_up:
+        state.status_message = _("{message} (no backup of the previous version could be made)").format(
+            message=state.status_message
+        )
     session.notify()
     return True
 

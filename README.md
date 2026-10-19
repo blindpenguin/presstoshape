@@ -32,6 +32,7 @@ uv run python main.py
 - Layers: add, delete, rename (double-click), hide (checkbox).
 - Copy, cut and paste (Ctrl+C / Ctrl+X / Ctrl+V): Paste centers the shapes in the view, Paste in Place (Ctrl+Shift+V) keeps their position. Shapes go on the clipboard as SVG too, so pasting into and from Inkscape and other SVG-aware apps should work. Duplicate (Ctrl+D) copies the selection in place; Alt+drag a shape with the Select tool to drag off a copy.
 - Undo/redo for all document edits.
+- Crash recovery: while a document has unsaved changes, PressToShape keeps a recovery copy in its own data folder (every 5 minutes by default, adjustable or off in Settings). After a crash or power loss, the next start offers it; recovered documents open unsaved and ask where to save. Saving over a file keeps the previous version as `name.backup.p2s` (or `.backup.svg`), which can be turned off.
 - English (British) and German interface, following the system language by default. Edit → Settings picks the language and the renderer. You can add or improve a translation with your own `.po` file, see [docs/translating.md](docs/translating.md).
 - GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
 - New Document dialog at startup and on File → New: presets for print (A3 to A6, US Letter, …), screens, social media and icons, or a custom size in px, mm, cm, in or pt with a resolution (DPI). At startup it also lists recent files and offers Open…; it can be turned off there or in Settings. File → Open Recent lists the last ten files.

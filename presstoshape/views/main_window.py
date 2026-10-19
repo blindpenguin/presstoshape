@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog, QDockWidget, QFileDialog, QMainWindow, QM
 
 from presstoshape import i18n
 from presstoshape.editing.operations import clipboard as clipboard_ops
-from presstoshape.editing.operations import documents, view
+from presstoshape.editing.operations import documents, recovery, view
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
 from presstoshape.version import app_version
@@ -19,6 +19,8 @@ from presstoshape.views.export_dialog import ExportPngDialog
 from presstoshape.views.layers_view import LayersPanel
 from presstoshape.views.left_sidebar_view import ToolPalette
 from presstoshape.views.new_document_dialog import OPEN, NewDocumentDialog, StartChoices
+from presstoshape.views.recover_dialog import RecoverDialog
+from presstoshape.views.recovery_keeper import RecoveryKeeper
 from presstoshape.views.settings.dialog import SettingsDialog
 from presstoshape.views.settings.pages import SettingsContext
 from presstoshape.views.status_bar_view import StatusBar
@@ -36,8 +38,11 @@ _TOOL_DOCK_WIDTH = 200
 class MainWindow(QMainWindow):
     """Top view: assembles the panels and re-renders all of them from state after every session change."""
 
-    def __init__(self, session: Session, settings: QSettings | None = None) -> None:
-        """`settings` stores the window placement; None (screenshots, self-test) leaves the user's untouched."""
+    def __init__(
+        self, session: Session, settings: QSettings | None = None, recovery_folder: Path | None = None
+    ) -> None:
+        """`settings` stores the window placement; None (screenshots, self-test) leaves the user's untouched and
+        turns crash recovery off. `recovery_folder` overrides where recovery snapshots go (tests)."""
         super().__init__()
         self._settings = settings
         self._state = session.state
@@ -48,6 +53,10 @@ class MainWindow(QMainWindow):
         self._settings_size: QSize | None = None
 
         self.canvas = CanvasView(session, app_settings.renderer(settings) if settings is not None else "auto")
+        self._keeper: RecoveryKeeper | None = None
+        if settings is not None:
+            folder = recovery_folder or app_settings.recovery_folder()
+            self._keeper = RecoveryKeeper(session, folder, self.canvas.view_center, settings, self)
         self._edit_bar = EditBar(session)
         central = QWidget()
         central_layout = QVBoxLayout(central)
@@ -91,7 +100,12 @@ class MainWindow(QMainWindow):
 
     def refresh(self) -> None:
         state = self._state
-        self.setWindowTitle(f"{self._document_name()}[*] — PressToShape")
+        name = self._document_name()
+        if state.recovered is not None:
+            name = _("{name} (recovered)").format(name=name)
+        self.setWindowTitle(f"{name}[*] — PressToShape")
+        if self._keeper is not None:
+            self._keeper.refresh()
         self.setWindowModified(state.dirty)
         self._tool_dock.setWindowTitle(_(TITLES[state.active_tool]))
         views = (
@@ -134,7 +148,8 @@ class MainWindow(QMainWindow):
         }
 
     def _document_name(self) -> str:
-        return Path(self._state.file_path).name if self._state.file_path else _("Untitled")
+        path = self._state.file_path or (self._state.recovered.original_path if self._state.recovered else None)
+        return Path(path).name if path else _("Untitled")
 
     # --- window commands (dialogs, viewport) ---------------------------------
 
@@ -149,10 +164,33 @@ class MainWindow(QMainWindow):
         """Right after the window is shown: the New Document dialog, or the last used size without it."""
         if self._settings is None:
             return
+        if self._recover_crashed():
+            return
         if app_settings.show_start_dialog(self._settings):
             self.show_start_dialog()
         elif (last := app_settings.last_new_document(self._settings)) is not None:
             self._create_document(*last)
+
+    def _recover_crashed(self) -> bool:
+        """Offers snapshots of runs that crashed; True if one was recovered (then no New Document dialog)."""
+        keeper = self._keeper
+        if keeper is None:
+            return False
+        found = recovery.find_snapshots(keeper.folder, keeper.is_running)
+        if not found:
+            return False
+        dialog = RecoverDialog(found, keeper.folder, self)
+        dialog.exec()
+        if dialog.chosen is None:
+            return False
+        if not recovery.recover(self._session, recovery.adopt(keeper.folder, dialog.chosen, keeper.run_id)):
+            return False
+        center = view.take_restore_view_center(self._session)
+        if center is None:
+            self.canvas.fit_artboard()
+        else:
+            self.canvas.center_on(center)
+        return True
 
     def show_start_dialog(self, error: str | None = None) -> None:
         settings = self._settings
@@ -239,10 +277,17 @@ class MainWindow(QMainWindow):
     def save_document(self) -> bool:
         if self._state.file_path is None:
             return self.save_document_as()
-        return self._remember_saved(documents.save_file(self._session, view_center=self.canvas.view_center()))
+        return self._remember_saved(
+            documents.save_file(self._session, view_center=self.canvas.view_center(), keep_backup=self._keep_backup())
+        )
+
+    def _keep_backup(self) -> bool:
+        return self._settings is not None and app_settings.keep_backups(self._settings)
 
     def save_document_as(self) -> bool:
-        current = self._state.file_path
+        recovered = self._state.recovered
+        # A recovered document suggests where it came from, so saving it there is one confirmation away.
+        current = self._state.file_path or (recovered.original_path if recovered else None)
         keeps_svg = current is not None and not documents.is_native(current)
         suggested = current or _("untitled") + documents.NATIVE_SUFFIX
         native_filter, svg_filter = _(_NATIVE_FILTER), _(_SVG_FILTER)
@@ -253,7 +298,10 @@ class MainWindow(QMainWindow):
             return False
         if Path(path).suffix.lower() not in (documents.NATIVE_SUFFIX, ".svg"):
             path += ".svg" if chosen_filter == svg_filter else documents.NATIVE_SUFFIX
-        return self._remember_saved(documents.save_file(self._session, path, view_center=self.canvas.view_center()))
+        saved = documents.save_file(
+            self._session, path, view_center=self.canvas.view_center(), keep_backup=self._keep_backup()
+        )
+        return self._remember_saved(saved)
 
     def export_png(self) -> None:
         scale = ExportPngDialog.ask(self._state.document, self._state.export.scale, self)
@@ -293,6 +341,9 @@ class MainWindow(QMainWindow):
             dialog.resize(self._settings_size)
         dialog.exec()
         self._settings_page, self._settings_size = dialog.page, dialog.size()
+        if self._keeper is not None:
+            # The recovery interval may have changed.
+            self._keeper.refresh()
 
     def fit_to_window(self) -> None:
         self.canvas.fit_artboard()
@@ -333,5 +384,7 @@ class MainWindow(QMainWindow):
         QGuiApplication.clipboard().dataChanged.disconnect(self._update_paste_actions)
         if self._settings is not None:
             window_placement.save(self, self._settings)
+        if self._keeper is not None:
+            self._keeper.finish()
         self.canvas.shutdown()
         super().closeEvent(event)

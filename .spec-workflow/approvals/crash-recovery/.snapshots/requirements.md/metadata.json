@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/crash-recovery/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T17:08:35.806Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792429715800_r7kbz4rzn",
+      "approvalTitle": "Crash recovery and backups: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T17:10:41.600Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792429715800_r7kbz4rzn",
+      "approvalTitle": "Crash recovery and backups: requirements"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+# Tasks Document
+
+- [x] 1. Session revision, recovered state and backups on save
+  - Files: presstoshape/editing/session.py, presstoshape/models/app_state.py, presstoshape/editing/operations/documents.py, tests/editing/test_session.py, tests/editing/test_documents.py
+  - `Session.revision` (edits, undo, redo, reset); `RecoveredFrom` + `AppState.recovered` (cleared by `_reset` and successful saves); `backup_path`; `_write_atomically(..., keep_backup)` copying the old file after the temp file is complete and before the swap; `save_file(..., keep_backup=False)` noting a failed backup in the status
+  - Purpose: the Qt-free base for change tracking, recovered documents and backups (Req 4, 5)
+  - _Leverage: documents._write_atomically, _reset_
+  - _Requirements: 1.2, 4.1, 5.1–5.5_
+  - _Prompt: Implement the task for spec crash-recovery, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement per design.md; tests: revision counts edits/undo/redo/reset but not selection/zoom; backup created and replaced, none for new files or when disabled, failing backup still saves with a note, failed write leaves file and backup untouched, saving clears recovered, New/Open clear it | Restrictions: no Qt; atomic save stays atomic | Success: tests green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 2. Snapshot files and recovery operation
+  - Files: presstoshape/editing/operations/recovery.py, tests/editing/test_recovery.py
+  - `Snapshot`; `write_snapshot` (.p2s with small preview + JSON metadata, atomic); `discard_snapshot`; `find_snapshots(folder, is_running)` newest first with damaged detection (size limit, type checks); `adopt`; `recover(session, snapshot)` (unsaved, recovered, status with time)
+  - Purpose: everything about snapshots without Qt (Req 1, 2, 3.6, 4.1, 4.5)
+  - _Leverage: documents._saved_state/_preview/_write_atomically/_apply_saved_state/_reset, formats.p2s_
+  - _Requirements: 1.3, 1.4, 1.7, 2.1–2.3, 3.6, 4.1, 4.5_
+  - _Prompt: Implement the task for spec crash-recovery, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer focused on robust file handling | Task: Implement per design.md with the tests listed there (round trip incl. view/selection/edit path, running runs skipped, damaged JSON/.p2s, discard, adopt, ordering) | Restrictions: no Qt; JSON read like .p2s data (no trust); times as epoch seconds | Success: tests green, architecture test green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 3. Settings: recovery folder, interval, backups, General page
+  - Files: presstoshape/views/app_settings.py, presstoshape/views/settings/general_page.py, tests/views/test_app_settings.py, tests/views/test_settings.py
+  - `RECOVERY_INTERVALS`, `recovery_interval`/`set_recovery_interval` (default 5), `keep_backups`/`set_keep_backups` (default on), `recovery_folder` (portable `recovery/`); General page combo (Off, 1/2/5/10 minutes as plurals) and backup checkbox
+  - Purpose: Req 6, 1.7
+  - _Leverage: translations_folder pattern, GeneralPage_
+  - _Requirements: 1.7, 5.4, 6.1, 6.2_
+  - _Prompt: Implement the task for spec crash-recovery, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Implement per design.md; tests for defaults, bad stored values, portable vs installed folder, General page controls writing settings | Restrictions: plural texts via ngettext; no shortcuts | Success: tests green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 4. Recovery keeper: run lock, timer, snapshot rule
+  - Files: presstoshape/views/recovery_keeper.py, tests/views/test_recovery_keeper.py
+  - `RecoveryKeeper` with run id + QLockFile, `is_running`, `refresh` (one rule: dirty → snapshot at most one interval old; not dirty or off → none), `finish`; one status note per failure streak; disables itself if the folder can't be created
+  - Purpose: Req 1.1, 1.2, 1.5, 1.6, 2, 6.3
+  - _Leverage: task 2 operations, task 3 settings, session.revision_
+  - _Requirements: 1.1, 1.2, 1.5, 1.6, 2.1–2.4, 6.3_
+  - _Prompt: Implement the task for spec crash-recovery, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Implement per design.md; offscreen tests with a short interval (monkeypatch the minute length): snapshot after interval, no rewrite without change, removed after save, removed when off, finish removes snapshot and lock, another live keeper's run counts as running | Restrictions: status messages only through an operation (views never assign AppState); no defensive try/except around Qt calls, only around file I/O | Success: tests green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 5. Recover dialog, startup and window integration
+  - Files: presstoshape/views/recover_dialog.py, presstoshape/views/main_window.py, tests/views/test_recover_dialog.py, tests/views/test_crash_recovery.py
+  - `RecoverDialog` (thumbnails, name/location/time, Recover/Discard/Close, damaged entries); `MainWindow.start` runs recovery before the New Document dialog; keeper in refresh/close/after Settings; "(recovered)" title; Save As for recovered documents with original name, folder and type; `keep_backup` from settings on every save
+  - Purpose: Req 3, 4, 5 in the UI
+  - _Leverage: tasks 1–4, NewDocumentDialog flow, save_document_as_
+  - _Requirements: 3.1–3.5, 4.2–4.4, 5.1, 6.2_
+  - _Prompt: Implement the task for spec crash-recovery, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 UI developer | Task: Implement per design.md; offscreen dialog tests; subprocess crash test (child makes a dirty document, forces a snapshot, os._exit(1); parent finds and recovers it exactly); QTest scratch run offscreen and with GL: snapshot appears, killed run recovered at next start, Save As suggests the original, backup on second save, clean quit empties the folder; German screenshots of dialog and General page | Restrictions: no new shortcuts; delete scratch files one command each | Success: tests green, flows verified on both renderers. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 6. Translations, docs and final check
+  - Files: presstoshape/assets/translations/*, README.md, FAQ.md, CLAUDE.md, .spec-workflow/steering/*.md, FEATURE_GAPS.md (local)
+  - German complete; README/FAQ (crash recovery, backups, where recovery data lives, hedged); CLAUDE.md (recovery rule: not dirty = no snapshot; snapshots never in user folders); steering; full suite, self-test, screenshots
+  - Purpose: complete, documented feature
+  - _Requirements: all_
+  - _Prompt: Implement the task for spec crash-recovery, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Developer focused on docs | Task: Update docs, translate, run checks; list manual checks for the user (real crash: kill -9 / Task Manager) | Restrictions: British English, hedged wording, no em dashes in user-facing prose; FEATURE_GAPS.md stays uncommitted | Success: suite green, docs match behaviour. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._

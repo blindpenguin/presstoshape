@@ -125,3 +125,19 @@ def test_remove_deletes_the_user_file(context, messages):
     page._remove()
     assert not (context.translations_folder / "fr.po").exists()
     assert page._user_files.count() == 0
+
+
+def test_general_page_sets_recovery_interval_and_backups(context):
+    page = GeneralPage(context)
+    assert page._recovery.currentData() == 5 and page._backups.isChecked()
+    assert [page._recovery.itemText(row) for row in range(page._recovery.count())] == [
+        "Off",
+        "1 minute",
+        "2 minutes",
+        "5 minutes",
+        "10 minutes",
+    ]
+    page._recovery.setCurrentIndex(page._recovery.findData(1))
+    page._backups.setChecked(False)
+    assert app_settings.recovery_interval(context.settings) == 1
+    assert not app_settings.keep_backups(context.settings)

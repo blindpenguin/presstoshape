@@ -72,6 +72,10 @@ PRESSTOSHAPE_RENDERER=cpu uv run python main.py
 
 On Windows (PowerShell): `$env:PRESSTOSHAPE_RENDERER="cpu"; uv run python main.py`. CPU rendering is slower on large drawings but avoids the GPU entirely. If you can, please [open an issue](https://github.com/blindpenguin/presstoshape/issues) with your OS and GPU.
 
+### What happens to my work if PressToShape crashes?
+
+While a document has unsaved changes, PressToShape writes a recovery copy every few minutes (5 by default; Edit → Settings → General changes it or turns it off). These copies stay in PressToShape's own data folder, never next to your files, and are deleted once you save or quit normally. After a crash or power loss, the next start lists them and you can recover the document; it opens as unsaved and the first save asks where to put it, so your original file isn't overwritten by accident. On top of that, saving over a file keeps its previous version as `name.backup.p2s` (or `.backup.svg`) next to it.
+
 ### Does PressToShape collect data or need the internet?
 
 No. PressToShape runs offline: no telemetry, no accounts, no network access. Your files stay on your machine.

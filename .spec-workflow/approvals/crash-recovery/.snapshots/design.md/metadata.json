@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/crash-recovery/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T17:12:10.098Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792429930093_l5itflm31",
+      "approvalTitle": "Crash recovery and backups: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T17:12:29.555Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792429930093_l5itflm31",
+      "approvalTitle": "Crash recovery and backups: design"
+    }
+  ]
+}

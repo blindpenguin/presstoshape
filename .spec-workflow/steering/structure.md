@@ -64,6 +64,7 @@ presstoshape/                   # repo root
         ├── actions.py          # QActions built from the registries + keymap
         ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, forwards input to the active tool
         ├── settings/           # Settings window: dialog.py (PAGES), pages.py, one module per category page
+        ├── recovery_keeper.py / recover_dialog.py   # crash recovery: run lock + snapshot timer, startup dialog
         ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)

@@ -18,6 +18,11 @@ _LANGUAGE_KEY = "language"
 _RENDERER_KEY = "renderer"
 _RECENT_KEY = "recent_files"
 _START_DIALOG_KEY = "start/show_dialog"
+_RECOVERY_KEY = "recovery/interval_minutes"
+_BACKUPS_KEY = "save/keep_backups"
+# Recovery snapshot intervals offered in Settings, in minutes; 0 turns recovery off.
+RECOVERY_INTERVALS = (0, 1, 2, 5, 10)
+DEFAULT_RECOVERY_INTERVAL = 5
 _NEW_PRESET_KEY = "new_document/preset"
 _NEW_SETUP_KEY = "new_document/setup"
 
@@ -34,14 +39,24 @@ def open_settings(executable: str = sys.executable, frozen: bool = getattr(sys, 
     return QSettings("PressToShape", "PressToShape")
 
 
-def translations_folder(executable: str = sys.executable, frozen: bool = getattr(sys, "frozen", False)) -> Path:
-    """Where user translation files live: next to the portable executable, else the platform's app data folder
+def _data_folder(name: str, executable: str, frozen: bool) -> Path:
+    """`name` next to the portable executable, else in the platform's app data folder
     (e.g. ~/.local/share/PressToShape/PressToShape on Linux). It may not exist yet."""
     portable = _portable_folder(executable, frozen)
     if portable is not None:
-        return portable / PORTABLE_TRANSLATIONS
+        return portable / name
     location = QStandardPaths.StandardLocation.GenericDataLocation
-    return Path(QStandardPaths.writableLocation(location)) / "PressToShape" / "PressToShape" / "translations"
+    return Path(QStandardPaths.writableLocation(location)) / "PressToShape" / "PressToShape" / name
+
+
+def translations_folder(executable: str = sys.executable, frozen: bool = getattr(sys, "frozen", False)) -> Path:
+    """Where user translation files live."""
+    return _data_folder(PORTABLE_TRANSLATIONS, executable, frozen)
+
+
+def recovery_folder(executable: str = sys.executable, frozen: bool = getattr(sys, "frozen", False)) -> Path:
+    """Where crash recovery snapshots live; never one of the user's own folders."""
+    return _data_folder("recovery", executable, frozen)
 
 
 def language(settings: QSettings) -> str | None:
@@ -124,3 +139,29 @@ def last_new_document(settings: QSettings) -> tuple[str | None, DocumentSetup] |
 def set_last_new_document(settings: QSettings, preset: str | None, setup: DocumentSetup) -> None:
     settings.setValue(_NEW_PRESET_KEY, preset or "")
     settings.setValue(_NEW_SETUP_KEY, [setup.width, setup.height, setup.unit, setup.dpi])
+
+
+# --- crash recovery and backups ----------------------------------------------------------------------
+
+
+def recovery_interval(settings: QSettings) -> int:
+    """Minutes between recovery snapshots; 0 = off."""
+    try:
+        value = int(settings.value(_RECOVERY_KEY, DEFAULT_RECOVERY_INTERVAL))
+    except (TypeError, ValueError):
+        return DEFAULT_RECOVERY_INTERVAL
+    return value if value in RECOVERY_INTERVALS else DEFAULT_RECOVERY_INTERVAL
+
+
+def set_recovery_interval(settings: QSettings, minutes: int) -> None:
+    if minutes not in RECOVERY_INTERVALS:
+        raise ValueError(f"unsupported recovery interval {minutes!r}")
+    settings.setValue(_RECOVERY_KEY, minutes)
+
+
+def keep_backups(settings: QSettings) -> bool:
+    return settings.value(_BACKUPS_KEY, True) not in (False, "false", "0", 0)
+
+
+def set_keep_backups(settings: QSettings, value: bool) -> None:
+    settings.setValue(_BACKUPS_KEY, value)

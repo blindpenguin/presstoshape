@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from presstoshape.editing import containers
 from presstoshape.i18n import _
@@ -26,7 +26,7 @@ class _Step:
 def _copy_document(doc: Document) -> Document:
     # Shapes are frozen, so copying the layer lists is enough to isolate a snapshot.
     layers = [Layer(layer.name, layer.visible, list(layer.shapes)) for layer in doc.layers]
-    return Document(doc.width, doc.height, layers, doc.next_id)
+    return replace(doc, layers=layers)
 
 
 class Session:
@@ -36,6 +36,9 @@ class Session:
         self._redo: list[_Step] = []
         self._merge_key: str | None = None
         self._listeners: list[Callable[[], None]] = []
+        # Increases with every change to the document (edits, undo, redo, a new or opened document), so
+        # watchers like crash recovery can tell whether anything changed since they last looked.
+        self.revision = 0
 
     # --- notification -------------------------------------------------------
 
@@ -71,12 +74,15 @@ class Session:
         self._merge_key = merge_key
         self._redo.clear()
         self.state.dirty = True
+        self.revision += 1
 
     def end_merge(self) -> None:
         """The next edit starts a new undo step even if its merge key matches (e.g. after a selection change)."""
         self._merge_key = None
 
     def clear_history(self) -> None:
+        """Called when a document is replaced (New, Open), which counts as a change for `revision`."""
+        self.revision += 1
         self._undo.clear()
         self._redo.clear()
         self._merge_key = None
@@ -116,6 +122,7 @@ class Session:
         target.append(_Step(self._snapshot(), step.label))
         self._apply(step.snapshot)
         self._merge_key = None
+        self.revision += 1
         state = self.state
         state.dirty = True
         # Undo may remove an entered Composite: leave as many levels as needed, then keep only pickable ids.

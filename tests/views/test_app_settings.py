@@ -41,3 +41,29 @@ def test_language_and_renderer_settings(tmp_path):
     assert app_settings.language(settings) is None
     settings.setValue("renderer", "metal")
     assert app_settings.renderer(settings) == "auto"
+
+
+def test_recovery_folder_is_portable_or_app_data(tmp_path):
+    from presstoshape.views.app_settings import recovery_folder
+
+    installed = recovery_folder(str(tmp_path / "PressToShape.exe"), frozen=True)
+    assert installed.name == "recovery" and tmp_path not in installed.parents
+    (tmp_path / PORTABLE_MARKER).write_text("portable")
+    assert recovery_folder(str(tmp_path / "PressToShape.exe"), frozen=True) == tmp_path / "recovery"
+
+
+def test_recovery_interval_and_backup_settings(tmp_path):
+    import pytest
+
+    from presstoshape.views import app_settings
+
+    settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    assert (app_settings.recovery_interval(settings), app_settings.keep_backups(settings)) == (5, True)
+    app_settings.set_recovery_interval(settings, 0)
+    app_settings.set_keep_backups(settings, False)
+    assert (app_settings.recovery_interval(settings), app_settings.keep_backups(settings)) == (0, False)
+    for bad in ("soon", 7):
+        settings.setValue("recovery/interval_minutes", bad)
+        assert app_settings.recovery_interval(settings) == 5
+    with pytest.raises(ValueError):
+        app_settings.set_recovery_interval(settings, 3)

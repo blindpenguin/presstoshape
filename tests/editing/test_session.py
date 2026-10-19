@@ -68,3 +68,30 @@ def test_clear_history(session):
     _add_rect(session, 1)
     session.clear_history()
     assert not session.can_undo and not session.can_redo
+
+
+def test_revision_counts_document_changes_only():
+    from presstoshape.editing.operations import documents, selection, shapes, view
+
+    session = Session()
+    start = session.revision
+    rect = shapes.add_rectangle(session, (0, 0), (10, 10))
+    assert session.revision == start + 1
+    selection.set_selection(session, {rect})
+    view.set_zoom(session, 200)
+    assert session.revision == start + 1
+    session.undo()
+    session.redo()
+    assert session.revision == start + 3
+    documents.new_document(session)
+    assert session.revision == start + 4
+
+
+def test_undo_keeps_the_documents_unit_and_dpi():
+    from presstoshape.editing.operations import documents, shapes
+
+    session = Session()
+    documents.new_document(session, documents.DocumentSetup(210, 297, "mm", 300))
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    session.undo()
+    assert (session.state.document.unit, session.state.document.dpi) == ("mm", 300)

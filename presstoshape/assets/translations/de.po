@@ -295,6 +295,10 @@ msgid "Saved {name} (view, tool settings and selection are only kept in .p2s fil
 msgstr "{name} gespeichert (Ansicht, Werkzeugeinstellungen und Auswahl werden nur in .p2s-Dateien gespeichert)"
 
 #: presstoshape/editing/operations/documents.py
+msgid "{message} (no backup of the previous version could be made)"
+msgstr "{message} (keine Sicherung der vorherigen Fassung möglich)"
+
+#: presstoshape/editing/operations/documents.py
 msgid "the image is too large to render"
 msgstr "das Bild ist zu groß zum Rendern"
 
@@ -389,6 +393,24 @@ msgstr "Objekt in Pfad umwandeln"
 #: presstoshape/editing/operations/paths.py
 msgid "Converted to paths"
 msgstr "In Pfade umgewandelt"
+
+#: presstoshape/editing/operations/recovery.py
+#: presstoshape/views/main_window.py
+#: presstoshape/views/recover_dialog.py
+msgid "Untitled"
+msgstr "Unbenannt"
+
+#: presstoshape/editing/operations/recovery.py
+msgid "Could not recover {name}: {error}"
+msgstr "{name} konnte nicht wiederhergestellt werden: {error}"
+
+#: presstoshape/editing/operations/recovery.py
+msgid "Recovered {name} (from {time})"
+msgstr "{name} wiederhergestellt (Stand {time})"
+
+#: presstoshape/editing/operations/recovery.py
+msgid "Couldn't save recovery data: {error}"
+msgstr "Wiederherstellungsdaten konnten nicht gespeichert werden: {error}"
 
 #: presstoshape/editing/operations/selection.py
 msgid "Select &All"
@@ -972,8 +994,8 @@ msgid "Layers"
 msgstr "Ebenen"
 
 #: presstoshape/views/main_window.py
-msgid "Untitled"
-msgstr "Unbenannt"
+msgid "{name} (recovered)"
+msgstr "{name} (wiederhergestellt)"
 
 #: presstoshape/views/main_window.py
 msgid "Open"
@@ -1063,6 +1085,42 @@ msgstr "Öffnen…"
 #: presstoshape/views/new_document_dialog.py
 msgid "Show this dialog at startup"
 msgstr "Diesen Dialog beim Start anzeigen"
+
+#: presstoshape/views/recover_dialog.py
+msgid "{name} (damaged, can't be recovered)"
+msgstr "{name} (beschädigt, nicht wiederherstellbar)"
+
+#: presstoshape/views/recover_dialog.py
+msgid "Never saved"
+msgstr "Nie gespeichert"
+
+#: presstoshape/views/recover_dialog.py
+msgid "Last change kept: {time}"
+msgstr "Letzter gesicherter Stand: {time}"
+
+#: presstoshape/views/recover_dialog.py
+msgid "Recover Documents"
+msgstr "Dokumente wiederherstellen"
+
+#: presstoshape/views/recover_dialog.py
+msgid "PressToShape didn't close properly last time. These documents had unsaved changes. Recover one to continue working on it."
+msgstr "PressToShape wurde beim letzten Mal nicht richtig beendet. Diese Dokumente hatten ungespeicherte Änderungen. Eines wiederherstellen, um daran weiterzuarbeiten."
+
+#: presstoshape/views/recover_dialog.py
+msgid "Recover"
+msgstr "Wiederherstellen"
+
+#: presstoshape/views/recover_dialog.py
+msgid "Discard…"
+msgstr "Verwerfen…"
+
+#: presstoshape/views/recover_dialog.py
+msgid "Discard recovered document"
+msgstr "Wiederhergestelltes Dokument verwerfen"
+
+#: presstoshape/views/recover_dialog.py
+msgid "Discard the unsaved changes of {name} for good?"
+msgstr "Die ungespeicherten Änderungen an {name} endgültig verwerfen?"
 
 #: presstoshape/views/selection_view.py
 msgid "X"
@@ -1175,12 +1233,30 @@ msgid "Settings"
 msgstr "Einstellungen"
 
 #: presstoshape/views/settings/general_page.py
+msgid "Off"
+msgstr "Aus"
+
+#: presstoshape/views/settings/general_page.py
+msgid "{count} minute"
+msgid_plural "{count} minutes"
+msgstr[0] "{count} Minute"
+msgstr[1] "{count} Minuten"
+
+#: presstoshape/views/settings/general_page.py
 msgid "General"
 msgstr "Allgemein"
 
 #: presstoshape/views/settings/general_page.py
 msgid "Show the New Document dialog at startup"
 msgstr "Beim Start den Dialog „Neues Dokument“ anzeigen"
+
+#: presstoshape/views/settings/general_page.py
+msgid "Save recovery data every"
+msgstr "Wiederherstellungsdaten speichern alle"
+
+#: presstoshape/views/settings/general_page.py
+msgid "Keep a backup of the previous version when saving"
+msgstr "Beim Speichern eine Sicherung der vorherigen Fassung behalten"
 
 #: presstoshape/views/settings/language_page.py
 msgid "Language"

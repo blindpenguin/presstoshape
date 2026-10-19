@@ -59,7 +59,7 @@ def test_open_recent_menu_lists_files_or_says_there_are_none(settings, tmp_path)
     from presstoshape.views.main_window import MainWindow
 
     QApplication.instance() or QApplication([])
-    window = MainWindow(Session(), settings)
+    window = MainWindow(Session(), settings, tmp_path / "recovery")
     window._fill_recent_menu()
     assert [action.text() for action in window._recent_menu.actions()] == ["No recent files"]
     app_settings.add_recent_file(settings, str(tmp_path / "R&D.p2s"))
