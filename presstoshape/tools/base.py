@@ -38,6 +38,7 @@ class CursorType(Enum):
     IBEAM = auto()
     NODE = auto()
     NODE_INSERT = auto()
+    DUPLICATE = auto()
 
 
 def resize_cursor_type(angle_deg: float) -> CursorType:

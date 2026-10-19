@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/clipboard/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T15:46:32.123Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792424792118_mdwx8kqbi",
+      "approvalTitle": "Clipboard & Duplicate: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T15:46:38.211Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792424792118_mdwx8kqbi",
+      "approvalTitle": "Clipboard & Duplicate: tasks"
+    }
+  ]
+}

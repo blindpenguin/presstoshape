@@ -3,6 +3,7 @@
 from presstoshape.editing.operations import (  # noqa: F401
     arrange,
     booleans,
+    clipboard,
     composites,
     documents,
     history,

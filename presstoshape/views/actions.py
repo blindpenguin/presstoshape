@@ -53,16 +53,20 @@ class AppActions:
         action = QAction(text, self._parent)
         if binding.icon is not None:
             action.setIcon(icon(binding.icon))
-        if isinstance(binding.shortcut, tuple):
-            action.setShortcuts([key for item in binding.shortcut for key in _sequences(item)])
-        elif binding.shortcut is not None:
-            action.setShortcut(QKeySequence(binding.shortcut))
         if binding.shortcut is not None:
+            # Every platform binding of a standard key (Paste is also Shift+Ins), each sequence once.
+            items = binding.shortcut if isinstance(binding.shortcut, tuple) else (binding.shortcut,)
+            keys = [key for item in items for key in _sequences(item)]
+            action.setShortcuts(list({key.toString(): key for key in keys}.values()))
             action.setToolTip(f"{text.replace('&', '')} ({_tooltip_keys(binding.shortcut)})")
         # Lambda swallows triggered(checked) so it isn't passed into slots with optional args.
         action.triggered.connect(lambda: slot())
         self._actions[command_id] = action
         return action
+
+    def set_enabled(self, command_id: str, enabled: bool) -> None:
+        """For window commands, whose availability the window knows (registered operations use can_run)."""
+        self._actions[command_id].setEnabled(enabled)
 
     def refresh(self, state: AppState) -> None:
         session = self._session

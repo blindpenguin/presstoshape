@@ -2,12 +2,14 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
+from presstoshape.editing.operations import clipboard as clipboard_ops
 from presstoshape.editing.operations import documents, view
 from presstoshape.editing.session import Session
 from presstoshape.version import app_version
-from presstoshape.views import menu_bar_view, window_placement
+from presstoshape.views import clipboard, menu_bar_view, window_placement
 from presstoshape.views.actions import AppActions
 from presstoshape.views.canvas_view import CanvasView
 from presstoshape.views.edit_bar_view import EditBar
@@ -65,6 +67,7 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self._status)
         self.canvas.hint_changed.connect(self._status.show_hint)
 
+        QGuiApplication.clipboard().dataChanged.connect(self._update_paste_actions)
         session.subscribe(self.refresh)
         self.refresh()
 
@@ -94,6 +97,14 @@ class MainWindow(QMainWindow):
         )
         for panel in views:
             panel.refresh(state)
+        for command_id in ("edit.cut", "edit.copy"):
+            self._actions.set_enabled(command_id, bool(state.selection))
+        self._update_paste_actions()
+
+    def _update_paste_actions(self) -> None:
+        offered = clipboard.can_paste()
+        for command_id in ("edit.paste", "edit.paste_in_place"):
+            self._actions.set_enabled(command_id, offered)
 
     def _window_commands(self) -> dict[str, Callable[[], object]]:
         return {
@@ -103,6 +114,10 @@ class MainWindow(QMainWindow):
             "file.save_as": self.save_document_as,
             "file.export_png": self.export_png,
             "file.quit": self.close,
+            "edit.cut": self.cut,
+            "edit.copy": self.copy,
+            "edit.paste": self.paste,
+            "edit.paste_in_place": self.paste_in_place,
             "view.zoom_fit": self.fit_to_window,
             "help.about": self.show_about,
         }
@@ -158,6 +173,22 @@ class MainWindow(QMainWindow):
             path += ".png"
         documents.export_png(self._session, path, scale)
 
+    def cut(self) -> None:
+        content = clipboard_ops.cut_selection(self._session)
+        if content is not None:
+            clipboard.put(content)
+
+    def copy(self) -> None:
+        content = clipboard_ops.copy_selection(self._session)
+        if content is not None:
+            clipboard.put(content)
+
+    def paste(self) -> None:
+        clipboard_ops.paste(self._session, *clipboard.read(), self.canvas.view_center())
+
+    def paste_in_place(self) -> None:
+        clipboard_ops.paste(self._session, *clipboard.read(), None)
+
     def fit_to_window(self) -> None:
         self.canvas.fit_artboard()
 
@@ -192,6 +223,7 @@ class MainWindow(QMainWindow):
         if not self._force_close and not self._confirm_discard():
             event.ignore()
             return
+        QGuiApplication.clipboard().dataChanged.disconnect(self._update_paste_actions)
         if self._settings is not None:
             window_placement.save(self, self._settings)
         self.canvas.shutdown()

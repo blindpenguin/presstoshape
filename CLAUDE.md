@@ -62,7 +62,8 @@ presstoshape/
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   └── nodes.py              # path node editing
-├── formats/                  # svg.py (SVG read/write), p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md)
+├── formats/                  # svg.py (SVG read/write), p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
+│                             # clipboard.py (shape payload for copy/paste, not migrated: falls back to SVG)
 ├── render/                   # Skia drawing: model -> skia.Canvas
 │   ├── scene.py / picture.py # document, overlays; recorded-picture replay
 │   ├── paths.py / text.py    # cached shape paths, text outlines

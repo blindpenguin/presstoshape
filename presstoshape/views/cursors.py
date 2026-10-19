@@ -24,6 +24,7 @@ _SHAPES = {
     CursorType.CROSS: Qt.CursorShape.CrossCursor,
     CursorType.IBEAM: Qt.CursorShape.IBeamCursor,
     CursorType.NODE: Qt.CursorShape.PointingHandCursor,
+    CursorType.DUPLICATE: Qt.CursorShape.DragCopyCursor,
 }
 
 _CUSTOM = {

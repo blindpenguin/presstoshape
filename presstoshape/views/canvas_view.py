@@ -179,6 +179,7 @@ class CanvasView(QAbstractScrollArea):
         hidden = frozenset({chain[0].id}) if chain else frozenset()
         draw_background(canvas, state.document, _COLORS)
         self._picture.draw(canvas, state.document, overlay.moving, overlay.matrix, overlay.live, hidden)
+        self._picture.draw_copies(canvas, overlay.copies, overlay.matrix)
         if chain:
             draw_edit_mode(canvas, chain, overlay, self._vp.zoom, _COLORS)
         draw_overlays(canvas, queries.pickable_shapes(state), overlay, self._cache, self._vp.zoom, _COLORS)

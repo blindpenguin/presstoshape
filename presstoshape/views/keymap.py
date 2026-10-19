@@ -33,6 +33,10 @@ WINDOW_COMMANDS = {
     "file.save_as": "Save &As…",
     "file.export_png": "&Export PNG…",
     "file.quit": "&Quit",
+    "edit.cut": "Cu&t",
+    "edit.copy": "&Copy",
+    "edit.paste": "&Paste",
+    "edit.paste_in_place": "Paste in Pl&ace",
     "view.zoom_fit": "Zoom to &Fit",
     "help.about": "&About PressToShape",
 }
@@ -46,8 +50,15 @@ KEYMAP: dict[str, Binding] = {
     "file.quit": Binding(Keys.Quit),
     "edit.undo": Binding(Keys.Undo, icons.UNDO),
     "edit.redo": Binding((Keys.Redo, "Ctrl+Y"), icons.REDO),
+    "edit.cut": Binding(Keys.Cut),
+    "edit.copy": Binding(Keys.Copy),
+    "edit.paste": Binding(Keys.Paste),
+    # Inkscape's Ctrl+Alt+V is Divide here, so Illustrator's binding.
+    "edit.paste_in_place": Binding("Ctrl+Shift+V"),
+    "edit.duplicate": Binding("Ctrl+D"),
     "edit.select_all": Binding(Keys.SelectAll),
-    "edit.delete": Binding(Keys.Delete, icons.DELETE),
+    # Not Keys.Delete: on KDE that also expands to Ctrl+D, which is Duplicate.
+    "edit.delete": Binding("Del", icons.DELETE),
     # Inkscape's shortcuts plus Ctrl+Alt+letter, which works on every keyboard layout (^ is a dead key on
     # German/French layouts, so Exclude leads with Ctrl+Alt+X).
     "path.union": Binding(("Ctrl++", "Ctrl+Alt+U"), icons.UNION),
@@ -87,7 +98,14 @@ ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lo
 # None is a separator; a (title, ids) tuple is a submenu.
 MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
     ("&File", ["file.new", "file.open", "file.save", "file.save_as", None, "file.export_png", None, "file.quit"]),
-    ("&Edit", ["edit.undo", "edit.redo", None, "edit.select_all", "edit.delete"]),
+    (
+        "&Edit",
+        [
+            "edit.undo", "edit.redo", None,
+            "edit.cut", "edit.copy", "edit.paste", "edit.paste_in_place", "edit.duplicate", "edit.delete", None,
+            "edit.select_all",
+        ],
+    ),  # fmt: skip
     ("&Path", [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
     ("&Object", ARRANGE_IDS),
     ("&View", ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),

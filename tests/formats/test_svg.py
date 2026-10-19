@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from presstoshape.formats.svg import read_svg, read_svg_with_notes, write_svg
+from presstoshape.formats.svg import read_shapes_svg, read_svg, read_svg_with_notes, write_shapes_svg, write_svg
 from presstoshape.geometry import affine, booleans, transforms
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
@@ -268,3 +268,37 @@ def test_broken_definition_falls_back_to_the_path():
 def test_files_without_composites_have_no_notes():
     document, notes = read_svg_with_notes(_write(RectShape(1, 0, 0, 10, 10, Style())))
     assert notes == [] and isinstance(document.layers[0].shapes[0], RectShape)
+
+
+# --- clipboard shape lists ------------------------------------------------------------------
+
+
+def test_shapes_svg_view_box_is_the_bounds_and_reads_back_in_place():
+    shapes = [RectShape(1, 110, 220, 30, 20, Style()), _nested_composite()]
+    svg = write_shapes_svg(shapes, (0, 0, 140, 240))
+    root = ET.fromstring(svg)
+    assert root.get("viewBox") == "0 0 140 240"
+    assert root.find("{http://www.w3.org/2000/svg}g") is None
+    restored, notes = read_shapes_svg(svg)
+    assert notes == []
+    assert [_structure(shape) for shape in restored] == [_structure(shape) for shape in shapes]
+    assert (restored[0].x, restored[0].y) == (110, 220)
+
+
+def test_shapes_svg_keeps_coordinates_off_the_origin():
+    svg = write_shapes_svg([EllipseShape(1, 500, 400, 10, 5, Style())], (490, 395, 20, 10))
+    assert ET.fromstring(svg).get("viewBox") == "490 395 20 10"
+    (restored,) = read_shapes_svg(svg)[0]
+    assert (restored.cx, restored.cy) == (500, 400)
+
+
+def test_read_shapes_flattens_layers_in_document_order():
+    svg = _svg(
+        '<g inkscape:groupmode="layer"><rect id="a" width="1" height="1"/></g>'
+        '<g inkscape:groupmode="layer" style="display:none"><g><rect width="2" height="2"/></g></g>'
+        '<circle r="3"/>',
+        'width="10" height="10" viewBox="5 5 10 10"',
+    )
+    shapes, _ = read_shapes_svg(svg)
+    assert [type(shape).__name__ for shape in shapes] == ["RectShape", "RectShape", "EllipseShape"]
+    assert shapes[0].x == 0

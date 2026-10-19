@@ -1,16 +1,62 @@
 """Small document edits shared by operation modules. Call them inside `session.edit()`."""
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import replace
 
 from presstoshape.editing import containers, queries
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import PartMode, Shape
+from presstoshape.models.shapes import CompositeShape, PartMode, Shape
 
 
 def new_id(state: AppState) -> int:
     document = state.document
     document.next_id += 1
     return document.next_id - 1
+
+
+def with_fresh_ids(state: AppState, shapes: Sequence[Shape]) -> list[Shape]:
+    """The same shapes with new ids from the document, Composite parts included (copies must never share ids)."""
+
+    def renumbered(shape: Shape) -> Shape:
+        if isinstance(shape, CompositeShape):
+            return replace(shape, id=new_id(state), parts=tuple(renumbered(part) for part in shape.parts))
+        return replace(shape, id=new_id(state))
+
+    return [renumbered(shape) for shape in shapes]
+
+
+def add_on_top(state: AppState, shapes: Sequence[Shape], modes: Mapping[int, PartMode] | None = None) -> None:
+    """Adds `shapes` on top of the active container: the entered Composite's parts (in `modes` or the new-part
+    mode), else the active layer, also when it is hidden."""
+    if containers.editing(state):
+        containers.change_container(state, lambda current: [*current, *shapes], modes)
+    else:
+        queries.active_layer(state).shapes.extend(shapes)
+
+
+def insert_copies(state: AppState, copies: Mapping[int, Shape], modes: Mapping[int, PartMode] | None = None) -> None:
+    """Inserts each copy (keyed by its original's id) into its original's container, all of a container's copies
+    directly above its topmost original, in the originals' order."""
+
+    def insert(shapes: list[Shape]) -> list[Shape]:
+        originals = [index for index, shape in enumerate(shapes) if shape.id in copies]
+        if not originals:
+            return shapes
+        top = originals[-1]
+        return [*shapes[: top + 1], *(copies[shapes[index].id] for index in originals), *shapes[top + 1 :]]
+
+    containers.change_container(state, insert, modes)
+
+
+def delete_selected(state: AppState) -> None:
+    """Removes the selected shapes and clears the selection. When that empties the edited Composite, it goes too
+    and its edit mode closes."""
+    remove_shapes(state, state.selection)
+    state.selection = set()
+    composite = containers.edited_composite(state)
+    if composite is not None and not composite.parts:
+        state.edit_path = state.edit_path[:-1]
+        remove_shapes(state, {composite.id})
 
 
 def replace_shape(state: AppState, updated: Shape) -> None:

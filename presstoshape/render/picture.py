@@ -23,6 +23,8 @@ class DocumentPicture:
         self._cache = cache
         self._key: tuple | None = None
         self._runs: list[tuple[bool, skia.Picture, tuple[int, ...]]] = []
+        self._copies_key: tuple[Shape, ...] = ()
+        self._copies: skia.Picture | None = None
 
     def draw(
         self,
@@ -55,6 +57,22 @@ class DocumentPicture:
                 canvas.concat(to_skia_matrix(matrix))
                 canvas.drawPicture(picture)
                 canvas.restore()
+
+    def draw_copies(self, canvas: skia.Canvas, copies: tuple[Shape, ...], matrix: Transform) -> None:
+        """`copies` through `matrix`, recorded once per set of shapes so each frame is one replay."""
+        if not copies:
+            self._copies_key, self._copies = (), None
+            return
+        if self._copies is None or copies != self._copies_key:
+            recorder = skia.PictureRecorder()
+            recording = recorder.beginRecording(_CULL, skia.RTreeFactory()())
+            for shape in copies:
+                draw_shape(recording, shape, self._cache)
+            self._copies_key, self._copies = copies, recorder.finishRecordingAsPicture()
+        canvas.save()
+        canvas.concat(to_skia_matrix(matrix))
+        canvas.drawPicture(self._copies)
+        canvas.restore()
 
     def _record(self, doc: Document, moving: frozenset[int]) -> list[tuple[bool, skia.Picture, tuple[int, ...]]]:
         runs: list[tuple[bool, skia.Picture, tuple[int, ...]]] = []

@@ -11,7 +11,7 @@ from presstoshape.render.paths import from_skia_path
 from presstoshape.render.text import text_path
 
 
-def _to_path(shape: Shape) -> Shape:
+def to_path(shape: Shape) -> Shape:
     if isinstance(shape, PathShape):
         return shape
     if isinstance(shape, TextShape):
@@ -29,5 +29,5 @@ def object_to_path(session: Session) -> None:
     if not queries.can_object_to_path(state):
         return
     with session.edit("Object to path"):
-        map_selected(state, _to_path)
+        map_selected(state, to_path)
         state.status_message = "Object to path"

@@ -38,6 +38,8 @@ class Overlay:
     moving: frozenset[int] = frozenset()
     matrix: Transform = IDENTITY_TRANSFORM
     live: tuple[Shape, ...] = ()
+    # Shapes drawn a second time through `matrix`, on top, while the originals stay put (Alt+drag duplicate).
+    copies: tuple[Shape, ...] = ()
     # Selection frame with handles, already following the live gesture.
     frame: Frame | None = None
     nodes: tuple[NodeOverlay, ...] = ()

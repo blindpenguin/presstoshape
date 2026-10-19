@@ -82,3 +82,22 @@ def test_moving_run_under_rotation_matrix():
     px = _pixels(picture, doc, moving=frozenset({3}), matrix=affine.rotation(3.141592653589793 / 2, 45, 75))
     assert px(5, 75) == (0, 0, 0, 0)
     assert px(50, 50) == (255, 0, 0, 255)
+
+
+def test_copies_draw_through_the_matrix_on_top_while_originals_stay():
+    picture, doc = DocumentPicture(PathCache()), _doc()
+    copies = (RectShape(1, 0, 0, 50, 50, RED),)
+    surface = skia.Surface(100, 100)
+    canvas = surface.getCanvas()
+    canvas.clear(skia.ColorTRANSPARENT)
+    picture.draw(canvas, doc)
+    picture.draw_copies(canvas, copies, affine.translation(30, 30))
+    recorded = picture._copies
+    picture.draw_copies(canvas, copies, affine.translation(30, 30))
+    assert picture._copies is recorded
+    rgba = surface.makeImageSnapshot().toarray(colorType=skia.kRGBA_8888_ColorType)
+    assert tuple(rgba[10, 10]) == (255, 0, 0, 255)
+    # The copy covers the green rect's middle.
+    assert tuple(rgba[50, 50]) == (255, 0, 0, 255)
+    picture.draw_copies(canvas, (), affine.IDENTITY)
+    assert picture._copies is None

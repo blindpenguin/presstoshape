@@ -4,7 +4,7 @@ import math
 from enum import Enum, auto
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import composites, selection, transform
+from presstoshape.editing.operations import clipboard, composites, selection, transform
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.boxes import Point, Rect, rect_from_points
@@ -35,6 +35,8 @@ class SelectTool(BaseTool):
         self._end: Point = (0.0, 0.0)
         self._band_base: set[int] = set()
         self._moving: list[Shape] = []
+        # Alt+drag: the move leaves the originals and places copies.
+        self._duplicating = False
         self._handle: Handle | None = None
         self._frame0: Frame | None = None
         self._matrix: Affine = affine.IDENTITY
@@ -65,6 +67,10 @@ class SelectTool(BaseTool):
         frame = self.frame()
         if self._mode is None or frame is None:
             return Overlay(selected_ids, frame=frame)
+        if self._duplicating:
+            return Overlay(
+                selected_ids, matrix=self._matrix, copies=tuple(self._moving), frame=frame.transformed(self._matrix)
+            )
         moving = frozenset(shape.id for shape in self._moving)
         return Overlay(
             selected_ids, moving=moving, matrix=self._matrix, live=self._live, frame=frame.transformed(self._matrix)
@@ -94,7 +100,8 @@ class SelectTool(BaseTool):
         if hit not in state.selection:
             selection.set_selection(self._context.session, {hit})
         self._mode = _Mode.MOVE
-        self._cursor = CursorType.MOVE
+        self._duplicating = mods.alt
+        self._cursor = CursorType.DUPLICATE if mods.alt else CursorType.MOVE
         self._moving = queries.selected_shapes(self._context.state)
 
     def move(self, point: Point, mods: Mods) -> None:
@@ -115,13 +122,16 @@ class SelectTool(BaseTool):
         if self._mode is None:
             return
         self.move(point, mods)
-        mode, matrix = self._mode, self._matrix
+        mode, matrix, duplicating = self._mode, self._matrix, self._duplicating
         chosen = self._band_base | self._band_hits() if mode is _Mode.BAND else set()
         self.cancel()
         session = self._context.session
         match mode:
             case _Mode.BAND:
                 selection.set_selection(session, chosen)
+            case _Mode.MOVE if duplicating:
+                if matrix[4] or matrix[5]:
+                    clipboard.duplicate_and_move(session, matrix[4], matrix[5])
             case _Mode.MOVE:
                 if matrix[4] or matrix[5]:
                     selection.move_selection(session, matrix[4], matrix[5])
@@ -132,6 +142,7 @@ class SelectTool(BaseTool):
     def cancel(self) -> None:
         self._mode = None
         self._moving = []
+        self._duplicating = False
         self._band_base = set()
         self._handle = self._frame0 = None
         self._matrix = affine.IDENTITY

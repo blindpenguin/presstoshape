@@ -22,7 +22,8 @@ Current:
 5. **Boolean operations**: union, difference, intersection, exclude, divide.
 6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
 7. **Undo/redo** for every document edit.
-8. **Files**: native `.p2s` format (lossless, with working state) and SVG open/save.
+8. **Clipboard**: copy, cut, paste, paste in place, duplicate and Alt+drag duplicate; SVG on the clipboard for other apps.
+9. **Files**: native `.p2s` format (lossless, with working state) and SVG open/save.
 
 Core feature pillars (target):
 1. **Freehand & brushes**: pressure-sensitive tablet input, pencil with smoothing, vector brushes, variable-width strokes, width profiles.

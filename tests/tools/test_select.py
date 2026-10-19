@@ -284,3 +284,46 @@ def test_nested_double_click_enters_one_level_deeper():
     (nested_id,) = session.state.selection
     g.double_click((120, 120), NONE)
     assert session.state.edit_path == (composite_id, nested_id)
+
+
+# --- Alt+drag duplicate ---------------------------------------------------------------------
+
+ALT = Mods(alt=True)
+
+
+def test_alt_drag_duplicates_and_moves_the_copy():
+    session, g = setup_tools()
+    sid = shapes.add_rectangle(session, (0, 0), (50, 50))
+    selection.set_selection(session, set())
+    undo_depth = session.undo_count
+    g.press((25, 25), ALT)
+    assert g.hover((25, 25)) is CursorType.DUPLICATE
+    g.move((35, 45), ALT)
+    overlay = g.overlay
+    assert overlay.moving == frozenset() and [shape.id for shape in overlay.copies] == [sid]
+    assert overlay.matrix == affine.translation(10, 20)
+    g.release((35, 45), ALT)
+    original, copy = all_shapes(session)
+    assert (original.id, original.x, original.y) == (sid, 0, 0)
+    assert (copy.x, copy.y) == (10, 20)
+    assert session.state.selection == {copy.id}
+    assert session.undo_count == undo_depth + 1 and session.undo_label == "Duplicate"
+    assert g.overlay.copies == ()
+
+
+def test_alt_click_without_movement_duplicates_nothing():
+    session, g = setup_tools()
+    shapes.add_rectangle(session, (0, 0), (50, 50))
+    drag(g, (25, 25), (25, 25), alt=True)
+    assert len(all_shapes(session)) == 1
+
+
+def test_alt_drag_copies_the_whole_selection():
+    session, g = setup_tools()
+    a = shapes.add_rectangle(session, (0, 0), (50, 50))
+    b = shapes.add_rectangle(session, (100, 0), (150, 50))
+    selection.set_selection(session, {a, b})
+    drag(g, (25, 25), (25, 125), alt=True)
+    current = all_shapes(session)
+    assert [shape.id for shape in current[:2]] == [a, b]
+    assert [(shape.x, shape.y) for shape in current[2:]] == [(0, 100), (100, 100)]

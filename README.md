@@ -30,6 +30,7 @@ uv run python main.py
   - Select: properties of the selection — position/size/rotation (rectangle, ellipse), text content/position/size/rotation for a single object, fill / stroke / stroke width for one or many.
   - Drawing tools: the style that tool gives new shapes; text tool also sets font size.
 - Layers: add, delete, rename (double-click), hide (checkbox).
+- Copy, cut and paste (Ctrl+C / Ctrl+X / Ctrl+V): Paste centers the shapes in the view, Paste in Place (Ctrl+Shift+V) keeps their position. Shapes go on the clipboard as SVG too, so pasting into and from Inkscape and other SVG-aware apps should work. Duplicate (Ctrl+D) copies the selection in place; Alt+drag a shape with the Select tool to drag off a copy.
 - Undo/redo for all document edits.
 - GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
 - Export PNG (Ctrl+Shift+E) at any scale, transparent background.

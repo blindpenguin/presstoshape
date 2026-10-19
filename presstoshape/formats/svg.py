@@ -11,11 +11,13 @@ and transforms — its own document parser drops `display:none` layers and `<tex
 import math
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
 
 import svgelements as se
 
 from presstoshape.geometry import booleans
 from presstoshape.geometry.affine import IDENTITY, Affine, apply, as_rotation, compose, is_identity, translation
+from presstoshape.geometry.boxes import Rect
 from presstoshape.geometry.segments import quad_to_cubic, transform_segments
 from presstoshape.geometry.transforms import outline, transform_shape
 from presstoshape.models.app_state import Document, Layer
@@ -102,6 +104,20 @@ def write_svg(doc: Document) -> str:
         group = ET.SubElement(root, _q("g"), attrs)
         for shape in layer.shapes:
             group.append(_shape_element(shape))
+    return _serialize(root)
+
+
+def write_shapes_svg(shapes: Sequence[Shape], bounds: Rect) -> str:
+    """Standalone SVG of `shapes` (clipboard): no layers, the viewBox is `bounds` in doc coordinates, so other
+    apps see a tight drawing and reading it back with read_shapes_svg keeps the shapes where they were."""
+    x, y, w, h = (_num(value) for value in bounds)
+    root = ET.Element(_q("svg"), {"width": w, "height": h, "viewBox": f"{x} {y} {w} {h}"})
+    for shape in shapes:
+        root.append(_shape_element(shape))
+    return _serialize(root)
+
+
+def _serialize(root: ET.Element) -> str:
     ET.indent(root)
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"
 
@@ -151,13 +167,30 @@ def read_svg(text: str) -> Document:
 
 def read_svg_with_notes(text: str) -> tuple[Document, list[str]]:
     """Like read_svg, plus notes about things that couldn't be restored (e.g. Composites edited elsewhere)."""
+    root = _parse_root(text)
+    width, height, origin = _document_frame(root)
+    document, notes = _read_layers(root, translation(-origin[0], -origin[1]))
+    document.width, document.height = width, height
+    return document, notes
+
+
+def read_shapes_svg(text: str) -> tuple[list[Shape], list[str]]:
+    """Shapes of every layer in document order (clipboard paste), in the SVG's own user space: unlike read_svg
+    the viewBox origin is not moved to 0,0. Raises like read_svg."""
+    document, notes = _read_layers(_parse_root(text), IDENTITY)
+    return [shape for layer in document.layers for shape in layer.shapes], notes
+
+
+def _parse_root(text: str) -> ET.Element:
     root = ET.fromstring(text)
     if root.tag != _q("svg"):
         raise ValueError("not an SVG document")
-    width, height, origin = _document_frame(root)
+    return root
+
+
+def _read_layers(root: ET.Element, base_matrix: Affine) -> tuple[Document, list[str]]:
     reader = _Reader()
     base_style = _merge_style(_DEFAULT_STYLE, root)
-    base_matrix = translation(-origin[0], -origin[1])
 
     layers: list[Layer] = []
     loose: Layer | None = None
@@ -178,8 +211,7 @@ def read_svg_with_notes(text: str) -> tuple[Document, list[str]]:
                 layers.append(loose)
             reader.visit(child, base_style, base_matrix, loose.shapes)
 
-    document = Document(width, height, layers or [Layer("Layer 1")], next_id=reader.next_id)
-    return document, reader.notes
+    return Document(layers=layers or [Layer("Layer 1")], next_id=reader.next_id), reader.notes
 
 
 def _document_frame(root: ET.Element) -> tuple[float, float, tuple[float, float]]:
