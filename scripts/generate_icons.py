@@ -38,6 +38,8 @@ ICONS = {
     "settings": "settings",
     "settings_language": "language",
     "settings_canvas": "artboard",
+    "orientation_portrait": "rectangle-vertical",
+    "orientation_landscape": "rectangle",
 }
 
 

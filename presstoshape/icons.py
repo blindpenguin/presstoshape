@@ -40,6 +40,8 @@ LAYER_DELETE = _DIR / "layer_delete.svg"
 SETTINGS = _DIR / "settings.svg"
 SETTINGS_LANGUAGE = _DIR / "settings_language.svg"
 SETTINGS_CANVAS = _DIR / "settings_canvas.svg"
+ORIENTATION_PORTRAIT = _DIR / "orientation_portrait.svg"
+ORIENTATION_LANDSCAPE = _DIR / "orientation_landscape.svg"
 
 CURSOR_ROTATE = _DIR / "cursor_rotate.svg"
 CURSOR_NODE_INSERT = _DIR / "cursor_node_insert.svg"

@@ -13,11 +13,12 @@ from PySide6.QtWidgets import (
 from presstoshape.i18n import _
 from presstoshape.views.icon_engine import icon
 from presstoshape.views.settings.canvas_page import CanvasPage
+from presstoshape.views.settings.general_page import GeneralPage
 from presstoshape.views.settings.language_page import LanguagePage
 from presstoshape.views.settings.pages import SettingsContext, SettingsPage
 
 # Category order in the list.
-PAGES: list[type[SettingsPage]] = [LanguagePage, CanvasPage]
+PAGES: list[type[SettingsPage]] = [GeneralPage, LanguagePage, CanvasPage]
 
 _LIST_WIDTH = 170
 

@@ -181,7 +181,8 @@ def test_archive_layout_mimetype_first_and_uncompressed():
         assert infos[1].compress_type == zipfile.ZIP_DEFLATED
     assert data[30:38] == b"mimetype" and data[38:64] == b"application/x-presstoshape"
     payload = _payload(data)
-    assert (payload["format"], payload["format_version"], payload["app_version"]) == ("presstoshape", 1, "0.1.0 (test)")
+    expected = ("presstoshape", CURRENT_VERSION, "0.1.0 (test)")
+    assert (payload["format"], payload["format_version"], payload["app_version"]) == expected
     assert read_preview(data) == b"\x89PNG fake"
 
 
@@ -262,3 +263,13 @@ def test_everything_the_app_can_save_opens_again_including_id_zero():
     document = Document(layers=[Layer("L", True, [RectShape(0, 0, 0, 1, 1, Style())])], next_id=1)
     state = SavedState(selection=frozenset({0}))
     assert read_p2s(write_p2s(document, state, None, "x")) == (document, state)
+
+
+def test_unit_and_dpi_round_trip_and_bad_values_are_refused():
+    document = Document(width=2480.0, height=3508.0, unit="mm", dpi=300.0)
+    assert _round_trip(document) == document
+    for field, value in (("unit", "km"), ("unit", None), ("dpi", 0), ("dpi", 1e9)):
+        encoded = encode_document(document)
+        encoded[field] = value
+        with pytest.raises(P2sError, match=field):
+            decode_document(encoded)

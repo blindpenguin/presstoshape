@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import pytest
 
 from presstoshape.formats.svg import read_shapes_svg, read_svg, read_svg_with_notes, write_shapes_svg, write_svg
-from presstoshape.geometry import affine, booleans, transforms
+from presstoshape.geometry import affine, booleans, transforms, units
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
     Close,
@@ -105,7 +105,7 @@ def test_scale_transform_scales_stroke_width():
 
 
 def test_viewbox_defines_document_size_and_origin():
-    doc = read_svg(_svg('<rect x="10" y="10" width="5" height="5"/>', 'width="10cm" viewBox="10 10 80 40"'))
+    doc = read_svg(_svg('<rect x="10" y="10" width="5" height="5"/>', 'width="200" viewBox="10 10 80 40"'))
     assert (doc.width, doc.height) == (80, 40)
     assert (doc.layers[0].shapes[0].x, doc.layers[0].shapes[0].y) == (0, 0)
 
@@ -302,3 +302,73 @@ def test_read_shapes_flattens_layers_in_document_order():
     shapes, _ = read_shapes_svg(svg)
     assert [type(shape).__name__ for shape in shapes] == ["RectShape", "RectShape", "EllipseShape"]
     assert shapes[0].x == 0
+
+
+# --- page size and units ------------------------------------------------------------------------
+
+
+def _a4(unit="mm", dpi=300.0) -> Document:
+    width, height = units.to_px(210, "mm", dpi), units.to_px(297, "mm", dpi)
+    rect = RectShape(1, 100, 100, 200, 100, Style(stroke_width=3))
+    return Document(width, height, [Layer("L", shapes=[rect])], unit=unit, dpi=dpi)
+
+
+def test_physical_documents_write_their_real_size_and_round_trip_exactly():
+    svg = write_svg(_a4())
+    root = ET.fromstring(svg)
+    assert (root.get("width"), root.get("height")) == ("210mm", "297mm")
+    assert root.get("viewBox") == "0 0 2480.315 3507.874"
+    document = read_svg(svg)
+    assert (document.unit, document.dpi) == ("mm", 300)
+    assert (document.width, document.height) == pytest.approx((2480.315, 3507.874))
+    assert document.layers[0].shapes[0].x == 100
+
+
+def test_px_documents_are_written_as_before():
+    root = ET.fromstring(write_svg(Document(600, 400)))
+    assert (root.get("width"), root.get("height"), root.get("viewBox")) == ("600", "400", "0 0 600 400")
+    document = read_svg(write_svg(Document(600, 400)))
+    assert (document.unit, document.dpi, document.width) == ("px", 96, 600)
+
+
+def test_inkscape_mm_documents_open_as_mm_scaled_to_96_dpi():
+    inkscape = _svg(
+        '<rect x="10" y="20" width="50" height="30" style="stroke:#000;stroke-width:0.5"/>',
+        'width="210mm" height="297mm" viewBox="0 0 210 297"',
+    )
+    document = read_svg(inkscape)
+    factor = 96 / 25.4
+    assert (document.unit, document.dpi) == ("mm", 96)
+    assert (document.width, document.height) == pytest.approx((210 * factor, 297 * factor))
+    rect = document.layers[0].shapes[0]
+    assert (rect.x, rect.width, rect.style.stroke_width) == pytest.approx((10 * factor, 50 * factor, 0.5 * factor))
+    root = ET.fromstring(write_svg(document))
+    assert (root.get("width"), root.get("height")) == ("210mm", "297mm")
+
+
+def test_dense_viewbox_keeps_coordinates_and_becomes_the_dpi():
+    document = read_svg(_svg('<rect width="10" height="10"/>', 'width="8.5in" height="11in" viewBox="0 0 2550 3300"'))
+    assert (document.unit, document.dpi, document.width) == ("in", 300, 2550)
+    assert document.layers[0].shapes[0].width == 10
+
+
+def test_physical_size_without_viewbox_is_css_pixels():
+    document = read_svg(_svg('<rect width="10" height="10"/>', 'width="1in" height="2pc"'))
+    assert (document.unit, document.dpi) == ("in", 96)
+    assert (document.width, document.height) == pytest.approx((96, 32))
+
+
+def test_picas_become_points():
+    document = read_svg(_svg("", 'width="12pc" height="6pc" viewBox="0 0 864 432"'))
+    assert (document.unit, document.dpi) == ("pt", 432)
+
+
+def test_odd_units_fall_back_to_pixels():
+    document = read_svg(_svg("", 'width="20em" height="10em" viewBox="0 0 200 100"'))
+    assert (document.unit, document.dpi, document.width) == ("px", 96, 200)
+
+
+def test_clipboard_svg_in_mm_is_scaled_like_on_open():
+    svg = _svg('<rect x="10" y="10" width="20" height="20"/>', 'width="40mm" viewBox="0 0 40 40"')
+    shapes, _notes = read_shapes_svg(svg)
+    assert shapes[0].x == pytest.approx(10 * 96 / 25.4)

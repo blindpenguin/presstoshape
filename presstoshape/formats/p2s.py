@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, upgrade
+from presstoshape.geometry import units
 from presstoshape.geometry.boxes import Point
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, Tool
@@ -115,6 +116,8 @@ def encode_shape(shape: Shape) -> dict[str, Any]:
 def encode_document(document: Document) -> dict[str, Any]:
     return {
         **_numbers(width=document.width, height=document.height),
+        "unit": document.unit,
+        "dpi": _number(document.dpi),
         "next_id": document.next_id,
         "layers": [
             {"name": layer.name, "visible": layer.visible, "shapes": [encode_shape(shape) for shape in layer.shapes]}
@@ -303,12 +306,20 @@ def decode_document(value: Any, where: str = "document") -> Document:
     if len(ids) != len(set(ids)):
         raise _damaged(where, _("uses a shape id twice"))
     next_id = read_int(_field(fields, "next_id", where), f"{where}.next_id", minimum=0)
+    unit = _field(fields, "unit", where)
+    if unit not in units.UNITS:
+        raise _damaged(f"{where}.unit", _one_of(units.UNITS))
+    dpi = _number_field(fields, "dpi", where, minimum=units.MIN_DPI)
+    if dpi > units.MAX_DPI:
+        raise _damaged(f"{where}.dpi", _("should be at most {maximum}").format(maximum=units.MAX_DPI))
     return Document(
         width=_number_field(fields, "width", where, minimum=0.1),
         height=_number_field(fields, "height", where, minimum=0.1),
         layers=layers,
         # A hand-edited next_id below an existing id would hand out duplicates later.
         next_id=max([next_id, *(shape_id + 1 for shape_id in ids)]),
+        unit=unit,
+        dpi=dpi,
     )
 
 

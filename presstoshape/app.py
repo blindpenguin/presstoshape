@@ -103,6 +103,8 @@ class App:
 
         # Deferred until the window has its real size, otherwise centering uses the pre-layout viewport.
         QTimer.singleShot(0, window.canvas.center_artboard)
+        # After the window got its size: the New Document dialog opens over it.
+        QTimer.singleShot(0, window.start)
         return app.exec()
 
 

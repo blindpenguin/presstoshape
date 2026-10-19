@@ -15,7 +15,7 @@ def test_every_layout_id_resolves():
         for entry in ids:
             if isinstance(entry, tuple):
                 used.update(entry[1])
-            elif entry not in (None, keymap.ZOOM_LABEL):
+            elif entry not in (None, keymap.ZOOM_LABEL, keymap.RECENT_MENU):
                 used.add(entry)
     assert used - _known_ids() == set()
 
@@ -36,6 +36,7 @@ def _menu_labels(entries) -> list[list[str]]:
     labels = {entry.id: entry.label for entry in registry.operations()}
     labels.update(keymap.WINDOW_COMMANDS)
     labels.update({entry.id: entry.label for entry in TOOLS})
+    labels[keymap.RECENT_MENU] = keymap.RECENT_MENU_TITLE
     menus, current = [], []
     for entry in entries:
         if isinstance(entry, tuple):

@@ -50,3 +50,26 @@ def test_current_version_payload_passes_unchanged():
 
 def test_v1_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v1.p2s").read_bytes()) == expected_v1()
+
+
+def expected_v2() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v2.p2s holds: an A4 document in mm at 300 DPI."""
+    red = Style(fill="#ff0000", stroke=None, stroke_width=0.0)
+    document = Document(
+        width=2480.3149606299212,
+        height=3507.8740157480315,
+        layers=[Layer("Layer 1", True, [RectShape(1, 118.0, 118.0, 1181.0, 590.5, red)])],
+        next_id=2,
+        unit="mm",
+        dpi=300.0,
+    )
+    return document, SavedState(zoom_percent=25, view_center=(1240.0, 1754.0), selection=frozenset({1}))
+
+
+def test_v1_documents_become_pixels_at_96_dpi():
+    document, _state = read_p2s((SAMPLES / "v1.p2s").read_bytes())
+    assert (document.unit, document.dpi) == ("px", 96.0)
+
+
+def test_v2_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v2.p2s").read_bytes()) == expected_v2()

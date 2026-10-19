@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 from presstoshape.views import app_settings
 from presstoshape.views.settings.canvas_page import CanvasPage
 from presstoshape.views.settings.dialog import PAGES, SettingsDialog
+from presstoshape.views.settings.general_page import GeneralPage
 from presstoshape.views.settings.language_page import LanguagePage
 from presstoshape.views.settings.pages import SettingsContext
 
@@ -51,12 +52,19 @@ def _choose_file(monkeypatch, path):
 
 
 def test_dialog_lists_every_category_and_switches_pages(context):
-    dialog = SettingsDialog(context, page=1)
-    assert dialog._categories.count() == len(PAGES) == 2
-    assert [dialog._categories.item(row).text() for row in range(2)] == ["Language", "Canvas"]
-    assert dialog.page == 1 and isinstance(dialog._pages.currentWidget(), CanvasPage)
-    dialog._categories.setCurrentRow(0)
+    dialog = SettingsDialog(context, page=2)
+    assert dialog._categories.count() == len(PAGES) == 3
+    assert [dialog._categories.item(row).text() for row in range(3)] == ["General", "Language", "Canvas"]
+    assert dialog.page == 2 and isinstance(dialog._pages.currentWidget(), CanvasPage)
+    dialog._categories.setCurrentRow(1)
     assert isinstance(dialog._pages.currentWidget(), LanguagePage)
+
+
+def test_general_page_toggles_the_start_dialog(context):
+    page = GeneralPage(context)
+    assert page._start_dialog.isChecked()
+    page._start_dialog.setChecked(False)
+    assert not app_settings.show_start_dialog(context.settings)
 
 
 def test_language_choice_is_saved_and_shows_the_restart_note(context):

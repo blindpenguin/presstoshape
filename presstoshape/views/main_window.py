@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings, QSize, Qt
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from presstoshape import i18n
 from presstoshape.editing.operations import clipboard as clipboard_ops
@@ -18,6 +18,7 @@ from presstoshape.views.edit_bar_view import EditBar
 from presstoshape.views.export_dialog import ExportPngDialog
 from presstoshape.views.layers_view import LayersPanel
 from presstoshape.views.left_sidebar_view import ToolPalette
+from presstoshape.views.new_document_dialog import OPEN, NewDocumentDialog, StartChoices
 from presstoshape.views.settings.dialog import SettingsDialog
 from presstoshape.views.settings.pages import SettingsContext
 from presstoshape.views.status_bar_view import StatusBar
@@ -57,7 +58,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         self._actions = AppActions(self, session, self._window_commands())
-        menu_bar_view.build(self.menuBar(), self._actions)
+        self._recent_menu = menu_bar_view.build(self.menuBar(), self._actions)
+        self._recent_menu.aboutToShow.connect(self._fill_recent_menu)
         self._toolbar = MainToolbar(self._actions)
         self.addToolBar(self._toolbar)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, ToolPalette(self._actions))
@@ -137,29 +139,107 @@ class MainWindow(QMainWindow):
     # --- window commands (dialogs, viewport) ---------------------------------
 
     def new_document(self) -> None:
-        if self._confirm_discard():
-            documents.new_document(self._session)
-            self.canvas.center_artboard()
+        """File → New: the New Document dialog; unsaved changes are asked about after Create."""
+        last = app_settings.last_new_document(self._settings) if self._settings is not None else None
+        dialog = NewDocumentDialog(last, parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted and self._confirm_discard():
+            self._create_document(dialog.preset_id, dialog.setup)
+
+    def start(self) -> None:
+        """Right after the window is shown: the New Document dialog, or the last used size without it."""
+        if self._settings is None:
+            return
+        if app_settings.show_start_dialog(self._settings):
+            self.show_start_dialog()
+        elif (last := app_settings.last_new_document(self._settings)) is not None:
+            self._create_document(*last)
+
+    def show_start_dialog(self, error: str | None = None) -> None:
+        settings = self._settings
+        last = app_settings.last_new_document(settings)
+        start = StartChoices(app_settings.recent_files(settings), app_settings.show_start_dialog(settings), error)
+        dialog = NewDocumentDialog(last, start, self)
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        app_settings.set_show_start_dialog(settings, bool(dialog.show_at_startup))
+        if not accepted:
+            # Cancel still gives the last used size, as if no dialog had been shown.
+            if last is not None:
+                self._create_document(*last)
+            return
+        if dialog.open_path is None:
+            self._create_document(dialog.preset_id, dialog.setup)
+            return
+        path = dialog.open_path
+        if path == OPEN:
+            path, _chosen = QFileDialog.getOpenFileName(self, _("Open"), "", self._open_filters())
+            if not path:
+                self.show_start_dialog()
+                return
+        if not self.open_path(path):
+            self.show_start_dialog(self._state.status_message)
+
+    def _create_document(self, preset_id: str | None, setup: documents.DocumentSetup) -> None:
+        documents.new_document(self._session, setup)
+        self.canvas.fit_artboard()
+        if self._settings is not None:
+            app_settings.set_last_new_document(self._settings, preset_id, setup)
 
     def open_document(self) -> None:
         if not self._confirm_discard():
             return
         start = str(Path(self._state.file_path).parent) if self._state.file_path else ""
-        filters = ";;".join(
-            [_("PressToShape and SVG (*.p2s *.svg)"), _(_NATIVE_FILTER), _(_SVG_FILTER), _("All files (*)")]
-        )
-        path, _chosen = QFileDialog.getOpenFileName(self, _("Open"), start, filters)
-        if path and documents.open_file(self._session, path):
-            center = view.take_restore_view_center(self._session)
-            if center is None:
-                self.canvas.fit_artboard()
-            else:
-                self.canvas.center_on(center)
+        path, _chosen = QFileDialog.getOpenFileName(self, _("Open"), start, self._open_filters())
+        if path:
+            self.open_path(path)
+
+    @staticmethod
+    def _open_filters() -> str:
+        names = [_("PressToShape and SVG (*.p2s *.svg)"), _(_NATIVE_FILTER), _(_SVG_FILTER), _("All files (*)")]
+        return ";;".join(names)
+
+    def open_path(self, path: str) -> bool:
+        """Opens `path` (dirty check already done) and shows it; a file that fails is dropped from recent files."""
+        if not documents.open_file(self._session, path):
+            if self._settings is not None:
+                app_settings.remove_recent_file(self._settings, path)
+            return False
+        if self._settings is not None:
+            app_settings.add_recent_file(self._settings, path)
+        center = view.take_restore_view_center(self._session)
+        if center is None:
+            self.canvas.fit_artboard()
+        else:
+            self.canvas.center_on(center)
+        return True
+
+    def open_recent(self, path: str) -> None:
+        if self._confirm_discard():
+            self.open_path(path)
+
+    def _fill_recent_menu(self) -> None:
+        menu = self._recent_menu
+        menu.clear()
+        paths = app_settings.recent_files(self._settings) if self._settings is not None else []
+        if not paths:
+            menu.addAction(_("No recent files")).setEnabled(False)
+            return
+        for number, path in enumerate(paths, 1):
+            action = menu.addAction(f"&{number} {Path(path).name.replace('&', '&&')}")
+            action.setToolTip(path)
+            action.triggered.connect(lambda _checked=False, chosen=path: self.open_recent(chosen))
+        menu.addSeparator()
+        clear = menu.addAction(_("Clear Recent Files"))
+        clear.triggered.connect(lambda: app_settings.clear_recent_files(self._settings))
+
+    def _remember_saved(self, saved: bool) -> bool:
+        if saved and self._settings is not None and self._state.file_path is not None:
+            app_settings.add_recent_file(self._settings, self._state.file_path)
+        return saved
 
     def save_document(self) -> bool:
         if self._state.file_path is None:
             return self.save_document_as()
-        return documents.save_file(self._session, view_center=self.canvas.view_center())
+        return self._remember_saved(documents.save_file(self._session, view_center=self.canvas.view_center()))
 
     def save_document_as(self) -> bool:
         current = self._state.file_path
@@ -173,7 +253,7 @@ class MainWindow(QMainWindow):
             return False
         if Path(path).suffix.lower() not in (documents.NATIVE_SUFFIX, ".svg"):
             path += ".svg" if chosen_filter == svg_filter else documents.NATIVE_SUFFIX
-        return documents.save_file(self._session, path, view_center=self.canvas.view_center())
+        return self._remember_saved(documents.save_file(self._session, path, view_center=self.canvas.view_center()))
 
     def export_png(self) -> None:
         scale = ExportPngDialog.ask(self._state.document, self._state.export.scale, self)

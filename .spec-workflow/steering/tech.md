@@ -37,6 +37,7 @@ Session / operations / tools / views, as in professional editors (Blender's oper
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
 - **Native format `.p2s`**: ZIP with an uncompressed `mimetype` entry, `document.json` (document + working state: view, tool settings, selection, edit path) and a preview PNG; `resources/` reserved for embedded images/fonts/brushes. Integer format version with step-by-step migrations and a sample file per version; newer versions refused with a message. Explicit per-type encoders, exact numbers, atomic saves. Documented in `docs/file-format.md`. Default for Save; SVG via Save As.
+- **Units**: geometry is in document pixels; a document's `unit` (px, mm, cm, in, pt) and `dpi` only affect display/entry (`geometry/units.py`, `views/unit_fields.py`), SVG page size and PNG export resolution.
 - **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; rect/ellipse/text keep rotate/scale/skew transforms as a per-shape `transform` (written back as `rotate(...)` or `matrix(...)`), paths get transforms applied to their points; unsupported paint is approximated.
 - **Raster export**: PNG, rendered by the same renderer as the canvas (transparent background, any scale up to 16384 px per side).
 - **Caching**: in-memory only (Skia path cache and recorded document pictures in the canvas).

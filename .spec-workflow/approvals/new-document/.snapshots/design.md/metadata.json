@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/new-document/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T16:42:02.042Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792428122036_xmxtyrtgd",
+      "approvalTitle": "New Document dialog, units, recent files: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T16:42:56.779Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792428122036_xmxtyrtgd",
+      "approvalTitle": "New Document dialog, units, recent files: design"
+    }
+  ]
+}

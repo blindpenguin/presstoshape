@@ -98,9 +98,16 @@ COMPOSITE_IDS: list[str | None | tuple[str, list[str]]] = [
 ]
 ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lower_to_bottom"]
 
+# The File menu's recent files submenu; menu_bar_view creates it here and MainWindow fills it when it opens.
+RECENT_MENU = "file.open_recent"
+RECENT_MENU_TITLE = N_("Open &Recent")
+
 # None is a separator; a (title, ids) tuple is a submenu.
 MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
-    (N_("&File"), ["file.new", "file.open", "file.save", "file.save_as", None, "file.export_png", None, "file.quit"]),
+    (
+        N_("&File"),
+        ["file.new", "file.open", RECENT_MENU, "file.save", "file.save_as", None, "file.export_png", None, "file.quit"],
+    ),
     (
         N_("&Edit"),
         [

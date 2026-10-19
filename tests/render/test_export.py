@@ -1,3 +1,6 @@
+import struct
+import zlib
+
 import skia
 
 from presstoshape.editing.operations import documents, shapes
@@ -63,3 +66,27 @@ def test_export_operation_failure_reports_status(tmp_path):
     session = Session()
     assert not documents.export_png(session, str(tmp_path / "missing" / "out.png"), 1)
     assert session.state.status_message.startswith("Export failed")
+
+
+def _chunks(png: bytes) -> list[tuple[bytes, bytes]]:
+    chunks, position = [], 8
+    while position < len(png):
+        (length,) = struct.unpack(">I", png[position : position + 4])
+        kind, data = png[position + 4 : position + 8], png[position + 8 : position + 8 + length]
+        (crc,) = struct.unpack(">I", png[position + 8 + length : position + 12 + length])
+        assert crc == zlib.crc32(kind + data)
+        chunks.append((kind, data))
+        position += 12 + length
+    return chunks
+
+
+def test_dpi_is_recorded_in_a_valid_phys_chunk():
+    png = render_png(_doc(), 2, dpi=300)
+    chunks = _chunks(png)
+    assert [kind for kind, _data in chunks[:2]] == [b"IHDR", b"pHYs"]
+    assert struct.unpack(">IIB", chunks[1][1]) == (11811, 11811, 1)
+    assert _decode(png).width() == 2 * _doc().width
+
+
+def test_without_dpi_no_phys_chunk():
+    assert b"pHYs" not in [kind for kind, _data in _chunks(render_png(_doc(), 1))]

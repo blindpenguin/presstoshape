@@ -42,7 +42,7 @@ English and German for now; PressToShape follows your system language and Edit �
 
 ### Can I open my existing SVG and Inkscape files?
 
-Mostly, with limits. PressToShape reads general SVG: rectangles, circles, ellipses, lines, polylines, polygons, paths and text, with nested groups, transforms and inherited styles. Inkscape layers should come through as PressToShape layers (hidden ones included), and files saved by PressToShape should open in Inkscape with their layers. PressToShape is in early development, though, so there may be issues.
+Mostly, with limits. PressToShape reads general SVG: rectangles, circles, ellipses, lines, polylines, polygons, paths and text, with nested groups, transforms and inherited styles. Inkscape layers should come through as PressToShape layers (hidden ones included), and files saved by PressToShape should open in Inkscape with their layers. Page sizes in mm, cm, in or pt carry over in both directions. PressToShape is in early development, though, so there may be issues.
 
 Not supported yet: gradients, clip paths, masks, `<use>`, embedded images and CSS stylesheets. They're skipped or approximated (unsupported paint shows as grey). Rectangles, ellipses and text under rotate/scale/skew transforms should keep their type; skew on text is dropped, and paths get the transform applied to their points. Re-saving such a file from PressToShape can lose information, so keep a copy of the original.
 
@@ -60,7 +60,7 @@ Not yet. The pen tool currently places bezier points by clicking. Freehand drawi
 
 ### Can I export PNG or PDF?
 
-PNG, yes: File → Export PNG… (Ctrl+Shift+E), with a scale factor and a transparent background. It uses the same renderer as the canvas, so it should match what you see. PDF export is planned.
+PNG, yes: File → Export PNG… (Ctrl+Shift+E), at a resolution in DPI (or a scale factor) with a transparent background; the file records its DPI, so print programs know its physical size. It uses the same renderer as the canvas, so it should match what you see. PDF export is planned.
 
 ### The canvas is slow, black or crashes. What can I do?
 

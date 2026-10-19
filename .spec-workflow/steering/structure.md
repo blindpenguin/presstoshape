@@ -41,7 +41,8 @@ presstoshape/                   # repo root
     │   ├── segments.py         # building/mapping path segments
     │   ├── booleans.py         # ordered-parts booleans, divide, regions (skia-pathops)
     │   ├── transforms.py       # outline, translate, canonical shape transforms
-    │   └── nodes.py            # path node editing (move, smooth handles, insert, delete)
+    │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)
+    │   └── units.py            # px/mm/cm/in/pt conversions at a DPI
     ├── formats/
     │   ├── svg.py              # SVG read/write
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)

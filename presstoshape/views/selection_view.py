@@ -10,6 +10,7 @@ from presstoshape.i18n import N_, _, ngettext
 from presstoshape.models.app_state import AppState
 from presstoshape.models.shapes import CompositeShape, EllipseShape, PathShape, RectShape, Shape, Style, TextShape
 from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
+from presstoshape.views.unit_fields import LengthSpinBox, font_unit
 from presstoshape.views.widgets import PartModeBox
 
 _COORD_RANGE = 100_000.0
@@ -72,15 +73,13 @@ class SelectionOptions(QWidget):
         self._text.editingFinished.connect(self._on_text_edited)
         self._form.addRow(_("Text"), self._text)
         # One spinbox per field name; rows are shown/hidden per shape type (x/y shared by rect and text).
-        self._spins: dict[str, QDoubleSpinBox] = {}
+        self._spins: dict[str, LengthSpinBox] = {}
         for rows in _GEOMETRY.values():
             for field, label, minimum in rows:
                 if field in self._spins:
                     continue
-                spin = QDoubleSpinBox()
-                spin.setDecimals(2)
-                spin.setRange(-_COORD_RANGE if minimum is None else minimum, _COORD_RANGE)
-                spin.valueChanged.connect(lambda v, f=field: self._on_spin(f, v))
+                spin = LengthSpinBox(-_COORD_RANGE if minimum is None else minimum, _COORD_RANGE)
+                spin.px_changed.connect(lambda px, f=field: self._on_spin(f, px))
                 self._spins[field] = spin
                 self._form.addRow(_(label), spin)
         self._rotation = QDoubleSpinBox()
@@ -120,6 +119,8 @@ class SelectionOptions(QWidget):
             self._heading.setText(ngettext("{count} object", "{count} objects", count).format(count=count))
         self._hint.setVisible(not selected)
         self._style.setVisible(bool(selected))
+        document = state.document
+        self._style.set_unit(document.unit, document.dpi)
         self._style.refresh(selected[0].style if selected else Style())
 
         rows = _GEOMETRY.get(type(single), ())
@@ -128,13 +129,10 @@ class SelectionOptions(QWidget):
         self._separator.setVisible(bool(rows) or show_mode)
         fields = {row[0] for row in rows}
         for field, spin in self._spins.items():
+            spin.set_unit(font_unit(document) if field == "font_size" else document.unit, document.dpi)
             self._form.setRowVisible(spin, field in fields)
             if field in fields:
-                value = getattr(single, field)
-                if spin.value() != value:
-                    spin.blockSignals(True)
-                    spin.setValue(value)
-                    spin.blockSignals(False)
+                spin.set_px(getattr(single, field))
         self._refresh_rotation(single)
         is_text = isinstance(single, TextShape)
         self._form.setRowVisible(self._text, is_text)
@@ -171,7 +169,7 @@ class SelectionOptions(QWidget):
         angle = transforms.rotation_of(single)
         skewed = angle is None
         self._rotation.setEnabled(not skewed)
-        self._rotation.setSpecialValueText("skewed" if skewed else "")
+        self._rotation.setSpecialValueText(_("skewed") if skewed else "")
         value = self._rotation.minimum() if skewed else angle
         if self._rotation.value() != value:
             self._rotation.blockSignals(True)

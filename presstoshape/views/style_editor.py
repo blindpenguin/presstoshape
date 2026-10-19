@@ -1,9 +1,11 @@
 from collections.abc import Callable, Sequence
 
-from PySide6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QFormLayout, QHBoxLayout, QWidget
 
-from presstoshape.i18n import _
+from presstoshape.i18n import _, pgettext
+from presstoshape.models.app_state import Unit
 from presstoshape.models.shapes import Style
+from presstoshape.views.unit_fields import LengthSpinBox
 from presstoshape.views.widgets import ColorButton
 
 FILL, STROKE, WIDTH = "fill", "stroke", "width"
@@ -47,7 +49,7 @@ class StyleEditor(QWidget):
         self.form = QFormLayout(self)
         self.form.setContentsMargins(0, 0, 0, 0)
         self._fill = self._stroke = None
-        self._width: QDoubleSpinBox | None = None
+        self._width: LengthSpinBox | None = None
         for f in fields:
             if f == FILL:
                 self._fill = _PaintRow(on_fill)
@@ -56,12 +58,14 @@ class StyleEditor(QWidget):
                 self._stroke = _PaintRow(on_stroke)
                 self.form.addRow(_("Stroke"), self._stroke)
             elif f == WIDTH:
-                self._width = QDoubleSpinBox()
-                self._width.setRange(0, 200)
-                self._width.setSingleStep(0.5)
-                self._width.setDecimals(2)
-                self._width.valueChanged.connect(on_width)
-                self.form.addRow(_("Width"), self._width)
+                self._width = LengthSpinBox(0, 200, fine=True)
+                self._width.px_changed.connect(on_width)
+                self.form.addRow(pgettext("stroke", "Width"), self._width)
+
+    def set_unit(self, unit: Unit, dpi: float) -> None:
+        """Unit the stroke width is shown in (the document's)."""
+        if self._width is not None:
+            self._width.set_unit(unit, dpi)
 
     def refresh(self, style: Style) -> None:
         if self._fill is not None:
@@ -69,8 +73,5 @@ class StyleEditor(QWidget):
         if self._stroke is not None:
             self._stroke.set_color(style.stroke)
         if self._width is not None:
-            self._width.blockSignals(True)
-            if self._width.value() != style.stroke_width:
-                self._width.setValue(style.stroke_width)
-            self._width.blockSignals(False)
+            self._width.set_px(style.stroke_width)
             self._width.setEnabled(style.stroke is not None)

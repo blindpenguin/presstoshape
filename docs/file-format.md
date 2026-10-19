@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **1**. A sample file lives in [`tests/formats/samples/v1.p2s`](../tests/formats/samples/v1.p2s).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **2**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -42,7 +42,9 @@ All numbers are JSON numbers (written as floats where the model holds floats). `
 
 | Field | Type | Meaning |
 |---|---|---|
-| `width`, `height` | number > 0 | Artboard size in document units (px). |
+| `width`, `height` | number > 0 | Artboard size in document pixels. All coordinates are document pixels. |
+| `unit` | string | Unit lengths are shown and entered in: `"px"`, `"mm"`, `"cm"`, `"in"` or `"pt"`. Display only; it doesn't change coordinates. |
+| `dpi` | number, 1 to 9600 | Document pixels per inch: converts between pixels and physical units, and is the default PNG export resolution. |
 | `next_id` | integer | The next free shape id. Readers raise it above the highest id in the file. |
 | `layers` | list, at least one | Bottom to top, like SVG document order. |
 
@@ -121,6 +123,7 @@ Undo history and the active tool are not stored.
 | Version | PressToShape | Changes |
 |---|---|---|
 | 1 | nightlies from October 2026 | First version. |
+| 2 | nightlies from October 2026 | `document.unit` and `document.dpi`. Version 1 files open as `"px"` at 96 DPI. |
 
 Rules for changing the format:
 

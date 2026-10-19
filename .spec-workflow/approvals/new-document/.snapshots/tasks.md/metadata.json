@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/new-document/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T16:43:45.153Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792428225149_qb2rmj9le",
+      "approvalTitle": "New Document dialog, units, recent files: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T16:44:03.430Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792428225149_qb2rmj9le",
+      "approvalTitle": "New Document dialog, units, recent files: tasks"
+    }
+  ]
+}

@@ -34,9 +34,11 @@ uv run python main.py
 - Undo/redo for all document edits.
 - English (British) and German interface, following the system language by default. Edit → Settings picks the language and the renderer. You can add or improve a translation with your own `.po` file, see [docs/translating.md](docs/translating.md).
 - GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
-- Export PNG (Ctrl+Shift+E) at any scale, transparent background.
+- New Document dialog at startup and on File → New: presets for print (A3 to A6, US Letter, …), screens, social media and icons, or a custom size in px, mm, cm, in or pt with a resolution (DPI). At startup it also lists recent files and offers Open…; it can be turned off there or in Settings. File → Open Recent lists the last ten files.
+- Documents remember their unit: positions, sizes and stroke widths show in it (font sizes in pt for print units).
+- Export PNG (Ctrl+Shift+E) at any resolution (DPI) or scale, transparent background; the PNG records its DPI.
 - Saves in its own format, `.p2s` (File → Save, Ctrl+S): reopening should give back exactly the same drawing, plus the view, tool settings, selection and the Composite you were editing. The format is described in [docs/file-format.md](docs/file-format.md).
-- Opens and saves SVG too (Save As → SVG; an opened SVG keeps saving as SVG), with Inkscape-compatible layers. Rotated rectangles, ellipses and text should keep their type, saved with a `transform` attribute; paths get transforms applied to their points. Composites are saved as their result path, with the parts stored in hidden metadata so other programs show the result. If another program changes the result, PressToShape should notice and open it as a plain path. Gradients, clip paths, `<use>` and images aren't supported yet.
+- Opens and saves SVG too (Save As → SVG; an opened SVG keeps saving as SVG), with Inkscape-compatible layers. Rotated rectangles, ellipses and text should keep their type, saved with a `transform` attribute; paths get transforms applied to their points. Composites are saved as their result path, with the parts stored in hidden metadata so other programs show the result. If another program changes the result, PressToShape should notice and open it as a plain path. SVG files keep their physical size: an A4 document is saved as `width="210mm"`, and A4 files from Inkscape should open as A4 in mm. Gradients, clip paths, `<use>` and images aren't supported yet.
 
 ## Development
 

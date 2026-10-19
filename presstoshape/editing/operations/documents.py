@@ -4,6 +4,7 @@ The format follows the file extension: .p2s is PressToShape's own format, anythi
 import os
 import tempfile
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
 
 from presstoshape.editing import containers, queries
@@ -11,13 +12,47 @@ from presstoshape.editing.operations.view import MAX_ZOOM, MIN_ZOOM
 from presstoshape.editing.session import Session
 from presstoshape.formats import p2s, svg
 from presstoshape.formats.p2s import P2sError, SavedState
+from presstoshape.geometry import units
 from presstoshape.i18n import _
-from presstoshape.models.app_state import AppState, Document
+from presstoshape.models.app_state import AppState, Document, Unit
+from presstoshape.models.document_presets import DEFAULT
 from presstoshape.render import export
 from presstoshape.version import app_version
 
 NATIVE_SUFFIX = ".p2s"
 PREVIEW_SIDE = 256
+
+
+@dataclass(frozen=True)
+class DocumentSetup:
+    """Size of a new document in `unit` (portrait or landscape as given), plus its resolution."""
+
+    width: float
+    height: float
+    unit: Unit
+    dpi: float
+
+
+DEFAULT_SETUP = DocumentSetup(DEFAULT.width, DEFAULT.height, DEFAULT.unit, DEFAULT.dpi)
+
+
+def setup_problem(setup: DocumentSetup) -> str | None:
+    """Why a setup can't become a document (for the dialog to show), or None."""
+    if setup.unit not in units.UNITS:
+        return _("Unknown unit {unit}").format(unit=setup.unit)
+    if not units.MIN_DPI <= setup.dpi <= units.MAX_DPI:
+        return _("DPI must be between {minimum} and {maximum}").format(
+            minimum=round(units.MIN_DPI), maximum=round(units.MAX_DPI)
+        )
+    for side in (setup.width, setup.height):
+        pixels = units.to_px(side, setup.unit, setup.dpi)
+        if pixels < 1:
+            return _("Width and height must be at least 1 px")
+        if pixels > units.MAX_DOCUMENT_PX:
+            return _("Width and height can be at most {maximum} px at this DPI").format(
+                maximum=round(units.MAX_DOCUMENT_PX)
+            )
+    return None
 
 
 def is_native(path: str) -> bool:
@@ -39,8 +74,15 @@ def _reset(session: Session, document: Document, path: str | None, message: str)
     session.notify()
 
 
-def new_document(session: Session) -> None:
-    _reset(session, Document(), None, _("New document"))
+def new_document(session: Session, setup: DocumentSetup = DEFAULT_SETUP) -> None:
+    """Replaces the document with an empty one of this size. Not an undo step; raises ValueError for setups
+    setup_problem() rejects (the dialog never offers them)."""
+    problem = setup_problem(setup)
+    if problem is not None:
+        raise ValueError(problem)
+    width, height = (units.to_px(side, setup.unit, setup.dpi) for side in (setup.width, setup.height))
+    document = Document(width=width, height=height, unit=setup.unit, dpi=setup.dpi)
+    _reset(session, document, None, _("New document"))
 
 
 def _apply_saved_state(state: AppState, saved: SavedState) -> None:
@@ -154,7 +196,7 @@ def export_png(session: Session, path: str, scale: float) -> bool:
     state = session.state
     state.export.scale = scale
     name = Path(path).name
-    data = export.render_png(state.document, scale)
+    data = export.render_png(state.document, scale, state.document.dpi * scale)
     try:
         if data is None:
             raise ValueError(_("the image is too large to render"))

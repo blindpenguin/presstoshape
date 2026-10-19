@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/new-document/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T16:39:12.949Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792427952934_7ywwdao0v",
+      "approvalTitle": "New Document dialog, units, recent files: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T16:40:01.171Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792427952934_7ywwdao0v",
+      "approvalTitle": "New Document dialog, units, recent files: requirements"
+    }
+  ]
+}

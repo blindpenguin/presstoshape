@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import Literal
 
 from presstoshape.i18n import _
 from presstoshape.models.shapes import PartMode, Shape, Style
@@ -21,6 +22,10 @@ class Layer:
     shapes: list[Shape] = field(default_factory=list)
 
 
+# Units lengths are shown and entered in. Coordinates are always document pixels (1/dpi inch).
+Unit = Literal["px", "mm", "cm", "in", "pt"]
+
+
 def layer_name(number: int) -> str:
     """Default name of the `number`th layer, in the active language (names already in documents stay)."""
     return _("Layer {number}").format(number=number)
@@ -33,6 +38,9 @@ class Document:
     # Bottom-to-top paint order, same as SVG document order.
     layers: list[Layer] = field(default_factory=lambda: [Layer(layer_name(1))])
     next_id: int = 1
+    # Shown/entered unit and resolution; width, height and all geometry stay in document pixels.
+    unit: Unit = "px"
+    dpi: float = 96.0
 
 
 @dataclass

@@ -16,7 +16,18 @@ from collections.abc import Sequence
 import svgelements as se
 
 from presstoshape.geometry import booleans
-from presstoshape.geometry.affine import IDENTITY, Affine, apply, as_rotation, compose, is_identity, translation
+from presstoshape.formats.svg_page import PRESSTOSHAPE_NS, page_attributes, read_page
+from presstoshape.formats.svg_page import number_text as _num
+from presstoshape.geometry.affine import (
+    IDENTITY,
+    Affine,
+    apply,
+    as_rotation,
+    compose,
+    is_identity,
+    scaling,
+    translation,
+)
 from presstoshape.geometry.boxes import Rect
 from presstoshape.geometry.segments import quad_to_cubic, transform_segments
 from presstoshape.geometry.transforms import outline, transform_shape
@@ -40,9 +51,8 @@ from presstoshape.models.shapes import (
 SVG_NS = "http://www.w3.org/2000/svg"
 INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape"
 ET.register_namespace("", SVG_NS)
-# Composite definitions live in this namespace, inside the result path's <metadata>: viewers don't render it
+# Composite definitions live in PRESSTOSHAPE_NS, inside the result path's <metadata>: viewers don't render it
 # and Inkscape keeps it.
-PRESSTOSHAPE_NS = "https://github.com/blindpenguin/presstoshape/ns/svg/1"
 ET.register_namespace("inkscape", INKSCAPE_NS)
 ET.register_namespace("presstoshape", PRESSTOSHAPE_NS)
 _COMPOSITE = f"{{{PRESSTOSHAPE_NS}}}composite"
@@ -62,11 +72,6 @@ _NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 
 def _q(tag: str) -> str:
     return f"{{{SVG_NS}}}{tag}"
-
-
-def _num(v: float, digits: int = 3) -> str:
-    s = f"{v:.{digits}f}".rstrip("0").rstrip(".")
-    return "0" if s in ("", "-0") else s
 
 
 def transform_attr(m: Affine) -> str | None:
@@ -96,8 +101,7 @@ def path_d(segments: tuple[Segment, ...]) -> str:
 
 
 def write_svg(doc: Document) -> str:
-    w, h = _num(doc.width), _num(doc.height)
-    root = ET.Element(_q("svg"), {"width": w, "height": h, "viewBox": f"0 0 {w} {h}"})
+    root = ET.Element(_q("svg"), page_attributes(doc))
     for i, layer in enumerate(doc.layers, 1):
         attrs = {"id": f"layer{i}", _GROUPMODE: "layer", _LABEL: layer.name}
         if not layer.visible:
@@ -169,16 +173,21 @@ def read_svg(text: str) -> Document:
 def read_svg_with_notes(text: str) -> tuple[Document, list[str]]:
     """Like read_svg, plus notes about things that couldn't be restored (e.g. Composites edited elsewhere)."""
     root = _parse_root(text)
-    width, height, origin = _document_frame(root)
-    document, notes = _read_layers(root, translation(-origin[0], -origin[1]))
-    document.width, document.height = width, height
+    page = read_page(root)
+    base_matrix = compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
+    document, notes = _read_layers(root, base_matrix)
+    document.width, document.height = page.width, page.height
+    document.unit, document.dpi = page.unit, page.dpi
     return document, notes
 
 
 def read_shapes_svg(text: str) -> tuple[list[Shape], list[str]]:
     """Shapes of every layer in document order (clipboard paste), in the SVG's own user space: unlike read_svg
-    the viewBox origin is not moved to 0,0. Raises like read_svg."""
-    document, notes = _read_layers(_parse_root(text), IDENTITY)
+    the viewBox origin is not moved to 0,0. Coarse physical user units (mm-based files) are scaled like on open.
+    Raises like read_svg."""
+    root = _parse_root(text)
+    page = read_page(root)
+    document, notes = _read_layers(root, scaling(page.scale, page.scale))
     return [shape for layer in document.layers for shape in layer.shapes], notes
 
 
@@ -213,14 +222,6 @@ def _read_layers(root: ET.Element, base_matrix: Affine) -> tuple[Document, list[
             reader.visit(child, base_style, base_matrix, loose.shapes)
 
     return Document(layers=layers or [Layer(layer_name(1))], next_id=reader.next_id), reader.notes
-
-
-def _document_frame(root: ET.Element) -> tuple[float, float, tuple[float, float]]:
-    """(width, height, viewBox origin) in user units — the model works in viewBox coordinates."""
-    view_box = [float(v) for v in _NUMBER.findall(root.get("viewBox", ""))]
-    if len(view_box) == 4 and view_box[2] > 0 and view_box[3] > 0:
-        return view_box[2], view_box[3], (view_box[0], view_box[1])
-    return _length(root.get("width"), 600.0), _length(root.get("height"), 400.0), (0.0, 0.0)
 
 
 class _Reader:

@@ -1,5 +1,7 @@
 import struct
 
+import pytest
+
 from presstoshape.editing.operations import composites, documents, selection, shapes, view
 from presstoshape.editing.session import Session
 from presstoshape.formats import p2s
@@ -145,3 +147,36 @@ def test_broken_p2s_reports_and_keeps_the_document(tmp_path):
     assert not documents.open_file(session, str(bad))
     assert session.state.status_message == "Could not open bad.p2s: not a PressToShape file"
     assert len(all_shapes(session)) == 1
+
+
+# --- new documents with a setup -------------------------------------------------------------
+
+
+def test_new_document_from_a_print_setup():
+    session = Session()
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    documents.new_document(session, documents.DocumentSetup(210, 297, "mm", 300))
+    document = session.state.document
+    assert (document.width, document.height) == pytest.approx((2480.31, 3507.87), abs=0.01)
+    assert (document.unit, document.dpi) == ("mm", 300)
+    assert not session.state.dirty and not session.can_undo
+    assert all(not layer.shapes for layer in document.layers)
+
+
+def test_default_setup_is_the_old_default():
+    session = Session()
+    documents.new_document(session)
+    document = session.state.document
+    assert (document.width, document.height, document.unit, document.dpi) == (600, 400, "px", 96)
+
+
+def test_invalid_setups_are_refused():
+    for setup in (
+        documents.DocumentSetup(0.1, 100, "px", 96),
+        documents.DocumentSetup(100, 100, "px", 0),
+        documents.DocumentSetup(2, 2, "km", 96),
+        documents.DocumentSetup(1000, 1000, "in", 300),
+    ):
+        assert documents.setup_problem(setup) is not None
+        with pytest.raises(ValueError):
+            documents.new_document(Session(), setup)

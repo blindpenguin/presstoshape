@@ -255,6 +255,22 @@ msgid "Mode: {mode}"
 msgstr "Modus: {mode}"
 
 #: presstoshape/editing/operations/documents.py
+msgid "Unknown unit {unit}"
+msgstr "Unbekannte Einheit {unit}"
+
+#: presstoshape/editing/operations/documents.py
+msgid "DPI must be between {minimum} and {maximum}"
+msgstr "DPI muss zwischen {minimum} und {maximum} liegen"
+
+#: presstoshape/editing/operations/documents.py
+msgid "Width and height must be at least 1 px"
+msgstr "Breite und Höhe müssen mindestens 1 px betragen"
+
+#: presstoshape/editing/operations/documents.py
+msgid "Width and height can be at most {maximum} px at this DPI"
+msgstr "Breite und Höhe dürfen bei dieser DPI höchstens {maximum} px betragen"
+
+#: presstoshape/editing/operations/documents.py
 msgid "New document"
 msgstr "Neues Dokument"
 
@@ -626,6 +642,10 @@ msgid "uses a shape id twice"
 msgstr "verwendet eine Form-ID doppelt"
 
 #: presstoshape/formats/p2s.py
+msgid "should be at most {maximum}"
+msgstr "sollte höchstens {maximum} sein"
+
+#: presstoshape/formats/p2s.py
 msgid "should have 2 numbers"
 msgstr "sollte 2 Zahlen enthalten"
 
@@ -676,6 +696,90 @@ msgstr "ungültige Pfaddaten: {data}"
 #: presstoshape/models/app_state.py
 msgid "Layer {number}"
 msgstr "Ebene {number}"
+
+#: presstoshape/models/document_presets.py
+msgid "Print"
+msgstr "Druck"
+
+#: presstoshape/models/document_presets.py
+msgid "Screen"
+msgstr "Bildschirm"
+
+#: presstoshape/models/document_presets.py
+msgid "Web and social"
+msgstr "Web und soziale Medien"
+
+#: presstoshape/models/document_presets.py
+msgid "Icons"
+msgstr "Symbole"
+
+#: presstoshape/models/document_presets.py
+msgid "A3"
+msgstr "A3"
+
+#: presstoshape/models/document_presets.py
+msgid "A4"
+msgstr "A4"
+
+#: presstoshape/models/document_presets.py
+msgid "A5"
+msgstr "A5"
+
+#: presstoshape/models/document_presets.py
+msgid "A6"
+msgstr "A6"
+
+#: presstoshape/models/document_presets.py
+msgid "US Letter"
+msgstr "US Letter"
+
+#: presstoshape/models/document_presets.py
+msgid "US Legal"
+msgstr "US Legal"
+
+#: presstoshape/models/document_presets.py
+msgid "Tabloid"
+msgstr "Tabloid"
+
+#: presstoshape/models/document_presets.py
+msgid "Business card"
+msgstr "Visitenkarte"
+
+#: presstoshape/models/document_presets.py
+msgid "HD"
+msgstr "HD"
+
+#: presstoshape/models/document_presets.py
+msgid "Full HD"
+msgstr "Full HD"
+
+#: presstoshape/models/document_presets.py
+msgid "QHD"
+msgstr "QHD"
+
+#: presstoshape/models/document_presets.py
+msgid "4K UHD"
+msgstr "4K UHD"
+
+#: presstoshape/models/document_presets.py
+msgid "Square post"
+msgstr "Quadratischer Beitrag"
+
+#: presstoshape/models/document_presets.py
+msgid "Portrait post"
+msgstr "Beitrag im Hochformat"
+
+#: presstoshape/models/document_presets.py
+msgid "Story"
+msgstr "Story"
+
+#: presstoshape/models/document_presets.py
+msgid "Link preview"
+msgstr "Linkvorschau"
+
+#: presstoshape/models/document_presets.py
+msgid "Default"
+msgstr "Standard"
 
 #: presstoshape/tools/node.py
 msgid "Node tool edits paths. Use Path → Object to Path (Ctrl+Shift+C) first."
@@ -736,10 +840,16 @@ msgid "Export PNG"
 msgstr "PNG exportieren"
 
 #: presstoshape/views/export_dialog.py
+#: presstoshape/views/new_document_dialog.py
+msgid "Resolution"
+msgstr "Auflösung"
+
+#: presstoshape/views/export_dialog.py
 msgid "Scale"
 msgstr "Skalierung"
 
 #: presstoshape/views/export_dialog.py
+#: presstoshape/views/new_document_dialog.py
 #: presstoshape/views/selection_view.py
 #: presstoshape/views/tool_options_view.py
 msgid "Size"
@@ -806,6 +916,10 @@ msgid "Make Composite &As"
 msgstr "Komposit erstellen a&ls"
 
 #: presstoshape/views/keymap.py
+msgid "Open &Recent"
+msgstr "&Zuletzt geöffnet"
+
+#: presstoshape/views/keymap.py
 msgid "&File"
 msgstr "&Datei"
 
@@ -862,6 +976,10 @@ msgid "Untitled"
 msgstr "Unbenannt"
 
 #: presstoshape/views/main_window.py
+msgid "Open"
+msgstr "Öffnen"
+
+#: presstoshape/views/main_window.py
 msgid "PressToShape and SVG (*.p2s *.svg)"
 msgstr "PressToShape und SVG (*.p2s *.svg)"
 
@@ -870,8 +988,13 @@ msgid "All files (*)"
 msgstr "Alle Dateien (*)"
 
 #: presstoshape/views/main_window.py
-msgid "Open"
-msgstr "Öffnen"
+#: presstoshape/views/new_document_dialog.py
+msgid "No recent files"
+msgstr "Keine zuletzt geöffneten Dateien"
+
+#: presstoshape/views/main_window.py
+msgid "Clear Recent Files"
+msgstr "Liste leeren"
 
 #: presstoshape/views/main_window.py
 msgid "untitled"
@@ -896,6 +1019,50 @@ msgstr "Ungespeicherte Änderungen"
 #: presstoshape/views/main_window.py
 msgid "Save changes to {name}?"
 msgstr "Änderungen an {name} speichern?"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "New Document"
+msgstr "Neues Dokument"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Portrait"
+msgstr "Hochformat"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Landscape"
+msgstr "Querformat"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Width"
+msgstr "Breite"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Height"
+msgstr "Höhe"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Unit"
+msgstr "Einheit"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Orientation"
+msgstr "Ausrichtung"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Create"
+msgstr "Erstellen"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Recent files"
+msgstr "Zuletzt geöffnet"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Open…"
+msgstr "Öffnen…"
+
+#: presstoshape/views/new_document_dialog.py
+msgid "Show this dialog at startup"
+msgstr "Diesen Dialog beim Start anzeigen"
 
 #: presstoshape/views/selection_view.py
 msgid "X"
@@ -975,6 +1142,10 @@ msgstr "Basis"
 msgid "Mixed"
 msgstr "Gemischt"
 
+#: presstoshape/views/selection_view.py
+msgid "skewed"
+msgstr "verzerrt"
+
 #: presstoshape/views/settings/canvas_page.py
 msgid "Canvas"
 msgstr "Arbeitsfläche"
@@ -1002,6 +1173,14 @@ msgstr "Die Umgebungsvariable {variable} erzwingt derzeit {renderer}."
 #: presstoshape/views/settings/dialog.py
 msgid "Settings"
 msgstr "Einstellungen"
+
+#: presstoshape/views/settings/general_page.py
+msgid "General"
+msgstr "Allgemein"
+
+#: presstoshape/views/settings/general_page.py
+msgid "Show the New Document dialog at startup"
+msgstr "Beim Start den Dialog „Neues Dokument“ anzeigen"
 
 #: presstoshape/views/settings/language_page.py
 msgid "Language"
@@ -1114,6 +1293,7 @@ msgid "Stroke"
 msgstr "Kontur"
 
 #: presstoshape/views/style_editor.py
+msgctxt "stroke"
 msgid "Width"
 msgstr "Stärke"
 
