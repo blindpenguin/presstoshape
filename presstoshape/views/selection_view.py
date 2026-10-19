@@ -6,6 +6,7 @@ from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import composites, shapes, style, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
+from presstoshape.i18n import N_, _, ngettext
 from presstoshape.models.app_state import AppState
 from presstoshape.models.shapes import CompositeShape, EllipseShape, PathShape, RectShape, Shape, Style, TextShape
 from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
@@ -15,22 +16,27 @@ _COORD_RANGE = 100_000.0
 
 # (field, label, minimum) per shape type; minimum None = coordinate (may be negative).
 _GEOMETRY: dict[type, tuple[tuple[str, str, float | None], ...]] = {
-    RectShape: (("x", "X", None), ("y", "Y", None), ("width", "W", 0.1), ("height", "H", 0.1)),
-    EllipseShape: (("cx", "Center X", None), ("cy", "Center Y", None), ("rx", "Radius X", 0.1), ("ry", "Radius Y", 0.1)),
-    TextShape: (("x", "X", None), ("y", "Y", None), ("font_size", "Size", 1.0)),
+    RectShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("width", N_("W"), 0.1), ("height", N_("H"), 0.1)),
+    EllipseShape: (
+        ("cx", N_("Centre X"), None),
+        ("cy", N_("Centre Y"), None),
+        ("rx", N_("Radius X"), 0.1),
+        ("ry", N_("Radius Y"), 0.1),
+    ),
+    TextShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("font_size", N_("Size"), 1.0)),
 }
 
 _TYPE_NAMES = {
-    RectShape: "Rectangle",
-    EllipseShape: "Ellipse",
-    PathShape: "Path",
-    TextShape: "Text",
-    CompositeShape: "Composite",
+    RectShape: N_("Rectangle"),
+    EllipseShape: N_("Ellipse"),
+    PathShape: N_("Path"),
+    TextShape: N_("Text"),
+    CompositeShape: N_("Composite"),
 }
 
-_HINT = (
+_HINT = N_(
     "Click to select, Ctrl+click to add or remove, drag on empty canvas for box select. "
-    "Drag handles to scale (Shift keeps proportions, Alt scales from the center); "
+    "Drag handles to scale (Shift keeps proportions, Alt scales from the centre); "
     "drag just outside a corner to rotate (Shift snaps to 15°)."
 )
 _ROTATABLE = (RectShape, EllipseShape, TextShape)
@@ -51,7 +57,7 @@ class SelectionOptions(QWidget):
         self._heading.setFont(heading_font)
         layout.addWidget(self._heading)
 
-        self._hint = QLabel(_HINT)
+        self._hint = QLabel(_(_HINT))
         self._hint.setWordWrap(True)
         self._hint.setEnabled(False)
         layout.addWidget(self._hint)
@@ -61,10 +67,10 @@ class SelectionOptions(QWidget):
         self._form.setContentsMargins(0, 0, 0, 0)
         self._mode = PartModeBox()
         self._mode.mode_picked.connect(partial(composites.set_part_mode, session))
-        self._form.addRow("Mode", self._mode)
+        self._form.addRow(_("Mode"), self._mode)
         self._text = QLineEdit()
         self._text.editingFinished.connect(self._on_text_edited)
-        self._form.addRow("Text", self._text)
+        self._form.addRow(_("Text"), self._text)
         # One spinbox per field name; rows are shown/hidden per shape type (x/y shared by rect and text).
         self._spins: dict[str, QDoubleSpinBox] = {}
         for rows in _GEOMETRY.values():
@@ -76,14 +82,14 @@ class SelectionOptions(QWidget):
                 spin.setRange(-_COORD_RANGE if minimum is None else minimum, _COORD_RANGE)
                 spin.valueChanged.connect(lambda v, f=field: self._on_spin(f, v))
                 self._spins[field] = spin
-                self._form.addRow(label, spin)
+                self._form.addRow(_(label), spin)
         self._rotation = QDoubleSpinBox()
         self._rotation.setDecimals(1)
         # One below -180 is the "skewed" placeholder (special value text shows at the minimum).
         self._rotation.setRange(-180.1, 180.0)
         self._rotation.setSuffix("°")
         self._rotation.valueChanged.connect(self._on_rotation)
-        self._form.addRow("Rotation", self._rotation)
+        self._form.addRow(_("Rotation"), self._rotation)
         layout.addWidget(geometry_box)
         self._geometry = geometry_box
 
@@ -106,11 +112,12 @@ class SelectionOptions(QWidget):
         self._shape = single
 
         if not selected:
-            self._heading.setText("Nothing selected")
+            self._heading.setText(_("Nothing selected"))
         elif single is not None:
-            self._heading.setText(_TYPE_NAMES[type(single)])
+            self._heading.setText(_(_TYPE_NAMES[type(single)]))
         else:
-            self._heading.setText(f"{len(selected)} objects")
+            count = len(selected)
+            self._heading.setText(ngettext("{count} object", "{count} objects", count).format(count=count))
         self._hint.setVisible(not selected)
         self._style.setVisible(bool(selected))
         self._style.refresh(selected[0].style if selected else Style())
@@ -119,7 +126,7 @@ class SelectionOptions(QWidget):
         show_mode = self._refresh_mode(state, selected)
         self._geometry.setVisible(bool(rows) or show_mode)
         self._separator.setVisible(bool(rows) or show_mode)
-        fields = {field for field, _, _ in rows}
+        fields = {row[0] for row in rows}
         for field, spin in self._spins.items():
             self._form.setRowVisible(spin, field in fields)
             if field in fields:
@@ -148,11 +155,11 @@ class SelectionOptions(QWidget):
             if part.id in state.selection and part.id != base_id
         }
         if not others:
-            self._mode.show_mode(None, "Base")
+            self._mode.show_mode(None, _("Base"))
         elif len(others) == 1:
             self._mode.show_mode(next(iter(others)))
         else:
-            self._mode.show_mode(None, "Mixed")
+            self._mode.show_mode(None, _("Mixed"))
         self._mode.setEnabled(bool(others))
         return True
 

@@ -24,6 +24,7 @@ Current:
 7. **Undo/redo** for every document edit.
 8. **Clipboard**: copy, cut, paste, paste in place, duplicate and Alt+drag duplicate; SVG on the clipboard for other apps.
 9. **Files**: native `.p2s` format (lossless, with working state) and SVG open/save.
+10. **Languages and settings**: English and German interface, user-provided `.po` translations; a Settings window (language, renderer).
 
 Core feature pillars (target):
 1. **Freehand & brushes**: pressure-sensitive tablet input, pencil with smoothing, vector brushes, variable-width strokes, width profiles.

@@ -13,7 +13,7 @@ def main() -> None:
 
     if "--self-test" in sys.argv[1:]:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        sys.exit(App().run(self_test=True))
+        sys.exit(App(language="en").run(self_test=True))
     sys.exit(App().run())
 
 

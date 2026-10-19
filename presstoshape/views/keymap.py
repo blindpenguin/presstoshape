@@ -12,6 +12,7 @@ from pathlib import Path
 from PySide6.QtGui import QKeySequence
 
 from presstoshape import icons
+from presstoshape.i18n import N_
 from presstoshape.tools.registry import TOOLS
 
 Keys = QKeySequence.StandardKey
@@ -27,18 +28,19 @@ class Binding:
 
 # Commands that need a dialog or the viewport; MainWindow maps each id to a method.
 WINDOW_COMMANDS = {
-    "file.new": "&New",
-    "file.open": "&Open…",
-    "file.save": "&Save",
-    "file.save_as": "Save &As…",
-    "file.export_png": "&Export PNG…",
-    "file.quit": "&Quit",
-    "edit.cut": "Cu&t",
-    "edit.copy": "&Copy",
-    "edit.paste": "&Paste",
-    "edit.paste_in_place": "Paste in Pl&ace",
-    "view.zoom_fit": "Zoom to &Fit",
-    "help.about": "&About PressToShape",
+    "file.new": N_("&New"),
+    "file.open": N_("&Open…"),
+    "file.save": N_("&Save"),
+    "file.save_as": N_("Save &As…"),
+    "file.export_png": N_("&Export PNG…"),
+    "file.quit": N_("&Quit"),
+    "edit.cut": N_("Cu&t"),
+    "edit.copy": N_("&Copy"),
+    "edit.paste": N_("&Paste"),
+    "edit.paste_in_place": N_("Paste &in Place"),
+    "view.zoom_fit": N_("Zoom to &Fit"),
+    "edit.settings": N_("&Settings…"),
+    "help.about": N_("&About PressToShape"),
 }
 
 KEYMAP: dict[str, Binding] = {
@@ -56,6 +58,7 @@ KEYMAP: dict[str, Binding] = {
     # Inkscape's Ctrl+Alt+V is Divide here, so Illustrator's binding.
     "edit.paste_in_place": Binding("Ctrl+Shift+V"),
     "edit.duplicate": Binding("Ctrl+D"),
+    "edit.settings": Binding("Ctrl+,", icons.SETTINGS),
     "edit.select_all": Binding(Keys.SelectAll),
     # Not Keys.Delete: on KDE that also expands to Ctrl+D, which is Duplicate.
     "edit.delete": Binding("Del", icons.DELETE),
@@ -89,7 +92,7 @@ BOOLEAN_IDS = ["path.union", "path.difference", "path.intersection", "path.exclu
 
 COMPOSITE_IDS: list[str | None | tuple[str, list[str]]] = [
     "path.make_composite",
-    ("Make Composite &As", [f"path.make_composite_{mode}" for mode in ("add", "subtract", "intersect", "exclude")]),
+    (N_("Make Composite &As"), [f"path.make_composite_{mode}" for mode in ("add", "subtract", "intersect", "exclude")]),
     "path.release_composite",
     "path.flatten_composite",
 ]
@@ -97,20 +100,21 @@ ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lo
 
 # None is a separator; a (title, ids) tuple is a submenu.
 MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
-    ("&File", ["file.new", "file.open", "file.save", "file.save_as", None, "file.export_png", None, "file.quit"]),
+    (N_("&File"), ["file.new", "file.open", "file.save", "file.save_as", None, "file.export_png", None, "file.quit"]),
     (
-        "&Edit",
+        N_("&Edit"),
         [
             "edit.undo", "edit.redo", None,
             "edit.cut", "edit.copy", "edit.paste", "edit.paste_in_place", "edit.duplicate", "edit.delete", None,
-            "edit.select_all",
+            "edit.select_all", None,
+            "edit.settings",
         ],
     ),  # fmt: skip
-    ("&Path", [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
-    ("&Object", ARRANGE_IDS),
-    ("&View", ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),
-    ("&Tools", TOOL_IDS),
-    ("&Help", ["help.about"]),
+    (N_("&Path"), [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
+    (N_("&Object"), ARRANGE_IDS),
+    (N_("&View"), ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),
+    (N_("&Tools"), TOOL_IDS),
+    (N_("&Help"), ["help.about"]),
 ]
 
 # The zoom percentage label sits between zoom out and zoom in; toolbar_view inserts it at this marker.

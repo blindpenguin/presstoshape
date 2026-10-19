@@ -24,7 +24,7 @@ It's currently a one-person project.
 
 ### What can PressToShape do today?
 
-Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; copy, paste and duplicate shapes (also to and from Inkscape via the clipboard); combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. Not there yet: gradients, brushes and stable releases.
+Draw rectangles, ellipses, bezier paths and text; set fill, stroke and stroke width; organize layers; copy, paste and duplicate shapes (also to and from Inkscape via the clipboard); combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. The interface is available in English and German. Not there yet: gradients, brushes and stable releases.
 
 ## Using PressToShape
 
@@ -35,6 +35,10 @@ There are no stable releases yet, but [nightly builds](https://github.com/blindp
 ### Which platforms does it run on?
 
 PressToShape targets Linux and Windows. Testing currently happens on Linux only, as no Windows machine is available. macOS isn't a target yet. It may run, but expect limitations.
+
+### Which languages does it speak? Can I translate it?
+
+English and German for now; PressToShape follows your system language and Edit → Settings lets you choose. Other languages can be added without changing the program: translations are standard gettext `.po` files, which you can import in Settings. [docs/translating.md](docs/translating.md) explains how to start one. Contributions of new translations are welcome.
 
 ### Can I open my existing SVG and Inkscape files?
 

@@ -4,17 +4,31 @@ from dataclasses import replace
 
 from presstoshape.editing.registry import operation, register
 from presstoshape.editing.session import Session
+from presstoshape.i18n import N_, _, pgettext
 from presstoshape.models.app_state import Tool
 
 MIN_ZOOM, MAX_ZOOM = 10, 800
 _ZOOM_STEP = 1.25
 
 
+def tool_name(tool: Tool) -> str:
+    """The tool's name without mnemonic, for the status bar and panel titles."""
+    names = {
+        Tool.SELECT: pgettext("tool", "Select"),
+        Tool.NODE: pgettext("tool", "Node"),
+        Tool.PEN: pgettext("tool", "Pen"),
+        Tool.RECTANGLE: pgettext("tool", "Rectangle"),
+        Tool.ELLIPSE: pgettext("tool", "Ellipse"),
+        Tool.TEXT: pgettext("tool", "Text"),
+    }
+    return names[tool]
+
+
 def select_tool(session: Session, tool: Tool) -> None:
     state = session.state
     state.active_tool = tool
     state.node_selection = frozenset()
-    state.status_message = f"Tool: {tool.name.title()}"
+    state.status_message = _("Tool: {name}").format(name=tool_name(tool))
     session.notify()
 
 
@@ -33,17 +47,17 @@ def take_restore_view_center(session: Session) -> tuple[float, float] | None:
     return center
 
 
-@operation("view.zoom_in", "Zoom &In")
+@operation("view.zoom_in", N_("Zoom &In"))
 def zoom_in(session: Session) -> None:
     set_zoom(session, session.state.zoom_percent * _ZOOM_STEP)
 
 
-@operation("view.zoom_out", "Zoom &Out")
+@operation("view.zoom_out", N_("Zoom &Out"))
 def zoom_out(session: Session) -> None:
     set_zoom(session, session.state.zoom_percent / _ZOOM_STEP)
 
 
-register("view.zoom_actual", "&Actual Size", lambda session: set_zoom(session, 100))
+register("view.zoom_actual", N_("&Actual Size"), lambda session: set_zoom(session, 100))
 
 
 def set_tool_style(session: Session, tool: Tool, **changes) -> None:

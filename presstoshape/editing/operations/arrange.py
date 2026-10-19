@@ -5,6 +5,7 @@ from collections.abc import Callable
 from presstoshape.editing import containers, queries
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
+from presstoshape.i18n import N_, _
 from presstoshape.models.shapes import Shape
 
 
@@ -47,21 +48,21 @@ def _arrange(session: Session, reorder: Callable[[list[Shape], set[int]], list[S
         state.status_message = label
 
 
-@operation("object.raise", "&Raise", can_run=_has_selection)
+@operation("object.raise", N_("&Raise"), can_run=_has_selection)
 def raise_selection(session: Session) -> None:
-    _arrange(session, _raise_one_step, "Raise")
+    _arrange(session, _raise_one_step, _("Raise"))
 
 
-@operation("object.lower", "&Lower", can_run=_has_selection)
+@operation("object.lower", N_("&Lower"), can_run=_has_selection)
 def lower_selection(session: Session) -> None:
-    _arrange(session, _lower_one_step, "Lower")
+    _arrange(session, _lower_one_step, _("Lower"))
 
 
-@operation("object.raise_to_top", "Raise to &Top", can_run=_has_selection)
+@operation("object.raise_to_top", N_("Raise to &Top"), can_run=_has_selection)
 def raise_to_top(session: Session) -> None:
-    _arrange(session, _to_top, "Raise to top")
+    _arrange(session, _to_top, _("Raise to top"))
 
 
-@operation("object.lower_to_bottom", "Lower to &Bottom", can_run=_has_selection)
+@operation("object.lower_to_bottom", N_("Lower to &Bottom"), can_run=_has_selection)
 def lower_to_bottom(session: Session) -> None:
-    _arrange(session, _to_bottom, "Lower to bottom")
+    _arrange(session, _to_bottom, _("Lower to bottom"))

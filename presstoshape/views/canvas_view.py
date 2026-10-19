@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QAbstractScrollArea, QInputDialog
 from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import view
 from presstoshape.editing.session import Session
+from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
 from presstoshape.render.overlay import CanvasColors
 from presstoshape.render.paths import PathCache
@@ -44,7 +45,8 @@ class CanvasView(QAbstractScrollArea):
     # Transient gesture text for the status bar (e.g. rotation angle); None when nothing is in progress.
     hint_changed = Signal(object)
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, renderer: str = "auto") -> None:
+        """`renderer` is the renderer setting ("auto", "gl", "cpu")."""
         super().__init__()
         self._session = session
         self._state: AppState | None = None
@@ -67,7 +69,7 @@ class CanvasView(QAbstractScrollArea):
         self._keeps_artboard_centered = False
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self._install_surface(create_surface(self._paint))
+        self._install_surface(create_surface(self._paint, renderer))
         self.horizontalScrollBar().valueChanged.connect(lambda v: self._on_scroll(x=v))
         self.verticalScrollBar().valueChanged.connect(lambda v: self._on_scroll(y=v))
 
@@ -317,5 +319,5 @@ class CanvasView(QAbstractScrollArea):
             super().keyPressEvent(event)
 
     def _ask_text(self) -> str | None:
-        text, ok = QInputDialog.getText(self, "Add text", "Text:")
+        text, ok = QInputDialog.getText(self, _("Add text"), _("Text:"))
         return text if ok else None

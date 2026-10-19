@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/specs/translations/requirements.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T15:59:14.089Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792425554080_phz7qp2lc",
+      "approvalTitle": "Translations & Settings window: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T16:00:56.600Z",
+      "trigger": "revision_requested",
+      "approvalId": "approval_1792425554080_phz7qp2lc",
+      "approvalTitle": "Translations & Settings window: requirements"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2026-10-19T16:01:50.175Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792425681494_wtfaes0kl",
+      "approvalTitle": "Translations & Settings window: requirements (rev. 2, Komposit)"
+    }
+  ]
+}

@@ -5,10 +5,21 @@ from presstoshape.editing.operations._document import map_selected, new_id, repl
 from presstoshape.editing.registry import operation, register
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
+from presstoshape.i18n import N_, _, pgettext
 from presstoshape.models.app_state import AppState
 from presstoshape.models.shapes import CompositeShape, PartMode, PathShape, Shape
 
-MODE_LABELS: dict[PartMode, str] = {"add": "Add", "subtract": "Subtract", "intersect": "Intersect", "exclude": "Exclude"}
+PART_MODES: tuple[PartMode, ...] = ("add", "subtract", "intersect", "exclude")
+
+
+def mode_label(mode: PartMode) -> str:
+    labels = {
+        "add": pgettext("part mode", "Add"),
+        "subtract": pgettext("part mode", "Subtract"),
+        "intersect": pgettext("part mode", "Intersect"),
+        "exclude": pgettext("part mode", "Exclude"),
+    }
+    return labels[mode]
 
 
 def _selected_composites(state: AppState) -> list[CompositeShape]:
@@ -33,32 +44,39 @@ def make_composite(session: Session, mode: PartMode = "add") -> None:
     targets = [shape for shape in queries.selected_shapes(state) if transforms.outline(shape) is not None]
     if len(targets) < 2:
         return
-    with session.edit("Make Composite"):
+    with session.edit(_("Make Composite")):
         modes = ("add",) + (mode,) * (len(targets) - 1)
         composite = CompositeShape(new_id(state), tuple(targets), modes, targets[0].style)
         replace_with(state, targets, [composite])
         state.selection = {composite.id}
-        state.status_message = "Made composite (double-click to edit)"
+        state.status_message = _("Made a Composite (double-click to edit it)")
 
 
-register("path.make_composite", "Make &Composite", make_composite, _can_make)
-for _mode, _label in MODE_LABELS.items():
+register("path.make_composite", N_("Make &Composite"), make_composite, _can_make)
+# Menu entries of the Make Composite As submenu.
+_MAKE_AS_LABELS: dict[PartMode, str] = {
+    "add": N_("&Add"),
+    "subtract": N_("&Subtract"),
+    "intersect": N_("&Intersect"),
+    "exclude": N_("&Exclude"),
+}
+for _mode, _label in _MAKE_AS_LABELS.items():
     register(
         f"path.make_composite_{_mode}",
-        f"&{_label}",
+        _label,
         lambda session, mode=_mode: make_composite(session, mode),
         _can_make,
     )
 
 
-@operation("path.release_composite", "&Release Composite", can_run=_has_composite)
+@operation("path.release_composite", N_("&Release Composite"), can_run=_has_composite)
 def release_composite(session: Session) -> None:
     """Replaces each selected Composite by its parts, in place and with their own styles."""
     state = session.state
     composites = _selected_composites(state)
     if not composites:
         return
-    with session.edit("Release Composite"):
+    with session.edit(_("Release Composite")):
         released: dict[int, CompositeShape] = {composite.id: composite for composite in composites}
         modes: dict[int, PartMode] = {}
         for composite in composites:
@@ -76,7 +94,7 @@ def release_composite(session: Session) -> None:
 
         containers.change_container(state, unpack, modes if containers.editing(state) else None)
         state.selection = {part.id for composite in composites for part in composite.parts}
-        state.status_message = "Released composite"
+        state.status_message = _("Released the Composite")
 
 
 def _flatten(shape: Shape) -> Shape:
@@ -85,15 +103,15 @@ def _flatten(shape: Shape) -> Shape:
     return shape
 
 
-@operation("path.flatten_composite", "&Flatten Composite", can_run=_has_composite)
+@operation("path.flatten_composite", N_("&Flatten Composite"), can_run=_has_composite)
 def flatten_composite(session: Session) -> None:
     """Bakes each selected Composite into a plain path with its result outline and style."""
     state = session.state
     if not _selected_composites(state):
         return
-    with session.edit("Flatten Composite"):
+    with session.edit(_("Flatten Composite")):
         map_selected(state, _flatten)
-        state.status_message = "Flattened composite"
+        state.status_message = _("Flattened the Composite")
 
 
 # --- edit mode ---------------------------------------------------------------------------
@@ -108,7 +126,7 @@ def enter(session: Session, composite_id: int) -> None:
     state.edit_path = (*containers.valid_edit_path(state), composite_id)
     state.selection = set()
     state.node_selection = frozenset()
-    state.status_message = "Editing composite: Esc or Done to leave"
+    state.status_message = _("Editing a Composite: Esc or Done to leave")
     session.end_merge()
     session.notify()
 
@@ -124,7 +142,7 @@ def leave(session: Session, levels: int = 1) -> None:
     state.edit_path = path[: len(path) - levels]
     state.selection = {left}
     state.node_selection = frozenset()
-    state.status_message = "Editing composite" if state.edit_path else "Ready"
+    state.status_message = _("Editing a Composite") if state.edit_path else _("Ready")
     session.end_merge()
     session.notify()
 
@@ -151,9 +169,9 @@ def set_part_mode(session: Session, mode: PartMode) -> None:
     ]
     if not targets:
         return
-    with session.edit("Change mode"):
+    with session.edit(_("Change mode")):
         containers.change_container(state, lambda parts: parts, {part_id: mode for part_id in targets})
-        state.status_message = f"Mode: {MODE_LABELS[mode]}"
+        state.status_message = _("Mode: {mode}").format(mode=mode_label(mode))
 
 
 def set_new_part_mode(session: Session, mode: PartMode) -> None:

@@ -11,13 +11,13 @@ from presstoshape.editing.operations.view import MAX_ZOOM, MIN_ZOOM
 from presstoshape.editing.session import Session
 from presstoshape.formats import p2s, svg
 from presstoshape.formats.p2s import P2sError, SavedState
+from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState, Document
 from presstoshape.render import export
 from presstoshape.version import app_version
 
 NATIVE_SUFFIX = ".p2s"
 PREVIEW_SIDE = 256
-_SVG_HINT = "view, tool settings and selection are only kept in .p2s files"
 
 
 def is_native(path: str) -> bool:
@@ -40,7 +40,7 @@ def _reset(session: Session, document: Document, path: str | None, message: str)
 
 
 def new_document(session: Session) -> None:
-    _reset(session, Document(), None, "New document")
+    _reset(session, Document(), None, _("New document"))
 
 
 def _apply_saved_state(state: AppState, saved: SavedState) -> None:
@@ -72,10 +72,10 @@ def open_file(session: Session, path: str) -> bool:
             saved = None
     except (OSError, ValueError, ET.ParseError) as error:
         # P2sError is a ValueError, with a message written for this status line.
-        session.state.status_message = f"Could not open {name}: {error}"
+        session.state.status_message = _("Could not open {name}: {error}").format(name=name, error=error)
         session.notify()
         return False
-    message = f"Opened {name}"
+    message = _("Opened {name}").format(name=name)
     if notes:
         message += ". " + ". ".join(dict.fromkeys(notes))
     _reset(session, document, path, message)
@@ -134,15 +134,17 @@ def save_file(session: Session, path: str | None = None, view_center: tuple[floa
             data = svg.write_svg(state.document).encode("utf-8")
         _write_atomically(Path(target), data)
     except (OSError, P2sError) as error:
-        state.status_message = f"Could not save {name}: {error}"
+        state.status_message = _("Could not save {name}: {error}").format(name=name, error=error)
         session.notify()
         return False
     state.file_path = target
     state.dirty = False
-    state.status_message = f"Saved {name}"
+    state.status_message = _("Saved {name}").format(name=name)
     if not native and not state.svg_hint_shown:
         state.svg_hint_shown = True
-        state.status_message += f" ({_SVG_HINT})"
+        state.status_message = _(
+            "Saved {name} (view, tool settings and selection are only kept in .p2s files)"
+        ).format(name=name)
     session.notify()
     return True
 
@@ -155,13 +157,13 @@ def export_png(session: Session, path: str, scale: float) -> bool:
     data = export.render_png(state.document, scale)
     try:
         if data is None:
-            raise ValueError("image too large to render")
+            raise ValueError(_("the image is too large to render"))
         Path(path).write_bytes(data)
     except (OSError, ValueError) as error:
-        state.status_message = f"Export failed: {error}"
+        state.status_message = _("Export failed: {error}").format(error=error)
         session.notify()
         return False
     width, height = export.export_size(state.document, scale)
-    state.status_message = f"Exported {name} ({width} × {height} px)"
+    state.status_message = _("Exported {name} ({width} × {height} px)").format(name=name, width=width, height=height)
     session.notify()
     return True

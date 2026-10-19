@@ -30,6 +30,8 @@ presstoshape/                   # repo root
     ├── icons.py                # semantic icon path constants (views only; app for the window icon)
     ├── version.py              # app version: build stamp (_build_info.py, generated) or pyproject.toml
     ├── assets/icons/*.svg      # generated Tabler outline icons (currentColor)
+    ├── assets/translations/    # presstoshape.pot (generated template) + shipped de.po
+    ├── i18n/                   # Qt-free translations: _/ngettext/pgettext/N_, po.py, plural.py, catalog.py, languages.py
     ├── models/                 # plain dataclasses, no logic beyond defaults
     │   ├── app_state.py        # AppState, Document, Layer, Tool
     │   └── shapes.py           # frozen shapes (incl. CompositeShape), Style, path segments, Transform
@@ -60,6 +62,7 @@ presstoshape/                   # repo root
         ├── keymap.py           # shortcuts, icons, menu/toolbar layouts per command id
         ├── actions.py          # QActions built from the registries + keymap
         ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, forwards input to the active tool
+        ├── settings/           # Settings window: dialog.py (PAGES), pages.py, one module per category page
         ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
@@ -105,7 +108,7 @@ Groups separated by a blank line (ruff `I` / isort order once ruff is added).
 
 ### Module/Package Organization
 - Absolute imports with the `presstoshape.` prefix everywhere (`from presstoshape.models.app_state import AppState`); no relative imports.
-- Dependency direction is strict: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render. `tests/test_architecture.py` enforces it.
+- Dependency direction is strict: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render; `i18n` sits below all of them and every layer may import it. `tests/test_architecture.py` enforces it.
 - **No Qt imports below `views/`.**
 - PySide6 only — never PyQt5/6.
 - Dev-only packages (`pytablericons`, `pytest`) are never imported by `presstoshape/`.

@@ -2,6 +2,7 @@ from collections.abc import Callable, Sequence
 
 from PySide6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QWidget
 
+from presstoshape.i18n import _
 from presstoshape.models.shapes import Style
 from presstoshape.views.widgets import ColorButton
 
@@ -50,17 +51,17 @@ class StyleEditor(QWidget):
         for f in fields:
             if f == FILL:
                 self._fill = _PaintRow(on_fill)
-                self.form.addRow("Fill", self._fill)
+                self.form.addRow(_("Fill"), self._fill)
             elif f == STROKE:
                 self._stroke = _PaintRow(on_stroke)
-                self.form.addRow("Stroke", self._stroke)
+                self.form.addRow(_("Stroke"), self._stroke)
             elif f == WIDTH:
                 self._width = QDoubleSpinBox()
                 self._width.setRange(0, 200)
                 self._width.setSingleStep(0.5)
                 self._width.setDecimals(2)
                 self._width.valueChanged.connect(on_width)
-                self.form.addRow("Width", self._width)
+                self.form.addRow(_("Width"), self._width)
 
     def refresh(self, style: Style) -> None:
         if self._fill is not None:

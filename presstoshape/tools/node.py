@@ -7,15 +7,15 @@ from presstoshape.editing import queries
 from presstoshape.editing.operations import node_editing, selection
 from presstoshape.geometry import nodes
 from presstoshape.geometry.boxes import Point, Rect, rect_from_points
+from presstoshape.i18n import N_, _
 from presstoshape.models.shapes import PathShape
 from presstoshape.render.handles import node_at
 from presstoshape.render.overlay import NodeOverlay, Overlay
 from presstoshape.tools.base import BaseTool, CursorType, Mods, ToolContext
 
+_NON_PATH_HINT = N_("Node tool edits paths. Use Path → Object to Path (Ctrl+Shift+C) first.")
 # How close (screen px) a double-click must be to a segment to insert a node there.
 _SEGMENT_PX = 5.0
-
-_NON_PATH_HINT = "Node tool edits paths. Use Path → Object to Path (Ctrl+Shift+C) first."
 
 
 class _Mode(Enum):
@@ -46,7 +46,7 @@ class NodeTool(BaseTool):
         if self._mode is not None:
             return None
         selected = queries.selected_shapes(self._context.state)
-        return _NON_PATH_HINT if any(not isinstance(shape, PathShape) for shape in selected) else None
+        return _(_NON_PATH_HINT) if any(not isinstance(shape, PathShape) for shape in selected) else None
 
     def _edited(self) -> list[PathShape]:
         return [shape for shape in queries.selected_shapes(self._context.state) if isinstance(shape, PathShape)]

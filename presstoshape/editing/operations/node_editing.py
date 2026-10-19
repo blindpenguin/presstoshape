@@ -7,6 +7,7 @@ from presstoshape.editing.operations._document import remove_shapes, replace_sha
 from presstoshape.editing.session import Session
 from presstoshape.geometry import nodes
 from presstoshape.geometry.boxes import Point
+from presstoshape.i18n import _, ngettext
 from presstoshape.models.shapes import CubicTo, PathShape, Segment
 
 NodeRef = tuple[int, int]
@@ -56,7 +57,9 @@ def move_nodes(session: Session, shape_id: int, indices: set[int], dx: float, dy
     if path is None or (dx, dy) == (0, 0) or not nodes.valid_nodes(path.segments, indices):
         return
     moved = nodes.move_nodes(path.segments, indices, dx, dy)
-    _edit_path(session, path, moved, "Move node(s)", f"Moved {len(indices)} node(s)")
+    count = len(indices)
+    message = ngettext("Moved {count} node", "Moved {count} nodes", count).format(count=count)
+    _edit_path(session, path, moved, ngettext("Move node", "Move nodes", count), message)
 
 
 def move_control(session: Session, shape_id: int, ref: tuple[int, int], point: Point, keep_smooth: bool = True) -> None:
@@ -64,7 +67,7 @@ def move_control(session: Session, shape_id: int, ref: tuple[int, int], point: P
     if path is None or not _is_control(path.segments, ref):
         return
     moved = nodes.move_control(path.segments, ref, point, keep_smooth)
-    _edit_path(session, path, moved, "Move handle", "Moved handle")
+    _edit_path(session, path, moved, _("Move handle"), _("Moved a handle"))
 
 
 def insert_node(session: Session, shape_id: int, segment_index: int, t: float) -> None:
@@ -72,7 +75,7 @@ def insert_node(session: Session, shape_id: int, segment_index: int, t: float) -
     if path is None or not 0 < segment_index < len(path.segments) or not 0 < t < 1:
         return
     segments, index = nodes.insert_node(path.segments, segment_index, t)
-    _edit_path(session, path, segments, "Insert node", "Inserted node", frozenset({(shape_id, index)}))
+    _edit_path(session, path, segments, _("Insert node"), _("Inserted a node"), frozenset({(shape_id, index)}))
 
 
 def delete_nodes(session: Session) -> None:
@@ -88,7 +91,8 @@ def delete_nodes(session: Session) -> None:
     }
     if not targets:
         return
-    with session.edit("Delete node(s)"):
+    count = sum(len(indices) for _path, indices in targets.values())
+    with session.edit(ngettext("Delete node", "Delete nodes", count)):
         emptied = set()
         for shape_id, (path, indices) in targets.items():
             segments = nodes.delete_nodes(path.segments, indices)
@@ -99,4 +103,4 @@ def delete_nodes(session: Session) -> None:
         remove_shapes(state, emptied)
         state.selection -= emptied
         state.node_selection = frozenset()
-        state.status_message = f"Deleted {sum(len(indices) for _, indices in targets.values())} node(s)"
+        state.status_message = ngettext("Deleted {count} node", "Deleted {count} nodes", count).format(count=count)

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QToolBu
 from presstoshape import icons
 from presstoshape.editing.operations import layers
 from presstoshape.editing.session import Session
+from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
 from presstoshape.views.icon_engine import icon
 
@@ -22,9 +23,11 @@ class LayersPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         buttons = QHBoxLayout()
-        self._add = self._button(icons.LAYER_ADD, "Add layer", partial(layers.add_layer, session))
+        self._add = self._button(icons.LAYER_ADD, _("Add layer"), partial(layers.add_layer, session))
         self._delete = self._button(
-            icons.LAYER_DELETE, "Delete layer", lambda: layers.remove_layer(session, session.state.selected_layer_index)
+            icons.LAYER_DELETE,
+            _("Delete layer"),
+            lambda: layers.remove_layer(session, session.state.selected_layer_index),
         )
         buttons.addWidget(self._add)
         buttons.addWidget(self._delete)

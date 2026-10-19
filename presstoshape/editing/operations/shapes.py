@@ -9,6 +9,7 @@ from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, box_from_drag
 from presstoshape.geometry.segments import smooth_segments
+from presstoshape.i18n import _
 from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Shape, TextShape
 
@@ -20,23 +21,40 @@ EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
 }
 
 
-def _add(session: Session, make: Callable[[int], Shape], name: str) -> int | None:
+def _field_label(field: str) -> str:
+    """Undo label for editing one field in the selection panel."""
+    labels = {
+        "x": _("Change X"),
+        "y": _("Change Y"),
+        "cx": _("Change X"),
+        "cy": _("Change Y"),
+        "width": _("Change width"),
+        "height": _("Change height"),
+        "rx": _("Change horizontal radius"),
+        "ry": _("Change vertical radius"),
+        "font_size": _("Change font size"),
+        "text": _("Change text"),
+    }
+    return labels[field]
+
+
+def _add(session: Session, make: Callable[[int], Shape], label: str, message: str) -> int | None:
     """Adds to the active layer, or as the top-most part of the edited Composite (in the new-part mode)."""
     state = session.state
     in_composite = containers.editing(state)
     layer = queries.active_layer(state)
     if not in_composite and not layer.visible:
-        state.status_message = f"Layer '{layer.name}' is hidden"
+        state.status_message = _("Layer '{name}' is hidden").format(name=layer.name)
         session.notify()
         return None
-    with session.edit(f"Add {name}"):
+    with session.edit(label):
         shape = make(new_id(state))
         if in_composite:
             containers.change_container(state, lambda shapes: [*shapes, shape])
         else:
             layer.shapes.append(shape)
         state.selection = {shape.id}
-        state.status_message = f"Added {name}"
+        state.status_message = message
     return shape.id
 
 
@@ -45,7 +63,10 @@ def add_rectangle(session: Session, start: Point, end: Point, square: bool = Fal
     if w < 1 or h < 1:
         return None
     style = session.state.tool_styles[Tool.RECTANGLE]
-    return _add(session, lambda shape_id: RectShape(shape_id, x, y, w, h, style), "rectangle")
+    def make(shape_id: int) -> Shape:
+        return RectShape(shape_id, x, y, w, h, style)
+
+    return _add(session, make, _("Add rectangle"), _("Added a rectangle"))
 
 
 def add_ellipse(session: Session, start: Point, end: Point, circle: bool = False) -> int | None:
@@ -53,7 +74,10 @@ def add_ellipse(session: Session, start: Point, end: Point, circle: bool = False
     if w < 1 or h < 1:
         return None
     style = session.state.tool_styles[Tool.ELLIPSE]
-    return _add(session, lambda shape_id: EllipseShape(shape_id, x + w / 2, y + h / 2, w / 2, h / 2, style), "ellipse")
+    def make(shape_id: int) -> Shape:
+        return EllipseShape(shape_id, x + w / 2, y + h / 2, w / 2, h / 2, style)
+
+    return _add(session, make, _("Add ellipse"), _("Added an ellipse"))
 
 
 def add_path(session: Session, points: list[Point]) -> int | None:
@@ -61,19 +85,25 @@ def add_path(session: Session, points: list[Point]) -> int | None:
         return None
     segments = smooth_segments(points)
     style = session.state.tool_styles[Tool.PEN]
-    return _add(session, lambda shape_id: PathShape(shape_id, segments, style), "path")
+    def make(shape_id: int) -> Shape:
+        return PathShape(shape_id, segments, style)
+
+    return _add(session, make, _("Add path"), _("Added a path"))
 
 
 def add_text(session: Session, position: Point, text: str) -> int | None:
     if not text.strip():
         return None
     if containers.editing(session.state):
-        session.state.status_message = "Text can't be a Composite part: add it outside, then use Object to Path"
+        session.state.status_message = _("Text can't be a Composite part: add it outside, then use Object to Path")
         session.notify()
         return None
     style = session.state.tool_styles[Tool.TEXT]
     size = session.state.font_size
-    return _add(session, lambda shape_id: TextShape(shape_id, position[0], position[1], text, size, style), "text")
+    def make(shape_id: int) -> Shape:
+        return TextShape(shape_id, position[0], position[1], text, size, style)
+
+    return _add(session, make, _("Add text"), _("Added text"))
 
 
 def set_shape_field(session: Session, shape_id: int, field: str, value: float | str) -> None:
@@ -96,7 +126,7 @@ def set_shape_field(session: Session, shape_id: int, field: str, value: float | 
         value = float(value) if minimum is None else max(minimum, float(value))
     if getattr(shape, field) == value:
         return
-    with session.edit(f"Change {field.replace('_', ' ')}", merge_key=f"{shape_id}:{field}"):
+    with session.edit(_field_label(field), merge_key=f"{shape_id}:{field}"):
         updated = replace(shape, **{field: value})
         rotation = transforms.rotation_of(shape)
         if rotation:

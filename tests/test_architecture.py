@@ -7,20 +7,21 @@ ROOT = Path(__file__).resolve().parent.parent / "presstoshape"
 
 # Package (or top-level module) -> presstoshape packages/modules it may import.
 ALLOWED = {
-    "models": set(),
-    "geometry": {"models"},
-    "formats": {"models", "geometry"},
-    "render": {"models", "geometry"},
-    "editing": {"models", "geometry", "formats", "render", "version"},
-    "tools": {"models", "geometry", "render", "editing"},
-    "views": {"models", "geometry", "formats", "render", "editing", "tools", "icons", "version"},
-    "app": {"models", "editing", "views", "version", "icons"},
+    "i18n": set(),
+    "models": {"i18n"},
+    "geometry": {"models", "i18n"},
+    "formats": {"models", "geometry", "i18n"},
+    "render": {"models", "geometry", "i18n"},
+    "editing": {"models", "geometry", "formats", "render", "version", "i18n"},
+    "tools": {"models", "geometry", "render", "editing", "i18n"},
+    "views": {"models", "geometry", "formats", "render", "editing", "tools", "icons", "version", "i18n"},
+    "app": {"models", "editing", "views", "version", "icons", "i18n"},
     "icons": set(),
     "version": set(),
     "_build_info": set(),
 }
 
-QT_FREE = {"models", "geometry", "formats", "render", "editing", "tools"}
+QT_FREE = {"i18n", "models", "geometry", "formats", "render", "editing", "tools"}
 
 
 def _modules() -> list[Path]:

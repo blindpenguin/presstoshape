@@ -110,12 +110,24 @@ class SkiaRasterWidget(QWidget):
         self._surface = None
 
 
-def use_gpu() -> bool:
-    choice = os.environ.get("PRESSTOSHAPE_RENDERER", "").lower()
+RENDERER_VARIABLE = "PRESSTOSHAPE_RENDERER"
+
+
+def renderer_override() -> str | None:
+    """"gl" or "cpu" when the environment variable forces one; it wins over the setting."""
+    choice = os.environ.get(RENDERER_VARIABLE, "").lower()
+    return choice if choice in ("cpu", "gl") else None
+
+
+def use_gpu(preference: str = "auto") -> bool:
+    """`preference` is the renderer setting: "auto", "gl" or "cpu"."""
+    choice = renderer_override() or preference
     if choice in ("cpu", "gl"):
         return choice == "gl"
     return QGuiApplication.platformName() != "offscreen"
 
 
-def create_surface(paint: PaintCallback, parent: QWidget | None = None) -> SkiaGLWidget | SkiaRasterWidget:
-    return SkiaGLWidget(paint, parent) if use_gpu() else SkiaRasterWidget(paint, parent)
+def create_surface(
+    paint: PaintCallback, preference: str = "auto", parent: QWidget | None = None
+) -> SkiaGLWidget | SkiaRasterWidget:
+    return SkiaGLWidget(paint, parent) if use_gpu(preference) else SkiaRasterWidget(paint, parent)

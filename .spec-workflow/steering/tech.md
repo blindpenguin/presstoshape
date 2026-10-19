@@ -28,7 +28,9 @@ Session / operations / tools / views, as in professional editors (Blender's oper
 - **Tools** (`presstoshape/tools/`): Qt-free input state machines (`BaseTool` subclasses, listed in `tools/registry.py`). They hold gesture state and previews and commit through one operation call.
 - **Views** (`presstoshape/views/`): Qt widgets. They render from state in an idempotent, cheap `refresh(state)`; menus and toolbars are built from the registries plus `views/keymap.py` (shortcuts, icons, layouts); `CanvasView` forwards input to the active tool. Dialogs live here and pass plain values to operations.
 - **Data flow**: input → tool/view → operation → `session.edit()` (undo, mutate `AppState`) → `session.notify()` → `MainWindow.refresh()` → every view's `refresh(state)`.
-- **Dependency direction**: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render. **No Qt below views.** Enforced by `tests/test_architecture.py`.
+- **Dependency direction**: `models ← geometry ← render ← editing ← tools ← views`; `formats` uses only models and geometry; `editing` may use formats and render; `i18n` is below all of them. **No Qt below views.** Enforced by `tests/test_architecture.py`.
+- **Translations** (`presstoshape/i18n/`): gettext-style calls over PO files, Qt-free so operations, formats and tools translate their own messages. A small strict PO parser and a safe plural-formula evaluator (no `eval`), no extra dependency. British English source texts (English uses the `en_GB` locale), shipped `de.po`, user `.po` files in a translations folder override entry by entry. The language is installed once at startup (restart to change); Qt's own strings come from `qtbase_<lang>.qm` via `QTranslator`, number formats from `QLocale.setDefault`. `scripts/update_translations.py` collects marked strings (AST) into `presstoshape.pot`; a test keeps it current.
+- **Settings**: `QSettings` (registry, `~/.config`, or portable `settings.ini`) behind typed accessors in `views/app_settings.py`; the Settings window (`views/settings/`) has one page per category and applies changes immediately.
 - **Canvas**: `CanvasView` (QAbstractScrollArea) hosts a Skia surface widget and redraws the document from state each frame, replaying recorded Skia pictures. Shape geometry is in document coordinates with a canonical per-shape transform.
 - **Undo**: snapshot-based, behind `Session.edit`. Snapshots copy layer lists and share immutable shape objects; consecutive edits with the same merge key collapse into one step; 200-step limit. Steps carry labels shown in the Edit menu.
 
@@ -110,6 +112,7 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 9. **uv + exact pins**: reproducible environments; Qt minor upgrades are deliberate.
 10. **PyInstaller for packaging**: mature, supports PySide6 on Linux and Windows.
 11. **GPL-3.0**: protects against closed-source forks, in line with Inkscape/Krita.
+12. **gettext PO files, own parser, Qt-free i18n**: PO is the most widely supported translation format (Poedit, Weblate, Crowdin) with plural forms; Qt's `.ts`/`.qm` would only work in the views and needs a compile step for users. Parsing PO and plural formulas is a few hundred lines, cheaper than vetting and pinning `babel`/`polib`. Trade-off: one more small parser to maintain.
 
 ## Known Limitations
 - **Renderer**: Skia renders shapes with solid paint only so far; gradients, blend modes and effects are future specs. Continuous zoom on documents with many text objects re-rasterizes glyphs at each scale (~20 ms/frame at 10k shapes on an integrated GPU); pan and drag stay under 16 ms. The CPU fallback is ~25–30 ms/frame at 10k shapes.

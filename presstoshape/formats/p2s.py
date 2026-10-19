@@ -10,6 +10,7 @@ from typing import Any
 
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, upgrade
 from presstoshape.geometry.boxes import Point
+from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
@@ -126,46 +127,50 @@ def encode_document(document: Document) -> dict[str, Any]:
 # Every reader takes the JSON path of the value (e.g. "document.layers[0].shapes[3]") for its error message.
 
 
+def _one_of(choices: tuple[str, ...]) -> str:
+    return _("should be one of {choices}").format(choices=", ".join(choices))
+
+
 def _damaged(where: str, problem: str) -> P2sError:
-    return P2sError(f"damaged file: {where} {problem}")
+    return P2sError(_("damaged file: {where} {problem}").format(where=where, problem=problem))
 
 
 def read_object(value: Any, where: str) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise _damaged(where, "should be an object")
+        raise _damaged(where, _("should be an object"))
     return value
 
 
 def read_list(value: Any, where: str) -> list[Any]:
     if not isinstance(value, list):
-        raise _damaged(where, "should be a list")
+        raise _damaged(where, _("should be a list"))
     return value
 
 
 def _field(fields: dict[str, Any], key: str, where: str) -> Any:
     if key not in fields:
-        raise _damaged(where, f"is missing {key!r}")
+        raise _damaged(where, _("is missing {key}").format(key=repr(key)))
     return fields[key]
 
 
 def read_number(value: Any, where: str, minimum: float | None = None) -> float:
     # bool is an int subclass; true/false in place of a number is damage, not 1/0.
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise _damaged(where, "should be a finite number")
+        raise _damaged(where, _("should be a finite number"))
     if minimum is not None and value < minimum:
-        raise _damaged(where, f"should be at least {minimum}")
+        raise _damaged(where, _("should be at least {minimum}").format(minimum=minimum))
     return float(value)
 
 
 def read_int(value: Any, where: str, minimum: int = 0) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
-        raise _damaged(where, f"should be a whole number of at least {minimum}")
+        raise _damaged(where, _("should be a whole number of at least {minimum}").format(minimum=minimum))
     return value
 
 
 def read_string(value: Any, where: str, max_length: int = _MAX_TEXT) -> str:
     if not isinstance(value, str) or len(value) > max_length:
-        raise _damaged(where, "should be text")
+        raise _damaged(where, _("should be text"))
     return value
 
 
@@ -191,7 +196,7 @@ def _decode_transform(fields: dict[str, Any], where: str) -> Transform:
         return IDENTITY_TRANSFORM
     values = read_list(fields["transform"], f"{where}.transform")
     if len(values) != 6:
-        raise _damaged(f"{where}.transform", "should have 6 numbers")
+        raise _damaged(f"{where}.transform", _("should have 6 numbers"))
     return tuple(read_number(value, f"{where}.transform[{index}]") for index, value in enumerate(values))
 
 
@@ -201,7 +206,7 @@ _SEGMENT_SIZES = {"M": 2, "L": 2, "C": 6, "Z": 0}
 def _decode_segment(value: Any, where: str) -> Segment:
     items = read_list(value, where)
     if not items or items[0] not in _SEGMENT_SIZES or len(items) != _SEGMENT_SIZES[items[0]] + 1:
-        raise _damaged(where, "should be a path segment like [\"L\", x, y]")
+        raise _damaged(where, _("should be a path segment like [\"L\", x, y]"))
     numbers = [read_number(item, f"{where}[{index}]") for index, item in enumerate(items[1:], start=1)]
     match items[0]:
         case "M":
@@ -259,14 +264,14 @@ def decode_shape(value: Any, where: str) -> Shape:
             part_values = read_list(_field(fields, "parts", where), f"{where}.parts")
             mode_values = read_list(_field(fields, "modes", where), f"{where}.modes")
             if not part_values or len(mode_values) != len(part_values):
-                raise _damaged(where, "should have parts and one mode per part")
+                raise _damaged(where, _("should have parts and one mode per part"))
             for index, mode in enumerate(mode_values):
                 if mode not in PART_MODES:
-                    raise _damaged(f"{where}.modes[{index}]", f"should be one of {', '.join(PART_MODES)}")
+                    raise _damaged(f"{where}.modes[{index}]", _one_of(PART_MODES))
             parts = tuple(decode_shape(part, f"{where}.parts[{index}]") for index, part in enumerate(part_values))
             return CompositeShape(shape_id, parts, tuple(mode_values), style, transform)
         case _:
-            raise _damaged(f"{where}.type", f"is an unknown shape type {shape_type!r}")
+            raise _damaged(f"{where}.type", _("is an unknown shape type {type}").format(type=repr(shape_type)))
 
 
 def _all_ids(shapes: list[Shape]) -> list[int]:
@@ -287,16 +292,16 @@ def decode_document(value: Any, where: str = "document") -> Document:
         layer_fields = read_object(layer_value, layer_where)
         visible = _field(layer_fields, "visible", layer_where)
         if not isinstance(visible, bool):
-            raise _damaged(f"{layer_where}.visible", "should be true or false")
+            raise _damaged(f"{layer_where}.visible", _("should be true or false"))
         shape_values = read_list(_field(layer_fields, "shapes", layer_where), f"{layer_where}.shapes")
         shapes = [decode_shape(item, f"{layer_where}.shapes[{number}]") for number, item in enumerate(shape_values)]
         name = read_string(_field(layer_fields, "name", layer_where), f"{layer_where}.name")
         layers.append(Layer(name, visible, shapes))
     if not layers:
-        raise _damaged(f"{where}.layers", "should have at least one layer")
+        raise _damaged(f"{where}.layers", _("should have at least one layer"))
     ids = [shape_id for layer in layers for shape_id in _all_ids(layer.shapes)]
     if len(ids) != len(set(ids)):
-        raise _damaged(where, "uses a shape id twice")
+        raise _damaged(where, _("uses a shape id twice"))
     next_id = read_int(_field(fields, "next_id", where), f"{where}.next_id", minimum=0)
     return Document(
         width=_number_field(fields, "width", where, minimum=0.1),
@@ -338,7 +343,7 @@ def decode_state(value: Any, where: str = "state") -> SavedState:
     if center is not None:
         items = read_list(center, f"{where}.view.center")
         if len(items) != 2:
-            raise _damaged(f"{where}.view.center", "should have 2 numbers")
+            raise _damaged(f"{where}.view.center", _("should have 2 numbers"))
         center = (read_number(items[0], f"{where}.view.center[0]"), read_number(items[1], f"{where}.view.center[1]"))
     styles = {}
     known_tools = {tool.name.lower(): tool for tool in Tool}
@@ -349,7 +354,7 @@ def decode_state(value: Any, where: str = "state") -> SavedState:
     font_size = tools.get("font_size")
     mode = tools.get("new_part_mode")
     if mode is not None and mode not in PART_MODES:
-        raise _damaged(f"{where}.tools.new_part_mode", f"should be one of {', '.join(PART_MODES)}")
+        raise _damaged(f"{where}.tools.new_part_mode", _one_of(PART_MODES))
     selection = read_list(fields.get("selection", []), f"{where}.selection")
     edit_path = read_list(fields.get("edit_path", []), f"{where}.edit_path")
     layer = fields.get("selected_layer")
@@ -396,19 +401,19 @@ def write_p2s(document: Document, state: SavedState, preview: bytes | None, app_
 def _read_entry(archive: zipfile.ZipFile, name: str, limit: int) -> bytes:
     """Reads in chunks and stops at `limit`: the size an archive declares can't be trusted."""
     if archive.getinfo(name).file_size > limit:
-        raise P2sError(f"damaged file: {name} is too large")
+        raise P2sError(_("damaged file: {name} is too large").format(name=name))
     chunks, total = [], 0
     with archive.open(name) as entry:
         while chunk := entry.read(_READ_CHUNK):
             total += len(chunk)
             if total > limit:
-                raise P2sError(f"damaged file: {name} is too large")
+                raise P2sError(_("damaged file: {name} is too large").format(name=name))
             chunks.append(chunk)
     return b"".join(chunks)
 
 
 def _reject_constant(name: str) -> None:
-    raise P2sError(f"damaged file: document.json contains {name}")
+    raise P2sError(_("damaged file: document.json contains {value}").format(value=name))
 
 
 def read_p2s(data: bytes) -> tuple[Document, SavedState]:
@@ -416,30 +421,31 @@ def read_p2s(data: bytes) -> tuple[Document, SavedState]:
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile:
-        raise P2sError("not a PressToShape file") from None
+        raise P2sError(_("not a PressToShape file")) from None
     with archive:
         names = archive.namelist()
         try:
             if not names or names[0] != "mimetype" or _read_entry(archive, "mimetype", 100) != MIMETYPE.encode():
-                raise P2sError("not a PressToShape file")
+                raise P2sError(_("not a PressToShape file"))
             if "document.json" not in names:
-                raise P2sError("damaged file: document.json is missing")
+                raise P2sError(_("damaged file: document.json is missing"))
             raw = _read_entry(archive, "document.json", _MAX_DOCUMENT_BYTES)
         except (zipfile.BadZipFile, OSError, EOFError) as error:
-            raise P2sError(f"damaged file: {error}") from None
+            raise P2sError(_("damaged file: {error}").format(error=error)) from None
     try:
         payload = json.loads(raw.decode("utf-8"), parse_constant=_reject_constant)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise P2sError(f"damaged file: document.json isn't valid JSON ({error})") from None
+        raise P2sError(_("damaged file: document.json isn't valid JSON ({error})").format(error=error)) from None
     payload = read_object(payload, "document.json")
     if payload.get("format") != FORMAT_NAME:
-        raise P2sError("not a PressToShape file")
+        raise P2sError(_("not a PressToShape file"))
     version = read_int(payload.get("format_version"), "format_version", minimum=1)
     if version > CURRENT_VERSION:
-        raise P2sError(
-            f"made with a newer PressToShape (file format {version}, this version reads up to {CURRENT_VERSION});"
+        message = _(
+            "made with a newer PressToShape (file format {version}, this version reads up to {supported});"
             " please update PressToShape"
         )
+        raise P2sError(message.format(version=version, supported=CURRENT_VERSION))
     payload = upgrade(payload, version)
     return decode_document(payload.get("document")), decode_state(payload.get("state", {}))
 

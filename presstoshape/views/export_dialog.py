@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QWidget
 
+from presstoshape.i18n import _
 from presstoshape.models.app_state import Document
 from presstoshape.render.export import MAX_SIDE, export_size
 
@@ -11,7 +12,7 @@ class ExportPngDialog(QDialog):
 
     def __init__(self, doc: Document, scale: float, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Export PNG")
+        self.setWindowTitle(_("Export PNG"))
         self._doc = doc
         self._scale = QDoubleSpinBox()
         self._scale.setDecimals(2)
@@ -27,13 +28,13 @@ class ExportPngDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form = QFormLayout(self)
-        form.addRow("Scale", self._scale)
-        form.addRow("Size", self._size)
+        form.addRow(_("Scale"), self._scale)
+        form.addRow(_("Size"), self._size)
         form.addRow(buttons)
 
     def _update_size(self) -> None:
         width, height = export_size(self._doc, self._scale.value())
-        self._size.setText(f"{width} × {height} px")
+        self._size.setText(_("{width} × {height} px").format(width=width, height=height))
 
     @classmethod
     def ask(cls, doc: Document, scale: float, parent: QWidget | None = None) -> float | None:

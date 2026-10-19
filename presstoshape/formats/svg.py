@@ -20,7 +20,8 @@ from presstoshape.geometry.affine import IDENTITY, Affine, apply, as_rotation, c
 from presstoshape.geometry.boxes import Rect
 from presstoshape.geometry.segments import quad_to_cubic, transform_segments
 from presstoshape.geometry.transforms import outline, transform_shape
-from presstoshape.models.app_state import Document, Layer
+from presstoshape.i18n import _
+from presstoshape.models.app_state import Document, Layer, layer_name
 from presstoshape.models.shapes import (
     Close,
     CompositeShape,
@@ -184,7 +185,7 @@ def read_shapes_svg(text: str) -> tuple[list[Shape], list[str]]:
 def _parse_root(text: str) -> ET.Element:
     root = ET.fromstring(text)
     if root.tag != _q("svg"):
-        raise ValueError("not an SVG document")
+        raise ValueError(_("not an SVG document"))
     return root
 
 
@@ -199,7 +200,7 @@ def _read_layers(root: ET.Element, base_matrix: Affine) -> tuple[Document, list[
             style = _merge_style(base_style, child)
             # Hidden layers still hold content, so read their children despite display:none.
             visible = style.pop("display", None) != "none"
-            name = child.get(_LABEL) or child.get("id") or f"Layer {len(layers) + 1}"
+            name = child.get(_LABEL) or child.get("id") or layer_name(len(layers) + 1)
             layer = Layer(name, visible)
             matrix = compose(base_matrix, _parse_transform(child.get("transform")))
             for grandchild in child:
@@ -207,11 +208,11 @@ def _read_layers(root: ET.Element, base_matrix: Affine) -> tuple[Document, list[
             layers.append(layer)
         else:
             if loose is None or layers[-1] is not loose:
-                loose = Layer(f"Layer {len(layers) + 1}")
+                loose = Layer(layer_name(len(layers) + 1))
                 layers.append(loose)
             reader.visit(child, base_style, base_matrix, loose.shapes)
 
-    return Document(layers=layers or [Layer("Layer 1")], next_id=reader.next_id), reader.notes
+    return Document(layers=layers or [Layer(layer_name(1))], next_id=reader.next_id), reader.notes
 
 
 def _document_frame(root: ET.Element) -> tuple[float, float, tuple[float, float]]:
@@ -271,13 +272,13 @@ class _Reader:
             paint = plain.style if plain is not None else Style()
             composite = CompositeShape(self._new_id(), tuple(parts), tuple(modes), paint)
         except (ValueError, TypeError, IndexError):
-            self.notes.append("A composite couldn't be read and was opened as a path")
+            self.notes.append(_("A composite couldn't be read and was opened as a path"))
             return plain
         result = outline(composite) or ()
         stored = plain.segments if plain is not None else ()
         allowed = max(_MISMATCH_SHARE * booleans.area(result), _MISMATCH_FLOOR)
         if booleans.mismatch_area(result, stored) > allowed:
-            self.notes.append("A composite was edited in another program and was opened as a path")
+            self.notes.append(_("A composite was edited in another program and was opened as a path"))
             return plain
         return composite
 
@@ -410,7 +411,7 @@ def _parse_path_data(d: str) -> tuple[Segment, ...]:
     try:
         parsed = list(se.Path(d).segments())
     except (ValueError, TypeError, IndexError) as e:
-        raise ValueError(f"bad path data: {d[:40]!r}") from e
+        raise ValueError(_("bad path data: {data}").format(data=repr(d[:40]))) from e
     out: list[Segment] = []
     for s in parsed:
         if isinstance(s, se.Move):

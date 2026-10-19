@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from presstoshape.i18n import N_
 from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import BaseTool, ToolContext
 from presstoshape.tools.node import NodeTool
@@ -22,12 +23,12 @@ class ToolEntry:
 
 
 TOOLS = (
-    ToolEntry(Tool.SELECT, "tool.select", "&Select", SelectTool),
-    ToolEntry(Tool.NODE, "tool.node", "&Node", NodeTool),
-    ToolEntry(Tool.PEN, "tool.pen", "&Pen", PenTool),
-    ToolEntry(Tool.RECTANGLE, "tool.rectangle", "&Rectangle", RectangleTool),
-    ToolEntry(Tool.ELLIPSE, "tool.ellipse", "&Ellipse", EllipseTool),
-    ToolEntry(Tool.TEXT, "tool.text", "&Text", TextTool),
+    ToolEntry(Tool.SELECT, "tool.select", N_("&Select"), SelectTool),
+    ToolEntry(Tool.NODE, "tool.node", N_("&Node"), NodeTool),
+    ToolEntry(Tool.PEN, "tool.pen", N_("&Pen"), PenTool),
+    ToolEntry(Tool.RECTANGLE, "tool.rectangle", N_("&Rectangle"), RectangleTool),
+    ToolEntry(Tool.ELLIPSE, "tool.ellipse", N_("&Ellipse"), EllipseTool),
+    ToolEntry(Tool.TEXT, "tool.text", N_("&Text"), TextTool),
 )
 
 

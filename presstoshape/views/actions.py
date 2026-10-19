@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget
 from presstoshape.editing import registry
 from presstoshape.editing.operations import view
 from presstoshape.editing.session import Session
+from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState, Tool
 from presstoshape.tools.registry import TOOLS
 from presstoshape.views.icon_engine import icon
@@ -22,7 +23,7 @@ def _sequences(item: str | QKeySequence.StandardKey) -> list[QKeySequence]:
 def _tooltip_keys(shortcut: Shortcut) -> str:
     """The shortcuts as declared in the keymap, not every platform alias of a standard key."""
     items = shortcut if isinstance(shortcut, tuple) else (shortcut,)
-    names = [QKeySequence(item).toString() for item in items]
+    names = [QKeySequence(item).toString(QKeySequence.SequenceFormat.NativeText) for item in items]
     return ", ".join(dict.fromkeys(name for name in names if name))
 
 
@@ -34,13 +35,13 @@ class AppActions:
         self._session = session
         self._actions: dict[str, QAction] = {}
         for entry in registry.operations():
-            self._add(entry.id, entry.label, partial(entry.invoke, session))
+            self._add(entry.id, _(entry.label), partial(entry.invoke, session))
         for command_id, slot in window_commands.items():
-            self._add(command_id, WINDOW_COMMANDS[command_id], slot)
+            self._add(command_id, _(WINDOW_COMMANDS[command_id]), slot)
         self._tool_group = QActionGroup(parent)
         self._tool_actions: dict[Tool, QAction] = {}
         for entry in TOOLS:
-            action = self._add(entry.id, entry.label, partial(view.select_tool, session, entry.tool))
+            action = self._add(entry.id, _(entry.label), partial(view.select_tool, session, entry.tool))
             action.setCheckable(True)
             self._tool_group.addAction(action)
             self._tool_actions[entry.tool] = action
@@ -72,8 +73,8 @@ class AppActions:
         session = self._session
         for entry in registry.operations():
             self._actions[entry.id].setEnabled(entry.can_run(session))
-        self._label_history("edit.undo", "&Undo", session.undo_label)
-        self._label_history("edit.redo", "&Redo", session.redo_label)
+        self._label_history("edit.undo", _("&Undo"), session.undo_label)
+        self._label_history("edit.redo", _("&Redo"), session.redo_label)
         self._tool_actions[state.active_tool].setChecked(True)
 
     def _label_history(self, command_id: str, base: str, step: str | None) -> None:

@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QToolButton, QWi
 from presstoshape.editing import containers
 from presstoshape.editing.operations import composites
 from presstoshape.editing.session import Session
+from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
 
 
@@ -15,13 +16,13 @@ class EditBar(QWidget):
         self._path: tuple[int, ...] | None = None
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 2, 8, 2)
-        layout.addWidget(QLabel("Editing:"))
+        layout.addWidget(QLabel(_("Editing:")))
         self._crumbs = QHBoxLayout()
         self._crumbs.setSpacing(2)
         layout.addLayout(self._crumbs)
         layout.addStretch(1)
-        done = QPushButton("Done")
-        done.setToolTip("Leave this Composite (Esc)")
+        done = QPushButton(_("Done"))
+        done.setToolTip(_("Leave this Composite (Esc)"))
         done.clicked.connect(lambda: composites.leave(session))
         layout.addWidget(done)
         self.setVisible(False)
@@ -41,7 +42,7 @@ class EditBar(QWidget):
         layer_name = next(
             (layer.name for layer in state.document.layers if any(shape.id == path[0] for shape in layer.shapes)), ""
         )
-        names = [layer_name] + ["Composite"] * len(path)
+        names = [layer_name] + [_("Composite")] * len(path)
         for depth, name in enumerate(names):
             if depth:
                 self._crumbs.addWidget(QLabel("›"))

@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 from presstoshape.editing import containers
+from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState, Document, Layer
 
 _UNDO_LIMIT = 200
@@ -104,11 +105,11 @@ class Session:
 
     def undo(self) -> None:
         if self._undo:
-            self._step(self._undo, self._redo, "Undo")
+            self._step(self._undo, self._redo, _("Undo"))
 
     def redo(self) -> None:
         if self._redo:
-            self._step(self._redo, self._undo, "Redo")
+            self._step(self._redo, self._undo, _("Redo"))
 
     def _step(self, source: list[_Step], target: list[_Step], message: str) -> None:
         step = source.pop()

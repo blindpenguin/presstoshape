@@ -87,7 +87,7 @@ def test_existing_operations_work_on_parts():
     selection.move_selection(session, 5, 0)
     part = _outer(session).parts[1].parts[0]
     assert part.style.fill == "#00ff00" and part.x == 5
-    assert session.undo_label == "Move 1 object(s)"
+    assert session.undo_label == "Move 1 object"
 
 
 def test_find_shape_reaches_nested_parts():

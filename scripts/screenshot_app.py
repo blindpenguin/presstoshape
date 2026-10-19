@@ -2,7 +2,7 @@
 watching the window. Seeds a few demo shapes unless `--empty` is passed; `--tool rectangle` (etc.) activates a
 tool first, e.g. to check its options panel.
 
-Usage: uv run python scripts/screenshot_app.py [--empty] [--tool NAME]
+Usage: uv run python scripts/screenshot_app.py [--empty] [--tool NAME] [--language CODE]
 Output: dev-screenshots/app.png (gitignored)
 """
 
@@ -33,7 +33,8 @@ def _seed(session: Session) -> None:
 
 
 if __name__ == "__main__":
-    app = App()
+    language = sys.argv[sys.argv.index("--language") + 1] if "--language" in sys.argv else "en"
+    app = App(language=language)
     if "--empty" not in sys.argv:
         _seed(app.session)
     if "--tool" in sys.argv:

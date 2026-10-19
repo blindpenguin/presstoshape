@@ -4,20 +4,21 @@ from presstoshape.editing.operations._document import prune_selection
 from presstoshape.editing.operations.composites import leave_all
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
-from presstoshape.models.app_state import Layer
+from presstoshape.i18n import N_, _
+from presstoshape.models.app_state import Layer, layer_name
 
 
-@operation("layer.add", "Add layer")
+@operation("layer.add", N_("Add layer"))
 def add_layer(session: Session) -> None:
     state = session.state
-    with session.edit("Add layer"):
+    with session.edit(_("Add layer")):
         layers = state.document.layers
         names = {layer.name for layer in layers}
         number = len(layers) + 1
-        while f"Layer {number}" in names:
+        while layer_name(number) in names:
             number += 1
         index = state.selected_layer_index + 1
-        layers.insert(index, Layer(f"Layer {number}"))
+        layers.insert(index, Layer(layer_name(number)))
         state.selected_layer_index = index
 
 
@@ -26,14 +27,14 @@ def remove_layer(session: Session, index: int) -> None:
     layers = state.document.layers
     if len(layers) <= 1 or not 0 <= index < len(layers):
         return
-    with session.edit("Delete layer"):
+    with session.edit(_("Delete layer")):
         leave_all(state)
         del layers[index]
         state.selected_layer_index = min(state.selected_layer_index, len(layers) - 1)
         prune_selection(state)
 
 
-@operation("layer.remove", "Delete layer", can_run=lambda session: len(session.state.document.layers) > 1)
+@operation("layer.remove", N_("Delete layer"), can_run=lambda session: len(session.state.document.layers) > 1)
 def remove_current_layer(session: Session) -> None:
     remove_layer(session, session.state.selected_layer_index)
 
@@ -52,7 +53,7 @@ def set_layer_visible(session: Session, index: int, visible: bool) -> None:
     layer = state.document.layers[index]
     if layer.visible == visible:
         return
-    with session.edit("Show layer" if visible else "Hide layer"):
+    with session.edit(_("Show layer") if visible else _("Hide layer")):
         leave_all(state)
         layer.visible = visible
         prune_selection(state)
@@ -62,7 +63,7 @@ def rename_layer(session: Session, index: int, name: str) -> None:
     layer = session.state.document.layers[index]
     name = name.strip()
     if name and name != layer.name:
-        with session.edit("Rename layer"):
+        with session.edit(_("Rename layer")):
             layer.name = name
         return
     # Notify even when rejected so the view drops an empty/whitespace edit.

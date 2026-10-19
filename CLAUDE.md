@@ -51,7 +51,8 @@ Structured like professional editors (Blender, Krita, Inkscape): one state, edit
 ```
 main.py                       # thin: sys.exit(App().run())
 presstoshape/
-├── app.py                    # creates the Session + MainWindow, owns QApplication; --self-test smoke check
+├── app.py                    # resolves + installs the language, creates the Session + MainWindow, owns QApplication; --self-test
+├── i18n/                     # translations, Qt-free bottom layer: _ / ngettext / pgettext / N_, PO parser, plural formulas, catalogs
 ├── version.py                # app version (build stamp or pyproject.toml)
 ├── icons.py                  # semantic icon path constants (views only)
 ├── models/                   # plain data: app_state.py (AppState, Document, Layer, Tool), shapes.py (frozen)
@@ -85,13 +86,14 @@ presstoshape/
     ├── keymap.py             # shortcuts, icons, menu/toolbar layouts per command id
     ├── actions.py            # QActions built from the operation/tool registries + keymap
     ├── canvas_view.py        # scroll area + Skia surface: zoom/pan, forwards input to the active tool
+    ├── settings/             # Settings window: dialog + one page per category (PAGES in dialog.py)
     ├── cursors.py            # CursorType -> QCursor
     ├── skia_surface.py       # GL / raster Skia surface widgets
     └── *_view.py / widgets.py / theme.py / icon_engine.py / export_dialog.py
 ```
 
 Rules:
-- Import direction: `models <- geometry <- render <- editing <- tools <- views`; `formats` uses only models + geometry; `editing` may use formats and render (export, text outlines). `tests/test_architecture.py` enforces it.
+- Import direction: `models <- geometry <- render <- editing <- tools <- views`; `formats` uses only models + geometry; `editing` may use formats and render (export, text outlines). `i18n` is below everything and importable from every layer. `tests/test_architecture.py` enforces it.
 - **No Qt below `views/`** (models, geometry, formats, render, editing, tools). That keeps them unit-testable without a display. `render/` can't see `views/theme.py`; views pass colors in (`CanvasColors`).
 - Import with the `presstoshape.` prefix everywhere (`from presstoshape.models.app_state import AppState`).
 - Data flow: input → tool or view → operation function → `session.edit(label)` records undo and mutates `AppState` → `session.notify()` → `MainWindow.refresh()` → every view's `refresh(state)`. Views and tools never assign to `AppState`.
@@ -105,7 +107,14 @@ Rules:
 - Shapes are frozen; change them with `dataclasses.replace`. Undo snapshots copy layer lists only and share shape objects.
 - Shape `transform` stays canonical: go through `geometry.transforms` (`transform_shape`, `translate`, `with_rotation`) rather than composing matrices onto shapes by hand. Paths keep an identity transform (baked into segments).
 - Tools decide cursors as `CursorType` (Qt-free, tested); only `views/cursors.py` maps them to Qt.
-- One `Session` per app, created by `App` and passed explicitly — no module-level state. The registries hold definitions only. Nest sub-dataclasses per feature in `models/` rather than separate singletons.
+- One `Session` per app, created by `App` and passed explicitly — no module-level state. The registries hold definitions only. Nest sub-dataclasses per feature in `models/` rather than separate singletons. The one exception is the active translation catalog in `i18n`: installed once by `App` before the Session exists, read-only afterwards (a language change needs a restart).
+
+## Translations (i18n)
+
+- UI source texts are British English (centre, colour, …); English runs with the `en_GB` locale. Every user-visible text goes through `presstoshape.i18n`: `_("…")`, `ngettext("{count} object", "{count} objects", n).format(count=n)`, `pgettext("context", "…")` for ambiguous short words, `N_("…")` where a text is defined but shown elsewhere (registries, label tables), translated there with `_(label)`. Literals only; never f-strings or `.format()` inside the call. Not translated: log messages, ids, file keys, shortcuts.
+- After changing UI text run `uv run python scripts/update_translations.py` (template `presstoshape/assets/translations/presstoshape.pot` + merge into shipped `.po`); then translate the new entries in `de.po`. Tests fail while the template is stale or `de.po` is incomplete, and when menu mnemonics clash.
+- Don't name a variable `_` in a function that translates (`path, _chosen = QFileDialog...`).
+- User translation files and how translators work: `docs/translating.md`.
 
 ## Code style
 

@@ -1,0 +1,1169 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PressToShape\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: presstoshape/editing/operations/arrange.py
+msgid "&Raise"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "Raise"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "&Lower"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "Lower"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "Raise to &Top"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "Raise to top"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "Lower to &Bottom"
+msgstr ""
+
+#: presstoshape/editing/operations/arrange.py
+msgid "Lower to bottom"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Union"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Difference"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Intersection"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Exclude"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "{operation} is empty"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Divide"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Divided into {count} piece"
+msgid_plural "Divided into {count} pieces"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "{operation} failed"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "&Union"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "&Difference"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "&Intersection"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "E&xclude"
+msgstr ""
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Di&vide"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Copied {count} object"
+msgid_plural "Copied {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Cut"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Cut {count} object"
+msgid_plural "Cut {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Nothing to paste"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Nothing to paste: the clipboard's SVG couldn't be read"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Nothing to paste: {reason}"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "the SVG holds no shapes"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "text became a path inside the Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "layer '{name}' is hidden"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Paste"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Paste in Place"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Pasted {count} object"
+msgid_plural "Pasted {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Duplicate"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Duplicated {count} object"
+msgid_plural "Duplicated {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/clipboard.py
+msgid "Dup&licate"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgctxt "part mode"
+msgid "Add"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgctxt "part mode"
+msgid "Subtract"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgctxt "part mode"
+msgid "Intersect"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgctxt "part mode"
+msgid "Exclude"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Make Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Made a Composite (double-click to edit it)"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Make &Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "&Add"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "&Subtract"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "&Intersect"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "&Exclude"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "&Release Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Release Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Released the Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "&Flatten Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Flatten Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Flattened the Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Editing a Composite: Esc or Done to leave"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Editing a Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+#: presstoshape/models/app_state.py
+msgid "Ready"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Change mode"
+msgstr ""
+
+#: presstoshape/editing/operations/composites.py
+msgid "Mode: {mode}"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "New document"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Could not open {name}: {error}"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Opened {name}"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Could not save {name}: {error}"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Saved {name}"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Saved {name} (view, tool settings and selection are only kept in .p2s files)"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "the image is too large to render"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Export failed: {error}"
+msgstr ""
+
+#: presstoshape/editing/operations/documents.py
+msgid "Exported {name} ({width} × {height} px)"
+msgstr ""
+
+#: presstoshape/editing/operations/history.py
+#: presstoshape/views/actions.py
+msgid "&Undo"
+msgstr ""
+
+#: presstoshape/editing/operations/history.py
+#: presstoshape/views/actions.py
+msgid "&Redo"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+#: presstoshape/views/layers_view.py
+msgid "Add layer"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+#: presstoshape/views/layers_view.py
+msgid "Delete layer"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+msgid "Show layer"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+msgid "Hide layer"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+msgid "Rename layer"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Moved {count} node"
+msgid_plural "Moved {count} nodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Move node"
+msgid_plural "Move nodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Move handle"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Moved a handle"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Insert node"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Inserted a node"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Delete node"
+msgid_plural "Delete nodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Deleted {count} node"
+msgid_plural "Deleted {count} nodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "&Object to Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Object to Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Converted to paths"
+msgstr ""
+
+#: presstoshape/editing/operations/selection.py
+msgid "Select &All"
+msgstr ""
+
+#: presstoshape/editing/operations/selection.py
+msgid "Move {count} object"
+msgid_plural "Move {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/selection.py
+msgid "Moved {count} object"
+msgid_plural "Moved {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/selection.py
+msgid "&Delete"
+msgstr ""
+
+#: presstoshape/editing/operations/selection.py
+msgid "Delete {count} object"
+msgid_plural "Delete {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/selection.py
+msgid "Deleted {count} object"
+msgid_plural "Deleted {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change X"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change Y"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change width"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change height"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change horizontal radius"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change vertical radius"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change font size"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change text"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Layer '{name}' is hidden"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Add rectangle"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Added a rectangle"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Add ellipse"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Added an ellipse"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Add path"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Added a path"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Text can't be a Composite part: add it outside, then use Object to Path"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+#: presstoshape/views/canvas_view.py
+msgid "Add text"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Added text"
+msgstr ""
+
+#: presstoshape/editing/operations/style.py
+msgid "Change fill"
+msgstr ""
+
+#: presstoshape/editing/operations/style.py
+msgid "Change stroke"
+msgstr ""
+
+#: presstoshape/editing/operations/style.py
+msgid "Change stroke width"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Transform {count} object"
+msgid_plural "Transform {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Transformed {count} object"
+msgid_plural "Transformed {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Rotate"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Select"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Node"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Pen"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Rectangle"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Ellipse"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Text"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgid "Tool: {name}"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgid "Zoom &In"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgid "Zoom &Out"
+msgstr ""
+
+#: presstoshape/editing/operations/view.py
+msgid "&Actual Size"
+msgstr ""
+
+#: presstoshape/editing/session.py
+msgid "Undo"
+msgstr ""
+
+#: presstoshape/editing/session.py
+msgid "Redo"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be one of {choices}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: {where} {problem}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be an object"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be a list"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "is missing {key}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be a finite number"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be at least {minimum}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be a whole number of at least {minimum}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be text"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should have 6 numbers"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be a path segment like [\"L\", x, y]"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should have parts and one mode per part"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "is an unknown shape type {type}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be true or false"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should have at least one layer"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "uses a shape id twice"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should have 2 numbers"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: {name} is too large"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: document.json contains {value}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: document.json is missing"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: {error}"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: document.json isn't valid JSON ({error})"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "not a PressToShape file"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "made with a newer PressToShape (file format {version}, this version reads up to {supported}); please update PressToShape"
+msgstr ""
+
+#: presstoshape/formats/svg.py
+msgid "not an SVG document"
+msgstr ""
+
+#: presstoshape/formats/svg.py
+msgid "A composite couldn't be read and was opened as a path"
+msgstr ""
+
+#: presstoshape/formats/svg.py
+msgid "A composite was edited in another program and was opened as a path"
+msgstr ""
+
+#: presstoshape/formats/svg.py
+msgid "bad path data: {data}"
+msgstr ""
+
+#: presstoshape/models/app_state.py
+msgid "Layer {number}"
+msgstr ""
+
+#: presstoshape/tools/node.py
+msgid "Node tool edits paths. Use Path → Object to Path (Ctrl+Shift+C) first."
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "&Select"
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "&Node"
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "&Pen"
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "&Rectangle"
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "&Ellipse"
+msgstr ""
+
+#: presstoshape/tools/registry.py
+msgid "&Text"
+msgstr ""
+
+#: presstoshape/tools/select.py
+msgid "Rotate {angle:.1f}°"
+msgstr ""
+
+#: presstoshape/views/canvas_view.py
+msgid "Text:"
+msgstr ""
+
+#: presstoshape/views/edit_bar_view.py
+msgid "Editing:"
+msgstr ""
+
+#: presstoshape/views/edit_bar_view.py
+msgid "Done"
+msgstr ""
+
+#: presstoshape/views/edit_bar_view.py
+msgid "Leave this Composite (Esc)"
+msgstr ""
+
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Composite"
+msgstr ""
+
+#: presstoshape/views/export_dialog.py
+#: presstoshape/views/main_window.py
+msgid "Export PNG"
+msgstr ""
+
+#: presstoshape/views/export_dialog.py
+msgid "Scale"
+msgstr ""
+
+#: presstoshape/views/export_dialog.py
+#: presstoshape/views/selection_view.py
+#: presstoshape/views/tool_options_view.py
+msgid "Size"
+msgstr ""
+
+#: presstoshape/views/export_dialog.py
+msgid "{width} × {height} px"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&New"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Open…"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Save"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "Save &As…"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Export PNG…"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Quit"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "Cu&t"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Copy"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Paste"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "Paste &in Place"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "Zoom to &Fit"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Settings…"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&About PressToShape"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "Make Composite &As"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&File"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Edit"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Path"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Object"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&View"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Tools"
+msgstr ""
+
+#: presstoshape/views/keymap.py
+msgid "&Help"
+msgstr ""
+
+#: presstoshape/views/left_sidebar_view.py
+msgid "Tools"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "PressToShape (*.p2s)"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "SVG (*.svg)"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "PNG image (*.png)"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Tool"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Layers"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Untitled"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "PressToShape and SVG (*.p2s *.svg)"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "All files (*)"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Open"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "untitled"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Save As"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "About PressToShape"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "PressToShape {version}\n\nAn open-source vector drawing application for artists.\n\nLicensed under the GNU GPL v3."
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Unsaved changes"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+msgid "Save changes to {name}?"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "X"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Y"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "W"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "H"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Centre X"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Centre Y"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Radius X"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Radius Y"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Rectangle"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Ellipse"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Path"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Text"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Click to select, Ctrl+click to add or remove, drag on empty canvas for box select. Drag handles to scale (Shift keeps proportions, Alt scales from the centre); drag just outside a corner to rotate (Shift snaps to 15°)."
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Mode"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Rotation"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Nothing selected"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "{count} object"
+msgid_plural "{count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/selection_view.py
+msgid "Base"
+msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Mixed"
+msgstr ""
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "Canvas"
+msgstr ""
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "Automatic"
+msgstr ""
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "GPU (OpenGL)"
+msgstr ""
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "CPU"
+msgstr ""
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "Renderer"
+msgstr ""
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "The {variable} environment variable currently forces {renderer}."
+msgstr ""
+
+#: presstoshape/views/settings/dialog.py
+msgid "Settings"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Language"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Interface language"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Your translations"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Translation files (.po) you add here override or complete the shipped ones, entry by entry. Start a new language from the template."
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Remove"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Import…"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Open folder"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Save template…"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "System default"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Import translation"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Translation files (*.po)"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Can't use this file: {error}"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Name the file after its language, for example fr.po or pt_BR.po, and import it again."
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Replace your existing translation for {language}?"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Imported {language}."
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "{count} entry was ignored:"
+msgid_plural "{count} entries were ignored:"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Remove translation"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Remove your translation file {name}?"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Can't remove the file: {error}"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Can't create the folder: {error}"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Save translation template"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Translation templates (*.pot)"
+msgstr ""
+
+#: presstoshape/views/settings/language_page.py
+msgid "Can't save the file: {error}"
+msgstr ""
+
+#: presstoshape/views/settings/pages.py
+msgid "Takes effect after restarting PressToShape."
+msgstr ""
+
+#: presstoshape/views/status_bar_view.py
+msgid "Tool: {tool}  |  {count} selected  |  {zoom}%"
+msgstr ""
+
+#: presstoshape/views/style_editor.py
+msgid "Fill"
+msgstr ""
+
+#: presstoshape/views/style_editor.py
+msgid "Stroke"
+msgstr ""
+
+#: presstoshape/views/style_editor.py
+msgid "Width"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes."
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Drag to draw. Shift: square."
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Drag to draw. Shift: circle."
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Click on the canvas to place text."
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Selection"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Node tool"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Pen tool"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Rectangle tool"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Ellipse tool"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "Text tool"
+msgstr ""
+
+#: presstoshape/views/tool_options_view.py
+msgid "New part"
+msgstr ""
+
+#: presstoshape/views/toolbar_view.py
+msgid "Main toolbar"
+msgstr ""

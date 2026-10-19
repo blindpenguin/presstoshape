@@ -2,7 +2,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QColorDialog, QComboBox, QPushButton
 
-from presstoshape.editing.operations.composites import MODE_LABELS
+from presstoshape.editing.operations.composites import PART_MODES, mode_label
 
 
 class ColorButton(QPushButton):
@@ -41,8 +41,8 @@ class PartModeBox(QComboBox):
 
     def __init__(self) -> None:
         super().__init__()
-        for mode, label in MODE_LABELS.items():
-            self.addItem(label, mode)
+        for mode in PART_MODES:
+            self.addItem(mode_label(mode), mode)
         self._placeholder = -1
         self.activated.connect(self._on_activated)
 

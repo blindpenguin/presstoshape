@@ -61,7 +61,7 @@ def test_copy_has_no_side_effects_and_holds_the_selection_in_paint_order():
     assert session.state.selection == {first, third}
     assert [shape["id"] for shape in json.loads(content.native)["shapes"]] == [first, third]
     assert content.svg.startswith("<?xml") and "viewBox" in content.svg
-    assert session.state.status_message == "Copied 2 object(s)"
+    assert session.state.status_message == "Copied 2 objects"
 
 
 def test_copy_without_selection_gives_nothing():

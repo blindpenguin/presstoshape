@@ -13,6 +13,7 @@ from presstoshape.formats.clipboard import ClipboardError, decode_shapes, encode
 from presstoshape.formats.svg import read_shapes_svg, write_shapes_svg
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, Rect
+from presstoshape.i18n import N_, _, ngettext
 from presstoshape.models.shapes import PartMode, Shape, TextShape
 from presstoshape.render.paths import PathCache
 
@@ -48,7 +49,8 @@ def copy_selection(session: Session) -> ClipboardContent | None:
     shapes = queries.selected_shapes(state)
     if not shapes:
         return None
-    state.status_message = f"Copied {len(shapes)} object(s)"
+    count = len(shapes)
+    state.status_message = ngettext("Copied {count} object", "Copied {count} objects", count).format(count=count)
     session.notify()
     return _content(shapes)
 
@@ -59,10 +61,11 @@ def cut_selection(session: Session) -> ClipboardContent | None:
     if not shapes:
         return None
     content = _content(shapes)
-    with session.edit("Cut"):
+    with session.edit(_("Cut")):
         delete_selected(state)
         state.node_selection = frozenset()
-        state.status_message = f"Cut {len(shapes)} object(s)"
+        count = len(shapes)
+        state.status_message = ngettext("Cut {count} object", "Cut {count} objects", count).format(count=count)
     return content
 
 
@@ -74,12 +77,14 @@ def _decode(native: bytes | None, svg: str | None) -> tuple[list[Shape], list[st
         except ClipboardError:
             pass
     if svg is None:
-        return "Nothing to paste"
+        return _("Nothing to paste")
     try:
         shapes, notes = read_shapes_svg(svg)
     except (ET.ParseError, ValueError):
-        return "Nothing to paste: the clipboard's SVG couldn't be read"
-    return (shapes, notes) if shapes else "Nothing to paste: " + ("; ".join(notes) or "the SVG holds no shapes")
+        return _("Nothing to paste: the clipboard's SVG couldn't be read")
+    if not shapes:
+        return _("Nothing to paste: {reason}").format(reason="; ".join(notes) or _("the SVG holds no shapes"))
+    return shapes, notes
 
 
 def paste(session: Session, native: bytes | None, svg: str | None, center: Point | None) -> bool:
@@ -95,20 +100,22 @@ def paste(session: Session, native: bytes | None, svg: str | None, center: Point
     in_composite = containers.editing(state)
     if in_composite and any(isinstance(shape, TextShape) for shape in shapes):
         shapes = [to_path(shape) if isinstance(shape, TextShape) else shape for shape in shapes]
-        notes = [*notes, "text became a path inside the Composite"]
+        notes = [*notes, _("text became a path inside the Composite")]
     if center is not None:
         x, y, width, height = _bounds(shapes)
         dx, dy = center[0] - (x + width / 2), center[1] - (y + height / 2)
         shapes = [transforms.translate(shape, dx, dy) for shape in shapes]
     layer = queries.active_layer(state)
     if not in_composite and not layer.visible:
-        notes = [*notes, f"layer '{layer.name}' is hidden"]
-    with session.edit("Paste" if center is not None else "Paste in Place"):
+        notes = [*notes, _("layer '{name}' is hidden").format(name=layer.name)]
+    with session.edit(_("Paste") if center is not None else _("Paste in Place")):
         pasted = with_fresh_ids(state, shapes)
         add_on_top(state, pasted)
         state.selection = {shape.id for shape in pasted}
         state.node_selection = frozenset()
-        state.status_message = f"Pasted {len(pasted)} object(s)" + "".join(f"; {note}" for note in notes)
+        count = len(pasted)
+        pasted_message = ngettext("Pasted {count} object", "Pasted {count} objects", count).format(count=count)
+        state.status_message = "; ".join([pasted_message, *notes])
     return True
 
 
@@ -117,7 +124,7 @@ def _duplicate(session: Session, dx: float = 0.0, dy: float = 0.0) -> None:
     originals = queries.selected_shapes(state)
     if not originals:
         return
-    with session.edit("Duplicate"):
+    with session.edit(_("Duplicate")):
         moved = [transforms.translate(shape, dx, dy) for shape in originals] if (dx, dy) != (0, 0) else originals
         copies = with_fresh_ids(state, moved)
         modes: dict[int, PartMode] = {}
@@ -128,10 +135,13 @@ def _duplicate(session: Session, dx: float = 0.0, dy: float = 0.0) -> None:
         insert_copies(state, {original.id: copy for original, copy in zip(originals, copies)}, modes)
         state.selection = {shape.id for shape in copies}
         state.node_selection = frozenset()
-        state.status_message = f"Duplicated {len(copies)} object(s)"
+        count = len(copies)
+        state.status_message = ngettext("Duplicated {count} object", "Duplicated {count} objects", count).format(
+            count=count
+        )
 
 
-@operation("edit.duplicate", "D&uplicate", can_run=_has_selection)
+@operation("edit.duplicate", N_("Dup&licate"), can_run=_has_selection)
 def duplicate_selection(session: Session) -> None:
     """Copies of the selection in place, directly above the originals; the clipboard is left alone."""
     _duplicate(session)

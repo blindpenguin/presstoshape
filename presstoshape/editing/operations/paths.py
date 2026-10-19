@@ -6,6 +6,7 @@ from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.segments import transform_segments
+from presstoshape.i18n import N_, _
 from presstoshape.models.shapes import PathShape, Shape, TextShape
 from presstoshape.render.paths import from_skia_path
 from presstoshape.render.text import text_path
@@ -22,12 +23,16 @@ def to_path(shape: Shape) -> Shape:
     return PathShape(shape.id, segments, shape.style)
 
 
-@operation("path.object_to_path", "&Object to Path", can_run=lambda session: queries.can_object_to_path(session.state))
+def _can_convert(session: Session) -> bool:
+    return queries.can_object_to_path(session.state)
+
+
+@operation("path.object_to_path", N_("&Object to Path"), can_run=_can_convert)
 def object_to_path(session: Session) -> None:
     """Turns selected rects, ellipses and text into paths with the same outline, ids and place."""
     state = session.state
     if not queries.can_object_to_path(state):
         return
-    with session.edit("Object to path"):
+    with session.edit(_("Object to Path")):
         map_selected(state, to_path)
-        state.status_message = "Object to path"
+        state.status_message = _("Converted to paths")

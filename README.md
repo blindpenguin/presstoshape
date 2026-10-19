@@ -32,6 +32,7 @@ uv run python main.py
 - Layers: add, delete, rename (double-click), hide (checkbox).
 - Copy, cut and paste (Ctrl+C / Ctrl+X / Ctrl+V): Paste centers the shapes in the view, Paste in Place (Ctrl+Shift+V) keeps their position. Shapes go on the clipboard as SVG too, so pasting into and from Inkscape and other SVG-aware apps should work. Duplicate (Ctrl+D) copies the selection in place; Alt+drag a shape with the Select tool to drag off a copy.
 - Undo/redo for all document edits.
+- English (British) and German interface, following the system language by default. Edit → Settings (Ctrl+,) picks the language and the renderer. You can add or improve a translation with your own `.po` file, see [docs/translating.md](docs/translating.md).
 - GPU-accelerated canvas (Skia over OpenGL; falls back to CPU rendering when no GPU is available).
 - Export PNG (Ctrl+Shift+E) at any scale, transparent background.
 - Saves in its own format, `.p2s` (File → Save, Ctrl+S): reopening should give back exactly the same drawing, plus the view, tool settings, selection and the Composite you were editing. The format is described in [docs/file-format.md](docs/file-format.md).
@@ -41,7 +42,8 @@ uv run python main.py
 
 ```
 uv run pytest                                          # logic tests
-uv run python scripts/screenshot_app.py                # offscreen screenshot -> dev-screenshots/app.png
+uv run python scripts/screenshot_app.py                # offscreen screenshot -> dev-screenshots/app.png (--language de)
+uv run python scripts/update_translations.py           # after changing UI text: template + shipped .po files
 uv run python scripts/bench_canvas.py                  # canvas frame times, 10k shapes (PRESSTOSHAPE_RENDERER=cpu|gl)
 uv run --group dev python scripts/generate_icons.py    # re-copy Tabler SVG icons
 scripts/spec_dashboard.sh                              # spec-workflow approval dashboard (http://localhost:5000)

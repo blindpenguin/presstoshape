@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QDoubleSpinBox, QFormLayout, QLabel, QStackedWidge
 from presstoshape.editing import containers
 from presstoshape.editing.operations import composites, view
 from presstoshape.editing.session import Session
+from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState, Tool
 from presstoshape.views.selection_view import SelectionOptions
 from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
@@ -18,24 +19,24 @@ _FIELDS = {
 }
 
 _HINTS = {
-    Tool.NODE: (
+    Tool.NODE: N_(
         "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select "
         "several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, "
         "Delete removes selected nodes."
     ),
-    Tool.RECTANGLE: "Drag to draw. Shift: square.",
-    Tool.ELLIPSE: "Drag to draw. Shift: circle.",
-    Tool.PEN: "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel.",
-    Tool.TEXT: "Click on the canvas to place text.",
+    Tool.RECTANGLE: N_("Drag to draw. Shift: square."),
+    Tool.ELLIPSE: N_("Drag to draw. Shift: circle."),
+    Tool.PEN: N_("Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."),
+    Tool.TEXT: N_("Click on the canvas to place text."),
 }
 
 TITLES = {
-    Tool.SELECT: "Selection",
-    Tool.NODE: "Node tool",
-    Tool.PEN: "Pen tool",
-    Tool.RECTANGLE: "Rectangle tool",
-    Tool.ELLIPSE: "Ellipse tool",
-    Tool.TEXT: "Text tool",
+    Tool.SELECT: N_("Selection"),
+    Tool.NODE: N_("Node tool"),
+    Tool.PEN: N_("Pen tool"),
+    Tool.RECTANGLE: N_("Rectangle tool"),
+    Tool.ELLIPSE: N_("Ellipse tool"),
+    Tool.TEXT: N_("Text tool"),
 }
 
 
@@ -51,7 +52,7 @@ class ToolOptionsPanel(QStackedWidget):
         self._font_size: QDoubleSpinBox | None = None
         # Drawing tools show the mode new parts get while a Composite is being edited.
         self._part_modes: dict[Tool, tuple[QFormLayout, PartModeBox]] = {}
-        self._pages[Tool.NODE] = self._hint_page(_HINTS[Tool.NODE])
+        self._pages[Tool.NODE] = self._hint_page(_(_HINTS[Tool.NODE]))
         for tool, fields in _FIELDS.items():
             editor = StyleEditor(
                 fields,
@@ -62,19 +63,19 @@ class ToolOptionsPanel(QStackedWidget):
             if tool is not Tool.TEXT:
                 part_mode = PartModeBox()
                 part_mode.mode_picked.connect(partial(composites.set_new_part_mode, session))
-                editor.form.addRow("New part", part_mode)
+                editor.form.addRow(_("New part"), part_mode)
                 self._part_modes[tool] = (editor.form, part_mode)
             if tool is Tool.TEXT:
                 self._font_size = QDoubleSpinBox()
                 self._font_size.setRange(1, 999)
                 self._font_size.setDecimals(1)
                 self._font_size.valueChanged.connect(partial(view.set_font_size, session))
-                editor.form.addRow("Size", self._font_size)
+                editor.form.addRow(_("Size"), self._font_size)
 
             page = QWidget()
             layout = QVBoxLayout(page)
             layout.addWidget(editor)
-            hint = QLabel(_HINTS[tool])
+            hint = QLabel(_(_HINTS[tool]))
             hint.setWordWrap(True)
             hint.setEnabled(False)
             layout.addSpacing(8)

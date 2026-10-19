@@ -8,6 +8,7 @@ from presstoshape.editing.operations import clipboard, composites, selection, tr
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.boxes import Point, Rect, rect_from_points
+from presstoshape.i18n import _
 from presstoshape.models.shapes import CompositeShape, Shape
 from presstoshape.render import hit_test
 from presstoshape.render.handles import Frame, Handle, handle_at, handle_direction, selection_frame
@@ -233,7 +234,7 @@ class SelectTool(BaseTool):
         if mods.shift:
             result = round(result / _ROTATE_SNAP_DEG) * _ROTATE_SNAP_DEG
         result = math.remainder(result, 360)
-        self.hint = f"Rotate {result:.1f}°"
+        self.hint = _("Rotate {angle:.1f}°").format(angle=result)
         return affine.rotation(math.radians(result - base), cx, cy)
 
     def _exact_preview(self) -> tuple[Shape, ...]:

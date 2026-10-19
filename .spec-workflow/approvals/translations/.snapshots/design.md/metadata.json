@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/translations/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-19T16:03:52.448Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792425832439_e6ujui74t",
+      "approvalTitle": "Translations & Settings window: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-19T16:04:55.506Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792425832439_e6ujui74t",
+      "approvalTitle": "Translations & Settings window: design"
+    }
+  ]
+}

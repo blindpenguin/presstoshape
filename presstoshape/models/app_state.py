@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
+from presstoshape.i18n import _
 from presstoshape.models.shapes import PartMode, Shape, Style
 
 
@@ -20,12 +21,17 @@ class Layer:
     shapes: list[Shape] = field(default_factory=list)
 
 
+def layer_name(number: int) -> str:
+    """Default name of the `number`th layer, in the active language (names already in documents stay)."""
+    return _("Layer {number}").format(number=number)
+
+
 @dataclass
 class Document:
     width: float = 600.0
     height: float = 400.0
     # Bottom-to-top paint order, same as SVG document order.
-    layers: list[Layer] = field(default_factory=lambda: [Layer("Layer 1")])
+    layers: list[Layer] = field(default_factory=lambda: [Layer(layer_name(1))])
     next_id: int = 1
 
 
@@ -63,7 +69,7 @@ class AppState:
     font_size: float = 24.0
     export: ExportSettings = field(default_factory=ExportSettings)
     zoom_percent: int = 100
-    status_message: str = "Ready"
+    status_message: str = field(default_factory=lambda: _("Ready"))
     file_path: str | None = None
     dirty: bool = False
     # View to show after opening a .p2s file (doc point at the viewport center); the window applies and clears it.
