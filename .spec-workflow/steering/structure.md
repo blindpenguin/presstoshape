@@ -125,7 +125,7 @@ Groups separated by a blank line (ruff `I` / isort order once ruff is added).
 Large classes are sectioned with `# --- section ---` comments (e.g. `# --- editing ---`, `# --- undo / redo ---` in `Session`).
 
 ### Function/Method Organization
-- **Operations**: validate / early-return on no-op input → `with session.edit("Label", merge_key):` → mutate via `dataclasses.replace` and the `_document` helpers → set `status_message`. Non-document changes mutate and call `session.notify()`. Notify even on rejected input when a view needs to revert. Register with `@operation(id, label, can_run)` when a menu or shortcut can run it without extra input.
+- **Operations**: validate / early-return on no-op input → `with session.edit("Label", merge_key):` → mutate via `dataclasses.replace` and the `_document` helpers → set `status_message`. Non-document changes mutate and call `session.notify()`. Notify even on rejected input when a view needs to revert. Register with `@operation(id, label, can_run)` when a menu or shortcut can run it without extra input. Give it a shortcut in `views/keymap.py` only if it's used often while drawing or editing.
 - **View `refresh(state)`**: idempotent and cheap; skip work when the relevant slice of state is unchanged; `blockSignals(True)` while writing values back into widgets.
 - **Tools**: subclass `BaseTool`; transient gesture state lives in the tool until it commits through one operation call; list new tools in `tools/registry.py`.
 - **Signals**: connect `triggered` / `clicked` via `lambda: slot()` so the `checked` bool doesn't land in an optional parameter.

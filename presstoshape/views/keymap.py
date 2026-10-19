@@ -58,7 +58,7 @@ KEYMAP: dict[str, Binding] = {
     # Inkscape's Ctrl+Alt+V is Divide here, so Illustrator's binding.
     "edit.paste_in_place": Binding("Ctrl+Shift+V"),
     "edit.duplicate": Binding("Ctrl+D"),
-    "edit.settings": Binding("Ctrl+,", icons.SETTINGS),
+    "edit.settings": Binding(icon=icons.SETTINGS),
     "edit.select_all": Binding(Keys.SelectAll),
     # Not Keys.Delete: on KDE that also expands to Ctrl+D, which is Duplicate.
     "edit.delete": Binding("Del", icons.DELETE),

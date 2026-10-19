@@ -51,7 +51,7 @@ Core feature pillars (target):
 
 ## Product Principles
 1. **Artists first**: optimize for drawing feel and creative flow. Tools respond instantly, gestures feel natural, the UI stays out of the way of the canvas.
-2. **Professional depth, approachable surface**: deep capability is available, but common tasks stay simple and discoverable; panels follow the current tool and selection instead of showing everything at once.
+2. **Professional depth, approachable surface**: deep capability is available, but common tasks stay simple and discoverable; panels follow the current tool and selection instead of showing everything at once. Keyboard shortcuts are reserved for frequent drawing and editing actions; rarely used commands and windows (settings, about) are reached through menus.
 3. **Non-destructive by default**: effects, booleans and styles should stay editable wherever practical; every edit is undoable.
 4. **Own format for fidelity, SVG for exchange**: the native format stores everything PressToShape supports without compromise. SVG import/export stays a first-class citizen, and features SVG can't express degrade predictably (e.g. flatten or rasterize) instead of silently disappearing.
 5. **Inkscape interop is a requirement**: layers and supported content survive a round trip with Inkscape.
