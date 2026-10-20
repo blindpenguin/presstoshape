@@ -22,7 +22,7 @@ from presstoshape.models.shapes import (
 from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache, stroke_paint, to_skia_matrix, to_skia_path
-from presstoshape.render.text import text_blob
+from presstoshape.render.text import anchor_offset, text_blob
 
 _DASH_PX = 4.0
 _RUBBER_BAND_ALPHA = 0x33
@@ -57,49 +57,81 @@ def draw_background(canvas: skia.Canvas, doc: Document, colors: CanvasColors) ->
     canvas.drawRect(artboard, border)
 
 
-def _paints(style: Style) -> Iterator[skia.Paint]:
-    if style.fill:
-        yield skia.Paint(Color=parse_color(style.fill), AntiAlias=True)
-    if style.stroke and style.stroke_width > 0:
-        paint = stroke_paint(style.stroke_width)
+def _filled(style: Style) -> bool:
+    return bool(style.fill)
+
+
+def _stroked(style: Style) -> bool:
+    return bool(style.stroke) and style.stroke_width > 0
+
+
+def _paints(style: Style, opacity: float = 1.0) -> Iterator[skia.Paint]:
+    """Fill then stroke paint, each with its paint opacity times `opacity`."""
+    if _filled(style):
+        paint = skia.Paint(Color=parse_color(style.fill), AntiAlias=True)
+        if style.fill_opacity * opacity < 1:
+            paint.setAlphaf(style.fill_opacity * opacity)
+        yield paint
+    if _stroked(style):
+        paint = stroke_paint(style)
         paint.setColor(parse_color(style.stroke))
+        if style.stroke_opacity * opacity < 1:
+            paint.setAlphaf(style.stroke_opacity * opacity)
         yield paint
 
 
 def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
-    for paint in _paints(style):
+    for paint in _paints(style, style.opacity):
         canvas.drawPath(path, paint)
 
 
 def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
-    if shape.transform == IDENTITY_TRANSFORM or isinstance(shape, PathShape):
-        _draw_local(canvas, shape, cache)
+    style = shape.style
+    if style.opacity <= 0:
         return
-    canvas.save()
-    canvas.concat(to_skia_matrix(shape.transform))
-    _draw_local(canvas, shape, cache)
-    canvas.restore()
+    # With fill and stroke, object opacity must apply to both flattened together (where the stroke covers the
+    # fill, the fill mustn't show through), which needs a layer; with one paint its alpha does the same.
+    layered = style.opacity < 1 and _filled(style) and _stroked(style)
+    if layered:
+        canvas.saveLayerAlpha(cache.bounds(shape), round(style.opacity * 255))
+    if shape.transform == IDENTITY_TRANSFORM or isinstance(shape, PathShape):
+        _draw_local(canvas, shape, cache, 1.0 if layered else style.opacity)
+    else:
+        canvas.save()
+        canvas.concat(to_skia_matrix(shape.transform))
+        _draw_local(canvas, shape, cache, 1.0 if layered else style.opacity)
+        canvas.restore()
+    if layered:
+        canvas.restore()
 
 
-def _draw_local(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
+def _draw_local(canvas: skia.Canvas, shape: Shape, cache: PathCache, opacity: float) -> None:
     """Untransformed geometry; cached paths are world space, so paths are drawn as they are."""
     # Rects, ovals and text have analytic / glyph-cache GPU fast paths; generic paths are far slower to draw.
     match shape:
-        case RectShape(x=x, y=y, width=w, height=h):
+        case RectShape(x=x, y=y, width=w, height=h, rx=rx, ry=ry):
             rect = skia.Rect.MakeXYWH(x, y, w, h)
-            for paint in _paints(shape.style):
-                canvas.drawRect(rect, paint)
+            # SVG clamps each radius on its own; skia would shrink both together.
+            rx, ry = min(rx, w / 2), min(ry, h / 2)
+            rounded = skia.RRect.MakeRectXY(rect, rx, ry) if rx > 0 and ry > 0 else None
+            for paint in _paints(shape.style, opacity):
+                if rounded is None:
+                    canvas.drawRect(rect, paint)
+                else:
+                    canvas.drawRRect(rounded, paint)
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
             oval = skia.Rect.MakeLTRB(cx - rx, cy - ry, cx + rx, cy + ry)
-            for paint in _paints(shape.style):
+            for paint in _paints(shape.style, opacity):
                 canvas.drawOval(oval, paint)
         case TextShape():
             blob = text_blob(shape)
             if blob is not None:
-                for paint in _paints(shape.style):
-                    canvas.drawTextBlob(blob, shape.x, shape.y, paint)
+                x = shape.x + anchor_offset(shape)
+                for paint in _paints(shape.style, opacity):
+                    canvas.drawTextBlob(blob, x, shape.y, paint)
         case _:
-            _draw_path(canvas, cache.get(shape), shape.style)
+            for paint in _paints(shape.style, opacity):
+                canvas.drawPath(cache.get(shape), paint)
 
 
 def visible_shapes(doc: Document) -> Iterator[Shape]:

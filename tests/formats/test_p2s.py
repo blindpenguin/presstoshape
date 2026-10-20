@@ -36,6 +36,20 @@ RED = Style(fill="#ff0000", stroke=None, stroke_width=0.0)
 OUTLINE = Style(fill=None, stroke="#18181b", stroke_width=1.25)
 ROTATED = (math.cos(0.3), math.sin(0.3), -math.sin(0.3), math.cos(0.3), 12.5, -3.0)
 SKEWED = (1.0, 0.0, 0.4, 1.0, 0.0, 0.0)
+FULL = Style(
+    fill="#123456",
+    stroke="#654321",
+    stroke_width=3.5,
+    opacity=0.5,
+    fill_opacity=0.25,
+    stroke_opacity=0.75,
+    fill_rule="evenodd",
+    cap="round",
+    join="bevel",
+    miter_limit=7.0,
+    dashes=(4.0, 2.0, 1.0, 2.0),
+    dash_offset=1.5,
+)
 
 
 def _sample_document() -> Document:
@@ -55,8 +69,17 @@ def _sample_document() -> Document:
             Layer("Background", True, [RectShape(1, -5, 1e-9, 1e6, 0.0, Style(), ROTATED)]),
             Layer("Empty", True, []),
             Layer("Hidden ünïcode", False, [path, TextShape(4, 10, 20, 'Hi\n"there" ☺', 18.5, RED, SKEWED), composite]),
+            Layer(
+                "Styled",
+                True,
+                [
+                    RectShape(30, 0, 0, 50, 40, FULL, rx=5, ry=8),
+                    TextShape(31, 10, 20, "Centred", 12, FULL, anchor="middle"),
+                    CompositeShape(32, (RectShape(33, 0, 0, 9, 9, FULL),), ("add",), FULL),
+                ],
+            ),
         ],
-        next_id=23,
+        next_id=34,
     )
 
 
@@ -87,7 +110,7 @@ def test_identity_transform_is_left_out_and_segments_are_compact():
 def test_next_id_is_raised_above_existing_ids():
     encoded = encode_document(_sample_document())
     encoded["next_id"] = 2
-    assert decode_document(encoded).next_id == 23
+    assert decode_document(encoded).next_id == 34
 
 
 def _broken(change) -> str:
@@ -116,6 +139,16 @@ def _broken(change) -> str:
         (lambda doc: doc["layers"][2].update(visible="yes"), "document.layers[2].visible"),
         (lambda doc: doc.update(layers=[]), "document.layers"),
         (lambda doc: doc.update(width=0), "document.width"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(opacity=1.5), "style.opacity"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(fill_opacity=-0.1), "style.fill_opacity"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(fill_rule="odd"), "style.fill_rule"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(cap="pointy"), "style.cap"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(join=3), "style.join"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(miter_limit=0.5), "style.miter_limit"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(dashes=[1, -2]), "style.dashes[1]"),
+        (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(dashes="4 2"), "style.dashes"),
+        (lambda doc: doc["layers"][3]["shapes"][0].update(rx=-1), "shapes[0].rx"),
+        (lambda doc: doc["layers"][3]["shapes"][1].update(anchor="left"), "shapes[1].anchor"),
     ],
 )
 def test_damaged_documents_name_the_broken_place(change, where):
@@ -273,3 +306,21 @@ def test_unit_and_dpi_round_trip_and_bad_values_are_refused():
         encoded[field] = value
         with pytest.raises(P2sError, match=field):
             decode_document(encoded)
+
+
+def test_default_styles_stay_compact():
+    encoded = p2s.encode_style(Style(fill="#ff0000", stroke=None, stroke_width=1.0))
+    assert encoded == {"fill": "#ff0000", "stroke": None, "stroke_width": 1.0}
+    rect_fields = set(p2s.encode_shape(RectShape(1, 0, 0, 1, 1, Style())))
+    assert rect_fields == {"type", "id", "x", "y", "width", "height", "style"}
+
+
+def test_odd_dash_lists_are_normalized_on_read():
+    encoded = p2s.encode_style(Style())
+    encoded["dashes"] = [3.0]
+    assert p2s.decode_style(encoded, "style").dashes == (3.0, 3.0)
+
+
+def test_tool_styles_keep_the_new_fields():
+    state = SavedState(tool_styles={Tool.RECTANGLE: FULL})
+    assert read_p2s(write_p2s(Document(), state, None, "x"))[1].tool_styles == {Tool.RECTANGLE: FULL}

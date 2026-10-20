@@ -164,3 +164,10 @@ def test_mismatch_area_compares_shapes_not_their_writing():
     assert booleans.mismatch_area(A, rewritten) == pytest.approx(0)
     assert booleans.mismatch_area(A, rect_segments(0, 0, 10, 11)) == pytest.approx(10)
     assert booleans.area(A) == pytest.approx(100)
+
+
+def test_simplify_keeps_an_evenodd_hole_under_nonzero():
+    # Both squares wound the same way: nonzero fills the hole, evenodd leaves it open.
+    ring = rect_segments(0, 0, 10, 10) + rect_segments(3, 3, 4, 4)
+    assert _area(booleans.simplify(ring, evenodd=True)) == pytest.approx(100 - 16)
+    assert _area(booleans.simplify(ring, evenodd=False)) == pytest.approx(100)

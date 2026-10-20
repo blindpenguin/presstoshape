@@ -5,7 +5,16 @@ from pathlib import Path
 from presstoshape.formats.p2s import SavedState, read_p2s
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, MIGRATIONS, upgrade
 from presstoshape.models.app_state import Document, Layer, Tool
-from presstoshape.models.shapes import CompositeShape, EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style
+from presstoshape.models.shapes import (
+    CompositeShape,
+    EllipseShape,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
 
 SAMPLES = Path(__file__).resolve().parent / "samples"
 
@@ -91,3 +100,44 @@ def test_v2_files_keep_the_default_smoothing():
 
 def test_v3_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v3.p2s").read_bytes()) == expected_v3()
+
+
+def expected_v4() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v4.p2s holds: opacities, fill rule, stroke options, rect radii, text anchor."""
+    card = Style(
+        fill="#3b82f6",
+        stroke="#18181b",
+        stroke_width=2.0,
+        opacity=0.75,
+        fill_opacity=0.5,
+        fill_rule="evenodd",
+        join="bevel",
+        miter_limit=8.0,
+    )
+    dashed = Style(
+        fill=None,
+        stroke="#18181b",
+        stroke_width=4.0,
+        stroke_opacity=0.5,
+        cap="round",
+        join="round",
+        dashes=(8.0, 4.0),
+        dash_offset=2.0,
+    )
+    shapes = [
+        RectShape(1, 20.0, 20.0, 160.0, 100.0, card, rx=12.0, ry=8.0),
+        PathShape(2, (MoveTo(20.0, 200.0), LineTo(380.0, 200.0)), dashed),
+        TextShape(3, 200.0, 260.0, "Centred", 24.0, Style(fill="#000000", stroke=None), anchor="middle"),
+    ]
+    document = Document(width=400.0, height=300.0, layers=[Layer("Layer 1", True, shapes)], next_id=4)
+    return document, SavedState(zoom_percent=100, tool_styles={Tool.RECTANGLE: card})
+
+
+def test_v3_files_get_default_styles():
+    document, _state = read_p2s((SAMPLES / "v3.p2s").read_bytes())
+    style = document.layers[0].shapes[0].style
+    assert (style.opacity, style.fill_rule, style.cap, style.dashes) == (1.0, "nonzero", "butt", ())
+
+
+def test_v4_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v4.p2s").read_bytes()) == expected_v4()

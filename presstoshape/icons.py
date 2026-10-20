@@ -44,5 +44,9 @@ SETTINGS_CANVAS = _DIR / "settings_canvas.svg"
 ORIENTATION_PORTRAIT = _DIR / "orientation_portrait.svg"
 ORIENTATION_LANDSCAPE = _DIR / "orientation_landscape.svg"
 
+ALIGN_START = _DIR / "align_start.svg"
+ALIGN_MIDDLE = _DIR / "align_middle.svg"
+ALIGN_END = _DIR / "align_end.svg"
+
 CURSOR_ROTATE = _DIR / "cursor_rotate.svg"
 CURSOR_NODE_INSERT = _DIR / "cursor_node_insert.svg"

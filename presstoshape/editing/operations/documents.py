@@ -14,7 +14,7 @@ from presstoshape.editing.session import Session
 from presstoshape.formats import p2s, svg
 from presstoshape.formats.p2s import P2sError, SavedState
 from presstoshape.geometry import units
-from presstoshape.i18n import _
+from presstoshape.i18n import _, ngettext
 from presstoshape.models.app_state import AppState, Document, Unit
 from presstoshape.models.document_presets import DEFAULT
 from presstoshape.render import export
@@ -71,6 +71,7 @@ def replace_document(session: Session, document: Document, path: str | None, mes
     state.edit_path = ()
     state.selected_layer_index = len(document.layers) - 1
     state.restore_view_center = None
+    state.import_notes = []
     state.status_message = message
     session.clear_history()
     session.notify()
@@ -121,10 +122,14 @@ def open_file(session: Session, path: str) -> bool:
         session.state.status_message = _("Could not open {name}: {error}").format(name=name, error=error)
         session.notify()
         return False
-    message = _("Opened {name}").format(name=name)
     if notes:
-        message += ". " + ". ".join(dict.fromkeys(notes))
+        message = ngettext(
+            "Opened {name} with {count} import note", "Opened {name} with {count} import notes", len(notes)
+        ).format(name=name, count=len(notes))
+    else:
+        message = _("Opened {name}").format(name=name)
     replace_document(session, document, path, message)
+    session.state.import_notes = notes
     if saved is not None:
         apply_saved_state(session.state, saved)
         session.notify()

@@ -9,16 +9,16 @@ from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState, Tool
 from presstoshape.views.selection_view import SelectionOptions
-from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
+from presstoshape.views.style_editor import FILL, FILL_RULE, OPACITY, STROKE, STROKE_OPTIONS, WIDTH, StyleEditor
 from presstoshape.views.unit_fields import LengthSpinBox, font_unit
 from presstoshape.views.widgets import PartModeBox
 
 _FIELDS = {
-    Tool.RECTANGLE: (FILL, STROKE, WIDTH),
-    Tool.ELLIPSE: (FILL, STROKE, WIDTH),
-    Tool.PEN: (STROKE, WIDTH, FILL),
-    Tool.PENCIL: (STROKE, WIDTH, FILL),
-    Tool.TEXT: (FILL,),
+    Tool.RECTANGLE: (FILL, STROKE, WIDTH, OPACITY, STROKE_OPTIONS),
+    Tool.ELLIPSE: (FILL, STROKE, WIDTH, OPACITY, STROKE_OPTIONS),
+    Tool.PEN: (STROKE, WIDTH, FILL, OPACITY, FILL_RULE, STROKE_OPTIONS),
+    Tool.PENCIL: (STROKE, WIDTH, FILL, OPACITY, FILL_RULE, STROKE_OPTIONS),
+    Tool.TEXT: (FILL, OPACITY),
 }
 
 _HINTS = {
@@ -64,12 +64,7 @@ class ToolOptionsPanel(QStackedWidget):
         self._part_modes: dict[Tool, tuple[QFormLayout, PartModeBox]] = {}
         self._pages[Tool.NODE] = self._hint_page(_(_HINTS[Tool.NODE]))
         for tool, fields in _FIELDS.items():
-            editor = StyleEditor(
-                fields,
-                on_fill=lambda color, t=tool: view.set_tool_style(session, t, fill=color),
-                on_stroke=lambda color, t=tool: view.set_tool_style(session, t, stroke=color),
-                on_width=lambda width, t=tool: view.set_tool_style(session, t, stroke_width=width),
-            )
+            editor = StyleEditor(fields, lambda changes, t=tool: view.set_tool_style(session, t, **changes))
             if tool is not Tool.TEXT:
                 part_mode = PartModeBox()
                 part_mode.mode_picked.connect(partial(composites.set_new_part_mode, session))

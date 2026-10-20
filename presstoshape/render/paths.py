@@ -1,5 +1,6 @@
 """Model shapes as cached Skia paths, rebuilt only when the frozen shape changes."""
 
+import math
 from collections.abc import Iterable
 
 import skia
@@ -15,19 +16,20 @@ from presstoshape.models.shapes import (
     MoveTo,
     Segment,
     Shape,
+    Style,
     TextShape,
     Transform,
 )
 from presstoshape.render.text import text_path
 
-# SVG's default stroke-miterlimit.
-MITER_LIMIT = 4.0
+_FILL_TYPES = {"nonzero": skia.PathFillType.kWinding, "evenodd": skia.PathFillType.kEvenOdd}
+_CAPS = {"butt": skia.Paint.kButt_Cap, "round": skia.Paint.kRound_Cap, "square": skia.Paint.kSquare_Cap}
+_JOINS = {"miter": skia.Paint.kMiter_Join, "round": skia.Paint.kRound_Join, "bevel": skia.Paint.kBevel_Join}
 
 
-def to_skia_path(segments: tuple[Segment, ...]) -> skia.Path:
+def to_skia_path(segments: tuple[Segment, ...], fill_rule: str = "nonzero") -> skia.Path:
     path = skia.Path()
-    # SVG's default fill rule is nonzero.
-    path.setFillType(skia.PathFillType.kWinding)
+    path.setFillType(_FILL_TYPES.get(fill_rule, skia.PathFillType.kWinding))
     for s in segments:
         match s:
             case MoveTo(x, y):
@@ -71,16 +73,20 @@ def to_skia_matrix(m: Transform) -> skia.Matrix:
     return skia.Matrix.MakeAll(a, c, e, b, d, f, 0, 0, 1)
 
 
-def stroke_paint(width: float) -> skia.Paint:
-    """SVG stroke defaults: butt cap, miter join, miter limit 4."""
-    return skia.Paint(
+def stroke_paint(style: Style, width: float | None = None) -> skia.Paint:
+    """The style's stroke geometry (width, cap, join, miter limit, dashes), no colour; `width` overrides the
+    style's width (hit-testing widens thin strokes)."""
+    paint = skia.Paint(
         Style=skia.Paint.kStroke_Style,
-        StrokeWidth=width,
-        StrokeCap=skia.Paint.kButt_Cap,
-        StrokeJoin=skia.Paint.kMiter_Join,
-        StrokeMiter=MITER_LIMIT,
+        StrokeWidth=style.stroke_width if width is None else width,
+        StrokeCap=_CAPS.get(style.cap, skia.Paint.kButt_Cap),
+        StrokeJoin=_JOINS.get(style.join, skia.Paint.kMiter_Join),
+        StrokeMiter=style.miter_limit,
         AntiAlias=True,
     )
+    if style.dashes and sum(style.dashes) > 0:
+        paint.setPathEffect(skia.DashPathEffect.Make(list(style.dashes), style.dash_offset))
+    return paint
 
 
 def _build(shape: Shape) -> skia.Path:
@@ -90,14 +96,15 @@ def _build(shape: Shape) -> skia.Path:
         if shape.transform != IDENTITY_TRANSFORM:
             path.transform(to_skia_matrix(shape.transform))
         return path
-    return to_skia_path(transforms.outline(shape) or ())
+    return to_skia_path(transforms.outline(shape) or (), shape.style.fill_rule)
 
 
 def _bounds(shape: Shape, path: skia.Path) -> skia.Rect:
     rect = path.computeTightBounds()
     style = shape.style
     if style.stroke and style.stroke_width > 0:
-        half = style.stroke_width / 2
+        # Square caps reach past the end point diagonally; miter tips are left out, as before.
+        half = style.stroke_width / 2 * (math.sqrt(2) if style.cap == "square" else 1.0)
         rect = rect.makeOutset(half, half)
     return rect
 
@@ -137,7 +144,7 @@ class PathCache:
         entry = self._strokes.get(shape.id)
         if entry is None or (entry[0] is not shape and entry[0] != shape) or entry[1] != width:
             outline = skia.Path()
-            stroke_paint(width).getFillPath(self.get(shape), outline)
+            stroke_paint(shape.style, width).getFillPath(self.get(shape), outline)
             entry = (shape, width, outline)
             self._strokes[shape.id] = entry
         return entry[2]

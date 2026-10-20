@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **3**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **4**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -58,17 +58,30 @@ Every shape has:
 |---|---|---|
 | `type` | string | `"rect"`, `"ellipse"`, `"path"`, `"text"` or `"composite"`. |
 | `id` | integer ≥ 0 | Unique in the whole document, Composite parts included. |
-| `style` | object | `{"fill": color or null, "stroke": color or null, "stroke_width": number ≥ 0}`. |
+| `style` | object | `{"fill": color or null, "stroke": color or null, "stroke_width": number ≥ 0}`, plus the optional fields below. |
 | `transform` | list of 6 numbers | Optional. Affine `[a, b, c, d, e, f]` as in SVG's `matrix()`, applied on top of the geometry. Left out when it's the identity. |
+
+Optional style fields, written only when they differ from the default (which is SVG's default):
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `opacity` | number 0 to 1 | `1.0` | Opacity of the whole shape: fill and stroke are flattened first, then made transparent. |
+| `fill_opacity`, `stroke_opacity` | number 0 to 1 | `1.0` | Opacity of the fill or stroke paint alone. |
+| `fill_rule` | string | `"nonzero"` | `"nonzero"` or `"evenodd"`, as SVG's `fill-rule`. |
+| `cap` | string | `"butt"` | `"butt"`, `"round"` or `"square"`. |
+| `join` | string | `"miter"` | `"miter"`, `"round"` or `"bevel"`. |
+| `miter_limit` | number ≥ 1 | `4.0` | As SVG's `stroke-miterlimit`. |
+| `dashes` | list of numbers ≥ 0 | `[]` | Dash and gap lengths in document pixels; empty is a solid line. Readers repeat an odd-length list and treat an all-zero list as solid, as SVG does. |
+| `dash_offset` | number | `0.0` | Where the dash pattern starts along the stroke. |
 
 Geometry per type:
 
 | `type` | Fields |
 |---|---|
-| `rect` | `x`, `y`, `width` ≥ 0, `height` ≥ 0 |
+| `rect` | `x`, `y`, `width` ≥ 0, `height` ≥ 0; optional `rx`, `ry` ≥ 0 (corner radii, default 0, clamped to half the size when drawn) |
 | `ellipse` | `cx`, `cy`, `rx` ≥ 0, `ry` ≥ 0 |
 | `path` | `segments`: list of `["M", x, y]` (move), `["L", x, y]` (line), `["C", c1x, c1y, c2x, c2y, x, y]` (cubic bezier), `["Z"]` (close). Paths keep an identity transform: transforms are applied to the points. |
-| `text` | `x`, `y` (baseline start), `text` (single line), `font_size` > 0 |
+| `text` | `x`, `y` (the anchor point on the baseline), `text` (single line), `font_size` > 0; optional `anchor`: `"start"` (default), `"middle"` or `"end"`, which point of the line sits at `x`, as SVG's `text-anchor` |
 | `composite` | `parts`: list of shapes, bottom to top (may include Composites); `modes`: one per part, each `"add"`, `"subtract"`, `"intersect"` or `"exclude"`. The first part is the base, so its mode is ignored. Composites keep an identity transform; their parts carry the transforms. |
 
 Example (from the sample file):
@@ -126,6 +139,7 @@ Undo history and the active tool are not stored.
 | 1 | nightlies from October 2026 | First version. |
 | 2 | nightlies from October 2026 | `document.unit` and `document.dpi`. Version 1 files open as `"px"` at 96 DPI. |
 | 3 | nightlies from October 2026 | `state.tools.pencil_smoothing`; the Pencil's style is stored under `tools.styles.pencil`. Version 2 files need no change. |
+| 4 | nightlies from October 2026 | Optional style fields `opacity`, `fill_opacity`, `stroke_opacity`, `fill_rule`, `cap`, `join`, `miter_limit`, `dashes`, `dash_offset`; rect `rx`/`ry`; text `anchor`. Version 3 files need no change. |
 
 Rules for changing the format:
 

@@ -279,6 +279,12 @@ msgid "Could not open {name}: {error}"
 msgstr "{name} konnte nicht geöffnet werden: {error}"
 
 #: presstoshape/editing/operations/documents.py
+msgid "Opened {name} with {count} import note"
+msgid_plural "Opened {name} with {count} import notes"
+msgstr[0] "{name} mit {count} Importhinweis geöffnet"
+msgstr[1] "{name} mit {count} Importhinweisen geöffnet"
+
+#: presstoshape/editing/operations/documents.py
 msgid "Opened {name}"
 msgstr "{name} geöffnet"
 
@@ -517,6 +523,14 @@ msgstr "Text hinzufügen"
 msgid "Added text"
 msgstr "Text hinzugefügt"
 
+#: presstoshape/editing/operations/shapes.py
+msgid "Change corner radius"
+msgstr "Eckenradius ändern"
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Change text alignment"
+msgstr "Textausrichtung ändern"
+
 #: presstoshape/editing/operations/style.py
 msgid "Change fill"
 msgstr "Füllung ändern"
@@ -528,6 +542,46 @@ msgstr "Kontur ändern"
 #: presstoshape/editing/operations/style.py
 msgid "Change stroke width"
 msgstr "Konturstärke ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change opacity"
+msgstr "Deckkraft ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change fill opacity"
+msgstr "Deckkraft der Füllung ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change stroke opacity"
+msgstr "Deckkraft der Kontur ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change fill rule"
+msgstr "Füllregel ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change line cap"
+msgstr "Linienende ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change line join"
+msgstr "Linienverbindung ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change mitre limit"
+msgstr "Spitzengrenze ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change dashes"
+msgstr "Strichelung ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change dash offset"
+msgstr "Strichversatz ändern"
+
+#: presstoshape/editing/operations/style.py
+msgid "Change style"
+msgstr "Stil ändern"
 
 #: presstoshape/editing/operations/transform.py
 msgid "Transform {count} object"
@@ -641,6 +695,10 @@ msgid "should be text"
 msgstr "sollte Text sein"
 
 #: presstoshape/formats/p2s.py
+msgid "should be at most {maximum}"
+msgstr "sollte höchstens {maximum} sein"
+
+#: presstoshape/formats/p2s.py
 msgid "should have 6 numbers"
 msgstr "sollte 6 Zahlen enthalten"
 
@@ -667,10 +725,6 @@ msgstr "sollte mindestens eine Ebene haben"
 #: presstoshape/formats/p2s.py
 msgid "uses a shape id twice"
 msgstr "verwendet eine Form-ID doppelt"
-
-#: presstoshape/formats/p2s.py
-msgid "should be at most {maximum}"
-msgstr "sollte höchstens {maximum} sein"
 
 #: presstoshape/formats/p2s.py
 msgid "should have 2 numbers"
@@ -704,19 +758,101 @@ msgstr "keine PressToShape-Datei"
 msgid "made with a newer PressToShape (file format {version}, this version reads up to {supported}); please update PressToShape"
 msgstr "mit einer neueren PressToShape-Version erstellt (Dateiformat {version}, diese Version liest bis {supported}); bitte PressToShape aktualisieren"
 
-#: presstoshape/formats/svg.py
+#: presstoshape/formats/svg_notes.py
+msgid "{count} gradient or pattern was painted grey"
+msgid_plural "{count} gradients or patterns were painted grey"
+msgstr[0] "{count} Verlauf oder Muster wurde grau gefüllt"
+msgstr[1] "{count} Verläufe oder Muster wurden grau gefüllt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} clip path was ignored, its content is shown unclipped"
+msgid_plural "{count} clip paths were ignored, their content is shown unclipped"
+msgstr[0] "{count} Beschneidungspfad wurde ignoriert, sein Inhalt wird unbeschnitten gezeigt"
+msgstr[1] "{count} Beschneidungspfade wurden ignoriert, ihr Inhalt wird unbeschnitten gezeigt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} mask was ignored, its content is shown unmasked"
+msgid_plural "{count} masks were ignored, their content is shown unmasked"
+msgstr[0] "{count} Maske wurde ignoriert, ihr Inhalt wird unmaskiert gezeigt"
+msgstr[1] "{count} Masken wurden ignoriert, ihr Inhalt wird unmaskiert gezeigt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} image was left out"
+msgid_plural "{count} images were left out"
+msgstr[0] "{count} Bild wurde weggelassen"
+msgstr[1] "{count} Bilder wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} filter effect (blur, shadow, …) was left out"
+msgid_plural "{count} filter effects (blur, shadow, …) were left out"
+msgstr[0] "{count} Filtereffekt (Unschärfe, Schatten, …) wurde weggelassen"
+msgstr[1] "{count} Filtereffekte (Unschärfe, Schatten, …) wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} line with markers (arrowheads) lost them"
+msgid_plural "{count} lines with markers (arrowheads) lost them"
+msgstr[0] "{count} Linie hat ihre Markierungen (Pfeilspitzen) verloren"
+msgstr[1] "{count} Linien haben ihre Markierungen (Pfeilspitzen) verloren"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} transparent group was approximated by making each object in it transparent"
+msgid_plural "{count} transparent groups were approximated by making each object in them transparent"
+msgstr[0] "{count} transparente Gruppe wurde angenähert, indem jedes Objekt darin transparent wurde"
+msgstr[1] "{count} transparente Gruppen wurden angenähert, indem jedes Objekt darin transparent wurde"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} CSS rule was not applied"
+msgid_plural "{count} CSS rules were not applied"
+msgstr[0] "{count} CSS-Regel wurde nicht angewendet"
+msgstr[1] "{count} CSS-Regeln wurden nicht angewendet"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} reference to a missing element was left out"
+msgid_plural "{count} references to missing elements were left out"
+msgstr[0] "{count} Verweis auf ein fehlendes Element wurde weggelassen"
+msgstr[1] "{count} Verweise auf fehlende Elemente wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} reference that refers to itself was left out"
+msgid_plural "{count} references that refer to themselves were left out"
+msgstr[0] "{count} Verweis auf sich selbst wurde weggelassen"
+msgstr[1] "{count} Verweise auf sich selbst wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} text line with mixed styles now uses one style"
+msgid_plural "{count} text lines with mixed styles now use one style each"
+msgstr[0] "{count} Textzeile mit gemischten Stilen hat jetzt einen Stil"
+msgstr[1] "{count} Textzeilen mit gemischten Stilen haben jetzt je einen Stil"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} embedded SVG document was left out"
+msgid_plural "{count} embedded SVG documents were left out"
+msgstr[0] "{count} eingebettetes SVG-Dokument wurde weggelassen"
+msgstr[1] "{count} eingebettete SVG-Dokumente wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} other element was left out"
+msgid_plural "{count} other elements were left out"
+msgstr[0] "{count} anderes Element wurde weggelassen"
+msgstr[1] "{count} andere Elemente wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} composite couldn't be read and was opened as a path"
+msgid_plural "{count} composites couldn't be read and were opened as paths"
+msgstr[0] "{count} Komposit konnte nicht gelesen werden und wurde als Pfad geöffnet"
+msgstr[1] "{count} Komposits konnten nicht gelesen werden und wurden als Pfade geöffnet"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} composite was edited in another program and was opened as a path"
+msgid_plural "{count} composites were edited in another program and were opened as paths"
+msgstr[0] "{count} Komposit wurde in einem anderen Programm bearbeitet und als Pfad geöffnet"
+msgstr[1] "{count} Komposits wurden in einem anderen Programm bearbeitet und als Pfade geöffnet"
+
+#: presstoshape/formats/svg_reader.py
 msgid "not an SVG document"
 msgstr "kein SVG-Dokument"
 
-#: presstoshape/formats/svg.py
-msgid "A composite couldn't be read and was opened as a path"
-msgstr "Ein Komposit konnte nicht gelesen werden und wurde als Pfad geöffnet"
-
-#: presstoshape/formats/svg.py
-msgid "A composite was edited in another program and was opened as a path"
-msgstr "Ein Komposit wurde in einem anderen Programm bearbeitet und als Pfad geöffnet"
-
-#: presstoshape/formats/svg.py
+#: presstoshape/formats/svg_values.py
 msgid "bad path data: {data}"
 msgstr "ungültige Pfaddaten: {data}"
 
@@ -889,6 +1025,18 @@ msgstr "Größe"
 #: presstoshape/views/export_dialog.py
 msgid "{width} × {height} px"
 msgstr "{width} × {height} px"
+
+#: presstoshape/views/import_report_dialog.py
+msgid "Import Notes"
+msgstr "Importhinweise"
+
+#: presstoshape/views/import_report_dialog.py
+msgid "Some parts of {name} couldn't be imported as they are:"
+msgstr "Einige Teile von {name} konnten nicht unverändert importiert werden:"
+
+#: presstoshape/views/import_report_dialog.py
+msgid "Saving as SVG writes the file without these parts. Save as a PressToShape file (.p2s) or under a new name to keep the original."
+msgstr "Beim Speichern als SVG fehlen diese Teile in der Datei. Um das Original zu behalten, als PressToShape-Datei (.p2s) oder unter neuem Namen speichern."
 
 #: presstoshape/views/keymap.py
 msgid "&New"
@@ -1192,6 +1340,30 @@ msgid "Rotation"
 msgstr "Drehung"
 
 #: presstoshape/views/selection_view.py
+msgid "Mixed"
+msgstr "Gemischt"
+
+#: presstoshape/views/selection_view.py
+msgid "Corner radius"
+msgstr "Eckenradius"
+
+#: presstoshape/views/selection_view.py
+msgid "Alignment"
+msgstr "Ausrichtung"
+
+#: presstoshape/views/selection_view.py
+msgid "Left: the text starts at its position"
+msgstr "Links: Der Text beginnt an seiner Position"
+
+#: presstoshape/views/selection_view.py
+msgid "Centre: the text is centred on its position"
+msgstr "Mitte: Der Text ist auf seiner Position zentriert"
+
+#: presstoshape/views/selection_view.py
+msgid "Right: the text ends at its position"
+msgstr "Rechts: Der Text endet an seiner Position"
+
+#: presstoshape/views/selection_view.py
 msgid "Nothing selected"
 msgstr "Nichts ausgewählt"
 
@@ -1204,10 +1376,6 @@ msgstr[1] "{count} Objekte"
 #: presstoshape/views/selection_view.py
 msgid "Base"
 msgstr "Basis"
-
-#: presstoshape/views/selection_view.py
-msgid "Mixed"
-msgstr "Gemischt"
 
 #: presstoshape/views/selection_view.py
 msgid "skewed"
@@ -1370,6 +1538,10 @@ msgid "Tool: {tool}  |  {count} selected  |  {zoom}%"
 msgstr "Werkzeug: {tool}  |  {count} ausgewählt  |  {zoom} %"
 
 #: presstoshape/views/style_editor.py
+msgid "Opacity of this paint"
+msgstr "Deckkraft dieser Farbe"
+
+#: presstoshape/views/style_editor.py
 msgid "Fill"
 msgstr "Füllung"
 
@@ -1381,6 +1553,90 @@ msgstr "Kontur"
 msgctxt "stroke"
 msgid "Width"
 msgstr "Stärke"
+
+#: presstoshape/views/style_editor.py
+msgid "Opacity"
+msgstr "Deckkraft"
+
+#: presstoshape/views/style_editor.py
+msgctxt "fill rule"
+msgid "Nonzero"
+msgstr "Nicht-Null"
+
+#: presstoshape/views/style_editor.py
+msgctxt "fill rule"
+msgid "Even-odd"
+msgstr "Gerade-Ungerade"
+
+#: presstoshape/views/style_editor.py
+msgid "Even-odd leaves overlapping parts of a shape open as holes"
+msgstr "Gerade-Ungerade lässt überlappende Teile einer Form als Löcher offen"
+
+#: presstoshape/views/style_editor.py
+msgid "Fill rule"
+msgstr "Füllregel"
+
+#: presstoshape/views/style_editor.py
+msgctxt "line cap"
+msgid "Butt"
+msgstr "Flach"
+
+#: presstoshape/views/style_editor.py
+msgctxt "line cap"
+msgid "Round"
+msgstr "Rund"
+
+#: presstoshape/views/style_editor.py
+msgctxt "line cap"
+msgid "Square"
+msgstr "Quadratisch"
+
+#: presstoshape/views/style_editor.py
+msgctxt "line join"
+msgid "Mitre"
+msgstr "Spitz"
+
+#: presstoshape/views/style_editor.py
+msgctxt "line join"
+msgid "Round"
+msgstr "Rund"
+
+#: presstoshape/views/style_editor.py
+msgctxt "line join"
+msgid "Bevel"
+msgstr "Abgeschrägt"
+
+#: presstoshape/views/style_editor.py
+msgid "Ends"
+msgstr "Enden"
+
+#: presstoshape/views/style_editor.py
+msgid "Corners"
+msgstr "Ecken"
+
+#: presstoshape/views/style_editor.py
+msgid "How far a mitred corner may stick out, in stroke widths, before it is bevelled"
+msgstr "Wie weit eine spitze Ecke in Konturstärken herausragen darf, bevor sie abgeschrägt wird"
+
+#: presstoshape/views/style_editor.py
+msgid "Mitre limit"
+msgstr "Spitzengrenze"
+
+#: presstoshape/views/style_editor.py
+msgid "Solid"
+msgstr "Durchgehend"
+
+#: presstoshape/views/style_editor.py
+msgid "Dash and gap lengths, for example 4 2"
+msgstr "Längen von Strichen und Lücken, zum Beispiel 4 2"
+
+#: presstoshape/views/style_editor.py
+msgid "Dashes"
+msgstr "Strichelung"
+
+#: presstoshape/views/style_editor.py
+msgid "Dash offset"
+msgstr "Strichversatz"
 
 #: presstoshape/views/tool_options_view.py
 msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes."

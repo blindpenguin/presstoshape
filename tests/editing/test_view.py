@@ -42,3 +42,10 @@ def test_zoom_clamped():
     assert session.state.zoom_percent == 800
     view.set_zoom(session, 1)
     assert session.state.zoom_percent == 10
+
+
+def test_tool_styles_are_brought_into_range():
+    session = Session()
+    view.set_tool_style(session, Tool.RECTANGLE, opacity=-1, dashes=(1, 2, 3), stroke_width=-2)
+    tool_style = session.state.tool_styles[Tool.RECTANGLE]
+    assert (tool_style.opacity, tool_style.dashes, tool_style.stroke_width) == (0, (1, 2, 3, 1, 2, 3), 0)

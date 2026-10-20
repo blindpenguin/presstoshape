@@ -32,6 +32,14 @@ def combine_parts(parts: Sequence[tuple[Segments, Mode]]) -> Segments:
     return _from_skia(result)
 
 
+def simplify(segments: Segments, evenodd: bool) -> Segments:
+    """The same filled area with no overlapping or wrongly wound contours, so it fills the same under the
+    nonzero rule as `segments` did under its own rule."""
+    path = _to_skia(segments, evenodd)
+    path.simplify()
+    return _from_skia(path)
+
+
 def area(segments: Segments) -> float:
     return abs(_to_skia(segments).area)
 
@@ -114,8 +122,8 @@ def _regions(path: pathops.Path) -> list[pathops.Path]:
     return [region for _, region in sorted(regions.items())]
 
 
-def _to_skia(segments: tuple[Segment, ...]) -> pathops.Path:
-    path = pathops.Path()
+def _to_skia(segments: tuple[Segment, ...], evenodd: bool = False) -> pathops.Path:
+    path = pathops.Path(fillType=pathops.FillType.EVEN_ODD if evenodd else pathops.FillType.WINDING)
     for s in segments:
         match s:
             case MoveTo(x, y):

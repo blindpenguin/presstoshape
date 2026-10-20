@@ -6,7 +6,7 @@ import json
 import math
 import zipfile
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, get_args
 
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, upgrade
 from presstoshape.geometry import units
@@ -19,6 +19,9 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    FillRule,
+    LineCap,
+    LineJoin,
     LineTo,
     MoveTo,
     PartMode,
@@ -27,8 +30,10 @@ from presstoshape.models.shapes import (
     Segment,
     Shape,
     Style,
+    TextAnchor,
     TextShape,
     Transform,
+    sanitized,
 )
 
 MIMETYPE = "application/x-presstoshape"
@@ -70,8 +75,22 @@ class P2sError(ValueError):
 _number = float
 
 
+_DEFAULT_STYLE = Style()
+
+
 def encode_style(style: Style) -> dict[str, Any]:
-    return {"fill": style.fill, "stroke": style.stroke, "stroke_width": _number(style.stroke_width)}
+    """fill, stroke and stroke_width always; the fields added in version 4 only when they differ from the
+    default, so plain shapes stay as compact as before."""
+    fields: dict[str, Any] = {"fill": style.fill, "stroke": style.stroke, "stroke_width": _number(style.stroke_width)}
+    for key in ("opacity", "fill_opacity", "stroke_opacity", "miter_limit", "dash_offset"):
+        if getattr(style, key) != getattr(_DEFAULT_STYLE, key):
+            fields[key] = _number(getattr(style, key))
+    for key in ("fill_rule", "cap", "join"):
+        if getattr(style, key) != getattr(_DEFAULT_STYLE, key):
+            fields[key] = getattr(style, key)
+    if style.dashes:
+        fields["dashes"] = [_number(value) for value in style.dashes]
+    return fields
 
 
 def _encode_segment(segment: Segment) -> list[Any]:
@@ -92,8 +111,10 @@ def _numbers(**values: float) -> dict[str, float]:
 
 def encode_shape(shape: Shape) -> dict[str, Any]:
     match shape:
-        case RectShape(x=x, y=y, width=width, height=height):
+        case RectShape(x=x, y=y, width=width, height=height, rx=rx, ry=ry):
             fields = {"type": "rect", "id": shape.id, **_numbers(x=x, y=y, width=width, height=height)}
+            if rx or ry:
+                fields |= _numbers(rx=rx, ry=ry)
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
             fields = {"type": "ellipse", "id": shape.id, **_numbers(cx=cx, cy=cy, rx=rx, ry=ry)}
         case PathShape(segments=segments):
@@ -101,6 +122,8 @@ def encode_shape(shape: Shape) -> dict[str, Any]:
         case TextShape(x=x, y=y, text=text, font_size=font_size):
             fields = {"type": "text", "id": shape.id, **_numbers(x=x, y=y), "text": text}
             fields["font_size"] = _number(font_size)
+            if shape.anchor != "start":
+                fields["anchor"] = shape.anchor
         case CompositeShape(parts=parts, modes=modes):
             fields = {
                 "type": "composite",
@@ -186,13 +209,51 @@ def _color(value: Any, where: str) -> str | None:
     return None if value is None else read_string(value, where, _MAX_COLOR)
 
 
+def _optional_number(
+    fields: dict[str, Any],
+    key: str,
+    where: str,
+    default: float,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    if key not in fields:
+        return default
+    value = read_number(fields[key], f"{where}.{key}", minimum)
+    if maximum is not None and value > maximum:
+        raise _damaged(f"{where}.{key}", _("should be at most {maximum}").format(maximum=maximum))
+    return value
+
+
+def _optional_choice(fields: dict[str, Any], key: str, where: str, choices: tuple[str, ...], default: str) -> Any:
+    value = fields.get(key, default)
+    if value not in choices:
+        raise _damaged(f"{where}.{key}", _one_of(choices))
+    return value
+
+
 def decode_style(value: Any, where: str) -> Style:
     fields = read_object(value, where)
-    return Style(
+    dashes = tuple(
+        read_number(item, f"{where}.dashes[{index}]", minimum=0.0)
+        for index, item in enumerate(read_list(fields.get("dashes", []), f"{where}.dashes"))
+    )
+    style = Style(
         fill=_color(_field(fields, "fill", where), f"{where}.fill"),
         stroke=_color(_field(fields, "stroke", where), f"{where}.stroke"),
         stroke_width=_number_field(fields, "stroke_width", where, minimum=0.0),
+        opacity=_optional_number(fields, "opacity", where, 1.0, minimum=0.0, maximum=1.0),
+        fill_opacity=_optional_number(fields, "fill_opacity", where, 1.0, minimum=0.0, maximum=1.0),
+        stroke_opacity=_optional_number(fields, "stroke_opacity", where, 1.0, minimum=0.0, maximum=1.0),
+        fill_rule=_optional_choice(fields, "fill_rule", where, get_args(FillRule), "nonzero"),
+        cap=_optional_choice(fields, "cap", where, get_args(LineCap), "butt"),
+        join=_optional_choice(fields, "join", where, get_args(LineJoin), "miter"),
+        miter_limit=_optional_number(fields, "miter_limit", where, 4.0, minimum=1.0),
+        dashes=dashes,
+        dash_offset=_optional_number(fields, "dash_offset", where, 0.0),
     )
+    # Dash lists other programs couldn't draw (odd length, all zero) are normalized the way SVG does.
+    return sanitized(style)
 
 
 def _decode_transform(fields: dict[str, Any], where: str) -> Transform:
@@ -239,6 +300,8 @@ def decode_shape(value: Any, where: str) -> Shape:
                 _number_field(fields, "height", where, minimum=0.0),
                 style,
                 transform,
+                rx=_optional_number(fields, "rx", where, 0.0, minimum=0.0),
+                ry=_optional_number(fields, "ry", where, 0.0, minimum=0.0),
             )
         case "ellipse":
             return EllipseShape(
@@ -263,6 +326,7 @@ def decode_shape(value: Any, where: str) -> Shape:
                 _number_field(fields, "font_size", where, minimum=0.1),
                 style,
                 transform,
+                anchor=_optional_choice(fields, "anchor", where, get_args(TextAnchor), "start"),
             )
         case "composite":
             part_values = read_list(_field(fields, "parts", where), f"{where}.parts")

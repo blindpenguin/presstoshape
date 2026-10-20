@@ -36,7 +36,7 @@ def combine(session: Session, op: str) -> None:
     if len(targets) < 2:
         return
     try:
-        segments = booleans.combine_parts([(transforms.outline(shape), mode) for shape in targets])
+        segments = booleans.combine_parts([(transforms.area_outline(shape), mode) for shape in targets])
     except pathops.PathOpsError:
         _report_failure(session, name)
         return
@@ -54,7 +54,7 @@ def divide_selection(session: Session) -> None:
     if len(targets) < 2:
         return
     try:
-        pieces = booleans.divide([transforms.outline(shape) for shape in targets])
+        pieces = booleans.divide([transforms.area_outline(shape) for shape in targets])
     except pathops.PathOpsError:
         _report_failure(session, _("Divide"))
         return

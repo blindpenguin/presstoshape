@@ -17,13 +17,13 @@ Today PressToShape is at an early stage (shapes, bezier pen, text, styling, laye
 Current:
 1. **Drawing tools**: select, node, bezier pen, pencil (freehand with smoothing), rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
 2. **Direct manipulation**: scale/rotate handles on the selection, path node and bezier handle editing, object to path, cursors that show the action.
-3. **Styling**: fill, stroke, stroke width per shape or multi-selection; per-tool default styles in a context-sensitive tool options panel.
+3. **Styling**: fill and stroke with their own opacity, stroke width, object opacity, fill rule, line ends, corners and dashes per shape or multi-selection; rounded rectangle corners, text alignment; per-tool default styles in a context-sensitive tool options panel.
 4. **Layers**: add, delete, rename, hide; Inkscape-compatible.
 5. **Boolean operations**: union, difference, intersection, exclude, divide.
 6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
 7. **Undo/redo** for every document edit.
 8. **Clipboard**: copy, cut, paste, paste in place, duplicate and Alt+drag duplicate; SVG on the clipboard for other apps.
-9. **Files**: native `.p2s` format (lossless, with working state) and SVG open/save.
+9. **Files**: native `.p2s` format (lossless, with working state) and SVG open/save. SVG import reads CSS class styles, `<use>`/`<symbol>` and multi-line text, and reports what it couldn't import.
 10. **New documents**: New Document dialog with presets and custom sizes in px, mm, cm, in or pt with DPI; recent files; documents keep their unit.
 11. **Crash recovery and backups**: recovery snapshots while there are unsaved changes, offered after a crash; one backup of the previous version on save.
 12. **Languages and settings**: English and German interface, user-provided `.po` translations; a Settings window (language, renderer).

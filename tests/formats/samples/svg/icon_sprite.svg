@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="40" viewBox="0 0 100 40">
+  <!-- Hand-written test file: an icon sprite with symbols and <use> copies. -->
+  <defs>
+    <symbol id="icon-square" viewBox="0 0 10 10">
+      <title>Square</title>
+      <rect x="1" y="1" width="8" height="8"/>
+    </symbol>
+    <path id="dot" d="M 0 0 h 2 v 2 h -2 z"/>
+    <g id="pair">
+      <use href="#dot"/>
+      <use xlink:href="#dot" x="4"/>
+    </g>
+  </defs>
+  <use href="#icon-square" x="0" y="0" width="20" height="20" fill="#ff0000"/>
+  <use xlink:href="#icon-square" x="30" y="0" width="40" height="20" style="fill:#00ff00"/>
+  <use href="#pair" x="80" y="30" fill="blue"/>
+  <use href="#missing"/>
+  <g id="loop">
+    <use href="#loop"/>
+  </g>
+</svg>

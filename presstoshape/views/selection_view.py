@@ -1,15 +1,37 @@
 from functools import partial
 
-from PySide6.QtWidgets import QDoubleSpinBox, QFormLayout, QFrame, QLabel, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import (
+    QDoubleSpinBox,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
+from presstoshape import icons
 from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import composites, shapes, style, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
 from presstoshape.i18n import N_, _, ngettext
-from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import CompositeShape, EllipseShape, PathShape, RectShape, Shape, Style, TextShape
-from presstoshape.views.style_editor import FILL, STROKE, WIDTH, StyleEditor
+from presstoshape.models.app_state import AppState, Document
+from presstoshape.models.shapes import (
+    CompositeShape,
+    EllipseShape,
+    PathShape,
+    RectShape,
+    Shape,
+    Style,
+    TextAnchor,
+    TextShape,
+)
+from presstoshape.views.icon_engine import icon
+from presstoshape.views.style_editor import ALL_FIELDS, StyleEditor
 from presstoshape.views.unit_fields import LengthSpinBox, font_unit
 from presstoshape.views.widgets import PartModeBox
 
@@ -41,6 +63,8 @@ _HINT = N_(
     "drag just outside a corner to rotate (Shift snaps to 15°)."
 )
 _ROTATABLE = (RectShape, EllipseShape, TextShape)
+# One below 0 is the "mixed" placeholder of the corner radius (special value text shows at the minimum).
+_MIXED_RADIUS = -1.0
 
 
 class SelectionOptions(QWidget):
@@ -89,6 +113,12 @@ class SelectionOptions(QWidget):
         self._rotation.setSuffix("°")
         self._rotation.valueChanged.connect(self._on_rotation)
         self._form.addRow(_("Rotation"), self._rotation)
+        self._radius = LengthSpinBox(_MIXED_RADIUS, _COORD_RANGE)
+        self._radius.setSpecialValueText(_("Mixed"))
+        self._radius.px_changed.connect(self._on_radius)
+        self._form.addRow(_("Corner radius"), self._radius)
+        self._anchor_row, self._anchor_buttons = self._anchor_buttons_row()
+        self._form.addRow(_("Alignment"), self._anchor_row)
         layout.addWidget(geometry_box)
         self._geometry = geometry_box
 
@@ -96,14 +126,31 @@ class SelectionOptions(QWidget):
         self._separator.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(self._separator)
 
-        self._style = StyleEditor(
-            (FILL, STROKE, WIDTH),
-            on_fill=partial(style.set_fill, session),
-            on_stroke=partial(style.set_stroke, session),
-            on_width=partial(style.set_stroke_width, session),
-        )
+        self._style = StyleEditor(ALL_FIELDS, lambda changes: style.set_style(session, **changes))
         layout.addWidget(self._style)
         layout.addStretch(1)
+
+    def _anchor_buttons_row(self) -> tuple[QWidget, dict[TextAnchor, QToolButton]]:
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        buttons: dict[TextAnchor, QToolButton] = {}
+        for anchor, path, tooltip in (
+            ("start", icons.ALIGN_START, _("Left: the text starts at its position")),
+            ("middle", icons.ALIGN_MIDDLE, _("Centre: the text is centred on its position")),
+            ("end", icons.ALIGN_END, _("Right: the text ends at its position")),
+        ):
+            button = QToolButton()
+            button.setIcon(icon(path))
+            button.setIconSize(QSize(18, 18))
+            button.setCheckable(True)
+            button.setAutoRaise(True)
+            button.setToolTip(tooltip)
+            button.clicked.connect(lambda _checked=False, value=anchor: self._on_anchor(value))
+            layout.addWidget(button)
+            buttons[anchor] = button
+        layout.addStretch(1)
+        return row, buttons
 
     def refresh(self, state: AppState) -> None:
         selected = queries.selected_shapes(self._session.state)
@@ -121,12 +168,16 @@ class SelectionOptions(QWidget):
         self._style.setVisible(bool(selected))
         document = state.document
         self._style.set_unit(document.unit, document.dpi)
-        self._style.refresh(selected[0].style if selected else Style())
+        fill_rule_matters = any(isinstance(shape, (PathShape, CompositeShape)) for shape in selected)
+        self._style.refresh(selected[0].style if selected else Style(), fill_rule_matters)
 
         rows = _GEOMETRY.get(type(single), ())
         show_mode = self._refresh_mode(state, selected)
-        self._geometry.setVisible(bool(rows) or show_mode)
-        self._separator.setVisible(bool(rows) or show_mode)
+        show_radius = self._refresh_radius(selected, document)
+        show_anchor = self._refresh_anchor(selected)
+        has_geometry = bool(rows) or show_mode or show_radius or show_anchor
+        self._geometry.setVisible(has_geometry)
+        self._separator.setVisible(has_geometry)
         fields = {row[0] for row in rows}
         for field, spin in self._spins.items():
             spin.set_unit(font_unit(document) if field == "font_size" else document.unit, document.dpi)
@@ -160,6 +211,35 @@ class SelectionOptions(QWidget):
             self._mode.show_mode(None, _("Mixed"))
         self._mode.setEnabled(bool(others))
         return True
+
+    def _refresh_radius(self, selected: list[Shape], document: Document) -> bool:
+        """Corner radius when only rectangles are selected; "Mixed" when their radii differ."""
+        visible = bool(selected) and all(isinstance(shape, RectShape) for shape in selected)
+        self._form.setRowVisible(self._radius, visible)
+        if visible:
+            self._radius.set_unit(document.unit, document.dpi)
+            radii = {radius for rect in selected for radius in (rect.rx, rect.ry)}
+            self._radius.set_px(radii.pop() if len(radii) == 1 else _MIXED_RADIUS)
+        return visible
+
+    def _refresh_anchor(self, selected: list[Shape]) -> bool:
+        """Alignment buttons when only text is selected; none checked when the texts differ."""
+        visible = bool(selected) and all(isinstance(shape, TextShape) for shape in selected)
+        self._form.setRowVisible(self._anchor_row, visible)
+        if visible:
+            anchors = {shape.anchor for shape in selected}
+            for anchor, button in self._anchor_buttons.items():
+                button.setChecked(anchors == {anchor})
+        return visible
+
+    def _on_radius(self, px: float) -> None:
+        if px > _MIXED_RADIUS:
+            shapes.set_corner_radius(self._session, px)
+
+    def _on_anchor(self, anchor: TextAnchor) -> None:
+        shapes.set_text_anchor(self._session, anchor)
+        # Unchanged anchors make no edit and no refresh; undo the button's own toggle.
+        self.refresh(self._session.state)
 
     def _refresh_rotation(self, single: Shape | None) -> None:
         rotatable = isinstance(single, _ROTATABLE)

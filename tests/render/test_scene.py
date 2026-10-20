@@ -1,8 +1,18 @@
 import skia
 
 from presstoshape.geometry import affine, transforms
+from presstoshape.geometry.segments import rect_segments
 from presstoshape.models.app_state import Document, Layer
-from presstoshape.models.shapes import CompositeShape, EllipseShape, LineTo, MoveTo, RectShape, Style
+from presstoshape.models.shapes import (
+    CompositeShape,
+    EllipseShape,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
 from presstoshape.render.export import render_png
 from presstoshape.render.handles import Frame
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
@@ -228,3 +238,79 @@ def test_edit_mode_shows_a_dragged_part_live():
     # The hole moved up-left to 20..40, so (30, 30) is now a hole and (50, 50) is filled.
     assert _pixel(surface, 50, 50) == (255, 0, 0, 255)
     assert _pixel(surface, 30, 30) != (255, 0, 0, 255)
+
+
+def _square_ring(fill_rule: str) -> PathShape:
+    # Both squares wound the same way, so only evenodd leaves the inner one open.
+    segments = rect_segments(10, 10, 60, 60) + rect_segments(30, 30, 20, 20)
+    return PathShape(1, segments, Style(fill="#ff0000", stroke=None, fill_rule=fill_rule))
+
+
+def test_evenodd_leaves_the_hole_open():
+    assert _pixel(_render(_doc(_square_ring("evenodd"))), 40, 40) == TRANSPARENT
+    assert _pixel(_render(_doc(_square_ring("nonzero"))), 40, 40) == (255, 0, 0, 255)
+    assert _pixel(_render(_doc(_square_ring("evenodd"))), 20, 20) == (255, 0, 0, 255)
+
+
+def test_object_opacity_flattens_fill_and_stroke():
+    style = Style(fill="#ff0000", stroke="#0000ff", stroke_width=10, opacity=0.5)
+    red, green, blue, alpha = _pixel(_render(_doc(RectShape(1, 20, 20, 50, 50, style))), 22, 40)
+    # Inside half of the stroke: only the stroke shows, the fill underneath doesn't shine through.
+    assert red == 0 and blue > 0 and abs(alpha - 128) <= 1
+
+
+def test_object_opacity_with_one_paint():
+    style = Style(fill="#ff0000", stroke=None, opacity=0.5)
+    assert abs(_pixel(_render(_doc(RectShape(1, 20, 20, 50, 50, style))), 40, 40)[3] - 128) <= 1
+
+
+def test_fill_and_stroke_opacity_apply_to_their_paint():
+    style = Style(fill="#ff0000", stroke="#0000ff", stroke_width=10, fill_opacity=0.25, stroke_opacity=0.5)
+    surface = _render(_doc(RectShape(1, 20, 20, 50, 50, style)))
+    assert abs(_pixel(surface, 45, 45)[3] - 64) <= 1
+    assert abs(_pixel(surface, 16, 45)[3] - 128) <= 1
+
+
+def test_zero_opacity_draws_nothing():
+    style = Style(fill="#ff0000", stroke="#0000ff", opacity=0)
+    assert _pixel(_render(_doc(RectShape(1, 20, 20, 50, 50, style))), 40, 40) == TRANSPARENT
+
+
+def _line(**style_fields) -> PathShape:
+    style = Style(fill=None, stroke="#000000", stroke_width=10, **style_fields)
+    return PathShape(1, (MoveTo(20, 50), LineTo(80, 50)), style)
+
+
+def test_dashes_leave_gaps():
+    surface = _render(_doc(_line(dashes=(10.0, 10.0))))
+    assert _pixel(surface, 25, 50)[3] == 255
+    assert _pixel(surface, 35, 50) == TRANSPARENT
+
+
+def test_round_cap_reaches_past_the_end_point():
+    assert _pixel(_render(_doc(_line(cap="round"))), 83, 50)[3] == 255
+    assert _pixel(_render(_doc(_line())), 83, 50) == TRANSPARENT
+
+
+def test_rounded_rect_corners_are_open():
+    shape = RectShape(1, 10, 10, 60, 60, Style(fill="#ff0000", stroke=None), rx=15, ry=15)
+    surface = _render(_doc(shape))
+    assert _pixel(surface, 11, 11) == TRANSPARENT
+    assert _pixel(surface, 40, 40) == (255, 0, 0, 255)
+
+
+def test_text_anchor_moves_the_line():
+    cache = PathCache()
+    start = cache.geometry_bounds(TextShape(1, 50, 50, "Wide", 20, Style()))
+    middle = cache.geometry_bounds(TextShape(2, 50, 50, "Wide", 20, Style(), anchor="middle"))
+    end = cache.geometry_bounds(TextShape(3, 50, 50, "Wide", 20, Style(), anchor="end"))
+    assert start.fLeft >= 49
+    assert abs((middle.fLeft + middle.fRight) / 2 - 50) < 2
+    assert end.fRight <= 51
+
+
+def test_anchored_text_draws_where_its_outline_is():
+    shape = TextShape(1, 50, 60, "I", 40, Style(fill="#000000", stroke=None), anchor="end")
+    bounds = PathCache().geometry_bounds(shape)
+    surface = _render(_doc(shape))
+    assert _pixel(surface, round((bounds.fLeft + bounds.fRight) / 2), round(bounds.centerY()))[3] == 255

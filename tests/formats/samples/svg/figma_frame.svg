@@ -1,0 +1,19 @@
+<svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_1_2)">
+<rect width="120" height="80" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M10 10H50V50H10V10ZM20 20V40H40V20H20Z" fill="#0D99FF"/>
+<rect x="60" y="10" width="50" height="30" rx="8" fill="black" fill-opacity="0.25"/>
+<circle cx="85" cy="60" r="10" stroke="#FF0000" stroke-opacity="0.5" stroke-width="2"/>
+<rect x="10" y="60" width="40" height="10" fill="rgba(0, 0, 255, 0.5)"/>
+<rect x="60" y="72" width="50" height="5" fill="url(#paint0_linear_1_2)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_1_2" x1="60" y1="72" x2="110" y2="77" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF0000"/>
+<stop offset="1" stop-color="#0000FF"/>
+</linearGradient>
+<clipPath id="clip0_1_2">
+<rect width="120" height="80" fill="white"/>
+</clipPath>
+</defs>
+</svg>

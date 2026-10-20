@@ -1,0 +1,119 @@
+"""What an SVG import couldn't keep or only approximated, counted per kind and worded for the user."""
+
+from collections import Counter
+from enum import Enum, auto
+
+from presstoshape.i18n import ngettext
+
+
+class Note(Enum):
+    GRADIENT = auto()
+    CLIP = auto()
+    MASK = auto()
+    IMAGE = auto()
+    FILTER = auto()
+    MARKER = auto()
+    GROUP_OPACITY = auto()
+    CSS_SKIPPED = auto()
+    MISSING_REFERENCE = auto()
+    CYCLIC_REFERENCE = auto()
+    MIXED_TEXT = auto()
+    NESTED_SVG = auto()
+    UNKNOWN_ELEMENT = auto()
+    COMPOSITE_UNREADABLE = auto()
+    COMPOSITE_EDITED = auto()
+
+
+def _message(note: Note, count: int) -> str:
+    match note:
+        case Note.GRADIENT:
+            text = ngettext(
+                "{count} gradient or pattern was painted grey", "{count} gradients or patterns were painted grey", count
+            )
+        case Note.CLIP:
+            text = ngettext(
+                "{count} clip path was ignored, its content is shown unclipped",
+                "{count} clip paths were ignored, their content is shown unclipped",
+                count,
+            )
+        case Note.MASK:
+            text = ngettext(
+                "{count} mask was ignored, its content is shown unmasked",
+                "{count} masks were ignored, their content is shown unmasked",
+                count,
+            )
+        case Note.IMAGE:
+            text = ngettext("{count} image was left out", "{count} images were left out", count)
+        case Note.FILTER:
+            text = ngettext(
+                "{count} filter effect (blur, shadow, …) was left out",
+                "{count} filter effects (blur, shadow, …) were left out",
+                count,
+            )
+        case Note.MARKER:
+            text = ngettext(
+                "{count} line with markers (arrowheads) lost them",
+                "{count} lines with markers (arrowheads) lost them",
+                count,
+            )
+        case Note.GROUP_OPACITY:
+            text = ngettext(
+                "{count} transparent group was approximated by making each object in it transparent",
+                "{count} transparent groups were approximated by making each object in them transparent",
+                count,
+            )
+        case Note.CSS_SKIPPED:
+            text = ngettext("{count} CSS rule was not applied", "{count} CSS rules were not applied", count)
+        case Note.MISSING_REFERENCE:
+            text = ngettext(
+                "{count} reference to a missing element was left out",
+                "{count} references to missing elements were left out",
+                count,
+            )
+        case Note.CYCLIC_REFERENCE:
+            text = ngettext(
+                "{count} reference that refers to itself was left out",
+                "{count} references that refer to themselves were left out",
+                count,
+            )
+        case Note.MIXED_TEXT:
+            text = ngettext(
+                "{count} text line with mixed styles now uses one style",
+                "{count} text lines with mixed styles now use one style each",
+                count,
+            )
+        case Note.NESTED_SVG:
+            text = ngettext(
+                "{count} embedded SVG document was left out", "{count} embedded SVG documents were left out", count
+            )
+        case Note.UNKNOWN_ELEMENT:
+            text = ngettext("{count} other element was left out", "{count} other elements were left out", count)
+        case Note.COMPOSITE_UNREADABLE:
+            text = ngettext(
+                "{count} composite couldn't be read and was opened as a path",
+                "{count} composites couldn't be read and were opened as paths",
+                count,
+            )
+        case Note.COMPOSITE_EDITED:
+            text = ngettext(
+                "{count} composite was edited in another program and was opened as a path",
+                "{count} composites were edited in another program and were opened as paths",
+                count,
+            )
+    return text.format(count=count)
+
+
+class NoteCollector:
+    def __init__(self) -> None:
+        self._counts: Counter[Note] = Counter()
+
+    def add(self, note: Note, count: int = 1) -> None:
+        if count > 0:
+            self._counts[note] += count
+
+    def count(self, note: Note) -> int:
+        return self._counts[note]
+
+    def messages(self) -> list[str]:
+        """One message per kind of note, in a fixed order."""
+        return [_message(note, self._counts[note]) for note in Note if self._counts[note]]

@@ -1,10 +1,10 @@
 import pytest
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import shapes
+from presstoshape.editing.operations import selection, shapes
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import Tool
-from presstoshape.models.shapes import RectShape
+from presstoshape.models.shapes import EllipseShape, RectShape
 from tests.helpers import all_shapes
 
 
@@ -86,3 +86,52 @@ def test_drawn_paths_use_the_tools_style_and_land_like_other_shapes():
     session.state.dirty = False
     view.set_pencil_smoothing(session, -3)
     assert session.state.pencil_smoothing == 0 and not session.state.dirty
+
+
+def _select(session, *ids):
+    selection.set_selection(session, set(ids))
+
+
+def test_corner_radius_applies_to_selected_rectangles_only():
+    session = Session()
+    rect = shapes.add_rectangle(session, (0, 0), (10, 10))
+    ellipse = shapes.add_ellipse(session, (20, 0), (30, 10))
+    _select(session, rect, ellipse)
+    shapes.set_corner_radius(session, 3)
+    first, second = all_shapes(session)
+    assert (first.rx, first.ry) == (3, 3)
+    assert isinstance(second, EllipseShape) and (second.rx, second.ry) == (5, 5)
+    assert session.undo_label == "Change corner radius"
+
+
+def test_corner_radius_steps_merge_and_undo():
+    session = Session()
+    rect = shapes.add_rectangle(session, (0, 0), (10, 10))
+    _select(session, rect)
+    for radius in (1, 2, -4):
+        shapes.set_corner_radius(session, radius)
+    assert all_shapes(session)[0].rx == 0
+    shapes.set_corner_radius(session, 2)
+    session.undo()
+    assert all_shapes(session)[0].rx == 0
+
+
+def test_corner_radius_without_rectangles_is_no_step():
+    session = Session()
+    _select(session, shapes.add_ellipse(session, (0, 0), (10, 10)))
+    shapes.set_corner_radius(session, 3)
+    assert session.undo_label == "Add ellipse"
+
+
+def test_text_anchor_keeps_the_position():
+    session = Session()
+    text = shapes.add_text(session, (50, 20), "Hello")
+    _select(session, text)
+    shapes.set_text_anchor(session, "middle")
+    (shape,) = all_shapes(session)
+    assert (shape.anchor, shape.x, shape.y) == ("middle", 50, 20)
+    assert session.undo_label == "Change text alignment"
+    session.undo()
+    assert all_shapes(session)[0].anchor == "start"
+    with pytest.raises(ValueError):
+        shapes.set_text_anchor(session, "left")

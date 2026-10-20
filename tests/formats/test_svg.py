@@ -372,3 +372,47 @@ def test_clipboard_svg_in_mm_is_scaled_like_on_open():
     svg = _svg('<rect x="10" y="10" width="20" height="20"/>', 'width="40mm" viewBox="0 0 40 40"')
     shapes, _notes = read_shapes_svg(svg)
     assert shapes[0].x == pytest.approx(10 * 96 / 25.4)
+
+
+def _written(shape) -> ET.Element:
+    root = ET.fromstring(write_svg(Document(100, 100, [Layer("L", True, [shape])])))
+    return next(element for element in root.iter() if element.tag.endswith(("rect", "path", "text")))
+
+
+def test_default_styles_write_only_fill_stroke_and_width():
+    element = _written(RectShape(1, 0, 0, 10, 10, Style()))
+    assert set(element.attrib) == {"x", "y", "width", "height", "fill", "stroke", "stroke-width"}
+
+
+def test_new_style_fields_are_written_as_presentation_attributes():
+    style = Style(
+        opacity=0.5,
+        fill_opacity=0.25,
+        stroke_opacity=0.75,
+        fill_rule="evenodd",
+        cap="round",
+        join="bevel",
+        miter_limit=8,
+        dashes=(4, 2.5),
+        dash_offset=1,
+    )
+    element = _written(PathShape(1, (MoveTo(0, 0), LineTo(5, 5)), style))
+    assert {key: element.get(key) for key in element.attrib if key not in ("d", "fill", "stroke", "stroke-width")} == {
+        "opacity": "0.5",
+        "fill-opacity": "0.25",
+        "stroke-opacity": "0.75",
+        "fill-rule": "evenodd",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "bevel",
+        "stroke-miterlimit": "8",
+        "stroke-dasharray": "4,2.5",
+        "stroke-dashoffset": "1",
+    }
+
+
+def test_rect_radii_and_text_anchor_are_written():
+    rect = _written(RectShape(1, 0, 0, 10, 10, Style(), rx=2, ry=3))
+    assert (rect.get("rx"), rect.get("ry")) == ("2", "3")
+    text = _written(TextShape(1, 0, 0, "Hi", 12, Style(), anchor="end"))
+    assert text.get("text-anchor") == "end"
+    assert _written(TextShape(1, 0, 0, "Hi", 12, Style())).get("text-anchor") is None

@@ -6,6 +6,7 @@ from presstoshape.editing.registry import operation, register
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _, pgettext
 from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import sanitized
 
 MIN_ZOOM, MAX_ZOOM = 10, 800
 _ZOOM_STEP = 1.25
@@ -63,11 +64,14 @@ register("view.zoom_actual", N_("&Actual Size"), lambda session: set_zoom(sessio
 
 def set_tool_style(session: Session, tool: Tool, **changes) -> None:
     """Changes the style `tool` gives new shapes. Not a document edit, so no undo step."""
-    if "stroke_width" in changes:
-        changes["stroke_width"] = max(0.0, changes["stroke_width"])
     styles = session.state.tool_styles
-    styles[tool] = replace(styles[tool], **changes)
+    styles[tool] = sanitized(replace(styles[tool], **changes))
     session.notify()
+
+
+def clear_import_notes(session: Session) -> None:
+    """The window showed the notes of the last opened file. Nothing displays them otherwise, so no notify."""
+    session.state.import_notes = []
 
 
 def set_pencil_smoothing(session: Session, value: int) -> None:

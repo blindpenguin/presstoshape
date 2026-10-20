@@ -24,8 +24,8 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 
 - **PySide6** — UI, input and the canvas GL context. Import from `PySide6.QtWidgets` etc.; never mix with PyQt5/6 (different bindings, incompatible objects).
 - **skia-python** — renders the canvas and PNG export (`presstoshape/render/`). GPU through OpenGL inside a `QOpenGLWidget`, CPU raster fallback. No Metal backend, so macOS uses OpenGL 4.1 core.
-- **skia-pathops** — boolean path ops in `presstoshape/geometry/booleans.py`: `combine_parts` (ordered parts with add/subtract/intersect/exclude modes; also computes Composite results), `divide`, `split_regions`. Works in float32; `_from_skia` rounds results.
-- **svgelements** — only for parsing path `d` data, colors, lengths and transform strings in `formats/svg.py`. Don't use its `SVG.parse` document reader: it silently drops `display:none` groups (hidden layers) and `<text>`.
+- **skia-pathops** — boolean path ops in `presstoshape/geometry/booleans.py`: `combine_parts` (ordered parts with add/subtract/intersect/exclude modes; also computes Composite results), `divide`, `split_regions`. Works in float32; `_from_skia` rounds results. Booleans, divide and Composite parts take `transforms.area_outline` (even-odd shapes made nonzero-safe), never `outline`, which stays the drawn contour.
+- **svgelements** — only for parsing path `d` data, colors, lengths and transform strings (`formats/svg_values.py`, colours in `formats/svg_reader.py`). Don't use its `SVG.parse` document reader: it silently drops `display:none` groups (hidden layers) and `<text>`.
 
 ## Qt specifics
 
@@ -33,7 +33,7 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 - Connect `QAction.triggered` / `clicked` through `lambda: slot()` — those signals pass a `checked` bool that would otherwise land in a slot's first optional parameter (e.g. a slot with `path=None` → `path=False`).
 - Lifetime: Qt may delete C++ objects before their Python wrappers. Give widgets a parent, and disconnect signals that fire during teardown.
 - Don't rebuild a widget (e.g. `QListWidget.clear()`) from inside one of its own item signals; defer with `QTimer.singleShot(0, ...)` (see `LayersPanel._on_item_changed`).
-- Paint defaults must match SVG so canvas, export and saved file look the same: nonzero (winding) fill, butt cap, miter join, miter limit 4 (`render/paths.py`).
+- Paint defaults must match SVG so canvas, export and saved file look the same: nonzero (winding) fill, butt cap, miter join, miter limit 4, opacity 1 (defaults on `models/shapes.Style`, applied in `render/paths.py` / `render/scene.py`). Keep values in range through `models.shapes.sanitized`. Opacity layers (`saveLayerAlpha`) only for shapes with fill and stroke below full opacity; everything else must cost nothing extra per frame.
 
 ## Skia specifics
 
@@ -65,7 +65,9 @@ presstoshape/
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   ├── nodes.py              # path node editing
 │   └── fitting.py            # freehand strokes → cubic beziers (Pencil)
-├── formats/                  # svg.py (SVG read/write), p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
+├── formats/                  # svg.py (SVG write + public read API), svg_reader.py (cascade, <use>, text lines), css.py (<style> subset),
+│                             # svg_values.py / svg_names.py / svg_page.py / svg_notes.py (import notes for the report dialog),
+│                             # p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
 │                             # clipboard.py (shape payload for copy/paste, not migrated: falls back to SVG)
 ├── render/                   # Skia drawing: model -> skia.Canvas
 │   ├── scene.py / picture.py # document, overlays; recorded-picture replay

@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/svg-import-fidelity/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-20T15:24:44.142Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792509884126_4xa9i7gtb",
+      "approvalTitle": "Design: SVG import fidelity"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-20T15:25:15.860Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792509884126_4xa9i7gtb",
+      "approvalTitle": "Design: SVG import fidelity"
+    }
+  ]
+}

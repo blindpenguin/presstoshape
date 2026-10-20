@@ -34,8 +34,8 @@ def outline(shape: Shape) -> tuple[Segment, ...] | None:
     match shape:
         case CompositeShape():
             return _composite_outline(shape)
-        case RectShape(x=x, y=y, width=w, height=h):
-            segments = rect_segments(x, y, w, h)
+        case RectShape(x=x, y=y, width=w, height=h, rx=rx, ry=ry):
+            segments = rect_segments(x, y, w, h, rx, ry)
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
             segments = ellipse_segments(cx, cy, rx, ry)
         case PathShape(segments=segments):
@@ -45,13 +45,23 @@ def outline(shape: Shape) -> tuple[Segment, ...] | None:
     return _apply_affine(segments, shape.transform)
 
 
+def area_outline(shape: Shape) -> tuple[Segment, ...] | None:
+    """`outline` as the area the shape fills, safe for booleans: an even-odd shape is rewritten so its holes
+    survive the nonzero rule the boolean code assumes. Not for drawing: strokes follow the original contours.
+    Raises pathops.PathOpsError when pathops can't simplify the outline."""
+    segments = outline(shape)
+    if segments is None or shape.style.fill_rule != "evenodd":
+        return segments
+    return booleans.simplify(segments, evenodd=True)
+
+
 def _composite_outline(composite: CompositeShape) -> tuple[Segment, ...]:
-    parts = [
-        (part_outline, mode)
-        for part, mode in zip(composite.parts, composite.modes)
-        if (part_outline := outline(part)) is not None
-    ]
     try:
+        parts = [
+            (part_outline, mode)
+            for part, mode in zip(composite.parts, composite.modes)
+            if (part_outline := area_outline(part)) is not None
+        ]
         return booleans.combine_parts(parts)
     except pathops.PathOpsError:
         return ()
@@ -96,16 +106,17 @@ def _rotation_about(radians: float, center: Point) -> Affine:
     return affine.rotation(radians, *center)
 
 
-def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0) -> Shape:
+def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0, scale_radii: bool = False) -> Shape:
     """`shape` with `m` applied on top of its transform, in canonical form.
 
     Paths get the transform baked into their segments. Rect/ellipse keep axis scales in their size and only a
     rotation about their center in `transform`, unless the result is skewed (then the full matrix is kept). Text
-    scales uniformly by the larger axis factor and keeps its rotation about the anchor. Raises ValueError when
-    the result would be singular.
+    scales uniformly by the larger axis factor and keeps its rotation about the anchor. Rect corner radii stay
+    as they are (resizing keeps the rounding) unless `scale_radii`, which scales them with the axes like SVG
+    import needs. Raises ValueError when the result would be singular.
     """
     if isinstance(shape, CompositeShape):
-        return replace(shape, parts=tuple(transform_shape(part, m, min_extent) for part in shape.parts))
+        return replace(shape, parts=tuple(transform_shape(part, m, min_extent, scale_radii) for part in shape.parts))
     total = affine.compose(m, shape.transform)
     if isinstance(shape, PathShape):
         return replace(shape, segments=_apply_affine(shape.segments, total), transform=IDENTITY_TRANSFORM)
@@ -135,7 +146,8 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0) -> Shape:
     rotation = _rotation_about(angle, center)
     if isinstance(shape, RectShape):
         w, h = max(shape.width * su, min_extent), max(shape.height * sv, min_extent)
-        return replace(shape, x=center[0] - w / 2, y=center[1] - h / 2, width=w, height=h, transform=rotation)
+        radii = {"rx": shape.rx * su, "ry": shape.ry * sv} if scale_radii else {}
+        return replace(shape, x=center[0] - w / 2, y=center[1] - h / 2, width=w, height=h, transform=rotation, **radii)
     rx, ry = max(shape.rx * su, min_extent / 2), max(shape.ry * sv, min_extent / 2)
     return replace(shape, cx=center[0], cy=center[1], rx=rx, ry=ry, transform=rotation)
 

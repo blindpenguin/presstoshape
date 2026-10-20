@@ -265,3 +265,30 @@ def test_pencil_smoothing_is_kept_in_p2s_files(tmp_path):
     other = Session()
     documents.open_file(other, str(tmp_path / "a.p2s"))
     assert other.state.pencil_smoothing == 85
+
+
+def test_opening_a_lossy_svg_keeps_its_notes_outside_undo(tmp_path):
+    target = tmp_path / "lossy.svg"
+    target.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+        '<rect width="5" height="5" fill="url(#g)"/><image href="x.png" width="1" height="1"/></svg>',
+        encoding="utf-8",
+    )
+    session = Session()
+    assert documents.open_file(session, str(target))
+    assert session.state.import_notes == ["1 gradient or pattern was painted grey", "1 image was left out"]
+    assert session.state.status_message == "Opened lossy.svg with 2 import notes"
+    assert not session.can_undo
+    view.clear_import_notes(session)
+    assert session.state.import_notes == []
+
+
+def test_clean_files_have_no_import_notes(tmp_path):
+    session = Session()
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    for name in ("clean.svg", "clean.p2s"):
+        documents.save_file(session, str(tmp_path / name))
+        reopened = Session()
+        reopened.state.import_notes = ["stale"]
+        documents.open_file(reopened, str(tmp_path / name))
+        assert reopened.state.import_notes == []

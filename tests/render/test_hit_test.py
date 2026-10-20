@@ -1,6 +1,7 @@
 import time
 
 from presstoshape.geometry import transforms
+from presstoshape.geometry.segments import rect_segments
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
     CompositeShape,
@@ -132,3 +133,31 @@ def test_empty_composite_is_found_by_its_parts_bounds():
     doc = _doc([empty])
     assert shape_at(_pickable(doc), cache, (50, 50), 0) == 10
     assert shapes_in_rect(_pickable(doc), cache, (90, 90, 20, 20)) == {10}
+
+
+def test_evenodd_hole_is_not_hit():
+    segments = rect_segments(0, 0, 100, 100) + rect_segments(30, 30, 40, 40)
+    doc = _doc([PathShape(1, segments, Style(fill="#ff0000", stroke=None, fill_rule="evenodd"))])
+    assert shape_at(_pickable(doc), PathCache(), (50, 50), 0) is None
+    assert shape_at(_pickable(doc), PathCache(), (10, 10), 0) == 1
+
+
+def test_dash_gaps_are_not_hit():
+    style = Style(fill=None, stroke="#000000", stroke_width=4, dashes=(10.0, 10.0))
+    doc = _doc([PathShape(1, (MoveTo(0, 50), LineTo(100, 50)), style)])
+    assert shape_at(_pickable(doc), PathCache(), (5, 50), 0) == 1
+    assert shape_at(_pickable(doc), PathCache(), (15, 50), 0) is None
+
+
+def test_transparent_shapes_stay_pickable():
+    doc = _doc([RectShape(1, 0, 0, 100, 100, Style(fill="#ff0000", stroke=None, opacity=0))])
+    assert shape_at(_pickable(doc), PathCache(), (50, 50), 0) == 1
+
+
+def test_square_caps_grow_the_bounds():
+    butt = Style(fill=None, stroke="#000000", stroke_width=10)
+    line = (MoveTo(0, 0), LineTo(100, 0))
+    cache = PathCache()
+    plain = cache.bounds(PathShape(1, line, butt))
+    square = cache.bounds(PathShape(2, line, Style(fill=None, stroke="#000000", stroke_width=10, cap="square")))
+    assert square.fRight > plain.fRight + 1

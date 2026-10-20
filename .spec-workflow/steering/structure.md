@@ -45,7 +45,12 @@ presstoshape/                   # repo root
     │   ├── units.py            # px/mm/cm/in/pt conversions at a DPI
     │   └── fitting.py          # freehand strokes → cubic beziers (Schneider fit, corners kept)
     ├── formats/
-    │   ├── svg.py              # SVG read/write
+    │   ├── svg.py              # SVG write; re-exports the read functions
+    │   ├── svg_reader.py       # SVG read: CSS cascade, <use>/<symbol>, tspan lines, import notes
+    │   ├── svg_values.py       # attribute/property value parsing (lengths, opacities, dashes, transforms, path data)
+    │   ├── svg_names.py        # namespaces and qualified names shared by reader and writer
+    │   ├── svg_notes.py        # counted import notes (what couldn't be imported), worded for the user
+    │   ├── css.py              # the CSS subset of <style> sheets: simple selectors, cascade, !important
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
     │   └── p2s_migrations.py   # upgrades older .p2s format versions
     ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay
@@ -66,6 +71,7 @@ presstoshape/                   # repo root
         ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, forwards input to the active tool
         ├── settings/           # Settings window: dialog.py (PAGES), pages.py, one module per category page
         ├── recovery_keeper.py / recover_dialog.py   # crash recovery: run lock + snapshot timer, startup dialog
+        ├── import_report_dialog.py   # lists what an opened SVG lost on import
         ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
@@ -159,7 +165,7 @@ Large classes are sectioned with `# --- section ---` comments (e.g. `# --- editi
 - **Assets**: generated files in `presstoshape/assets/` are only changed by their generator scripts.
 
 ## Code Size Guidelines
-- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `geometry/nodes.py` and `formats/svg.py` ≈ 350).
+- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `formats/svg_reader.py` ≈ 560, a candidate for splitting; `geometry/nodes.py` ≈ 350).
 - **Function/Method size**: aim for ≤ ~40 lines; extract helpers for distinct steps.
 - **Nesting depth**: ≤ 3 levels; prefer early returns and `match` on shape/segment types.
 - **Line length**: 120 characters.

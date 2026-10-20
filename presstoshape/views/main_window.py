@@ -16,6 +16,7 @@ from presstoshape.views.actions import AppActions
 from presstoshape.views.canvas_view import CanvasView
 from presstoshape.views.edit_bar_view import EditBar
 from presstoshape.views.export_dialog import ExportPngDialog
+from presstoshape.views.import_report_dialog import ImportReportDialog
 from presstoshape.views.layers_view import LayersPanel
 from presstoshape.views.left_sidebar_view import ToolPalette
 from presstoshape.views.new_document_dialog import OPEN, NewDocumentDialog, StartChoices
@@ -248,7 +249,14 @@ class MainWindow(QMainWindow):
             self.canvas.fit_artboard()
         else:
             self.canvas.center_on(center)
+        notes = list(self._state.import_notes)
+        if notes:
+            view.clear_import_notes(self._session)
+            self.show_import_report(Path(path).name, notes)
         return True
+
+    def show_import_report(self, file_name: str, notes: list[str]) -> None:
+        ImportReportDialog(file_name, notes, self).exec()
 
     def open_recent(self, path: str) -> None:
         if self._confirm_discard():

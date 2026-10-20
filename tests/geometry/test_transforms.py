@@ -3,10 +3,11 @@ import math
 import pytest
 
 from presstoshape.geometry import affine, booleans, transforms
-from presstoshape.geometry.segments import transform_segments
+from presstoshape.geometry.segments import rect_segments, transform_segments
 from presstoshape.models.shapes import (
     Close,
     CompositeShape,
+    CubicTo,
     EllipseShape,
     LineTo,
     MoveTo,
@@ -217,3 +218,52 @@ def test_translate_and_transform_composite_map_over_parts():
     scaled = transforms.transform_shape(outer, affine.scaling(2, 2))
     assert scaled.parts[0].parts[0].width == 20 and scaled.parts[1].x == 40
     assert scaled.transform == affine.IDENTITY and transforms.rotation_of(scaled) == 0
+
+
+def test_resizing_a_rounded_rect_keeps_its_radii():
+    rect = RectShape(1, 0, 0, 10, 10, S, rx=2, ry=3)
+    scaled = transforms.transform_shape(rect, affine.scaling(2, 3))
+    assert (scaled.width, scaled.height, scaled.rx, scaled.ry) == pytest.approx((20, 30, 2, 3))
+
+
+def test_scale_radii_scales_them_with_the_axes():
+    rect = RectShape(1, 0, 0, 10, 10, S, rx=2, ry=3)
+    scaled = transforms.transform_shape(rect, affine.scaling(2, 3), scale_radii=True)
+    assert (scaled.rx, scaled.ry) == pytest.approx((4, 9))
+
+
+def test_skewed_rounded_rect_keeps_radii_in_its_matrix():
+    rect = RectShape(1, 0, 0, 10, 10, S, rx=2, ry=2)
+    skew = (1.0, 0.0, 0.5, 1.0, 0.0, 0.0)
+    skewed = transforms.transform_shape(rect, skew, scale_radii=True)
+    assert (skewed.rx, skewed.ry, skewed.transform) == (2, 2, skew)
+
+
+def test_rounded_rect_outline_has_round_corners():
+    segments = transforms.outline(RectShape(1, 0, 0, 10, 10, S, rx=2, ry=2))
+    assert sum(isinstance(s, CubicTo) for s in segments) == 4
+
+
+def _ring(fill_rule):
+    # Two squares wound the same way: the inner one is a hole only under evenodd.
+    segments = rect_segments(0, 0, 10, 10) + rect_segments(3, 3, 4, 4)
+    return PathShape(1, segments, Style(fill_rule=fill_rule))
+
+
+def test_area_outline_of_an_evenodd_ring_keeps_the_hole():
+    assert booleans.area(transforms.area_outline(_ring("evenodd"))) == pytest.approx(100 - 16)
+
+
+def test_area_outline_leaves_nonzero_shapes_alone():
+    shape = _ring("nonzero")
+    assert transforms.area_outline(shape) == transforms.outline(shape)
+
+
+def test_area_outline_of_text_is_none():
+    assert transforms.area_outline(TextShape(1, 0, 0, "a", 12, Style(fill_rule="evenodd"))) is None
+
+
+def test_composite_uses_the_area_of_evenodd_parts():
+    square = RectShape(2, 20, 0, 10, 10, S)
+    composite = CompositeShape(3, (_ring("evenodd"), square), ("add", "add"), S)
+    assert booleans.area(transforms.outline(composite)) == pytest.approx(84 + 100)

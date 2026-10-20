@@ -99,3 +99,6 @@ class AppState:
     restore_view_center: tuple[float, float] | None = None
     # Whether this session already said that SVG files don't keep view, tool settings and selection.
     svg_hint_shown: bool = False
+    # What the last opened file lost on import (SVG features PressToShape can't keep); the window shows and clears
+    # them. Not part of the document or undo.
+    import_notes: list[str] = field(default_factory=list)

@@ -24,7 +24,7 @@ It's currently a one-person project.
 
 ### What can PressToShape do today?
 
-Draw rectangles, ellipses, bezier paths, freehand lines and text; set fill, stroke and stroke width; organize layers; copy, paste and duplicate shapes (also to and from Inkscape via the clipboard); combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. The interface is available in English and German. Not there yet: gradients, brushes and stable releases.
+Draw rectangles (with rounded corners), ellipses, bezier paths, freehand lines and text; set fill, stroke, stroke width, opacity, dashes, line ends and corners; organize layers; copy, paste and duplicate shapes (also to and from Inkscape via the clipboard); combine shapes with union, difference, intersection, exclude and divide, or keep them editable as a Composite; undo/redo edits; open and save SVG (with Inkscape-style layers); export PNG; scale and rotate shapes with handles; edit path nodes. The interface is available in English and German. Not there yet: gradients, brushes and stable releases.
 
 ## Using PressToShape
 
@@ -42,9 +42,9 @@ English and German for now; PressToShape follows your system language and Edit â
 
 ### Can I open my existing SVG and Inkscape files?
 
-Mostly, with limits. PressToShape reads general SVG: rectangles, circles, ellipses, lines, polylines, polygons, paths and text, with nested groups, transforms and inherited styles. Inkscape layers should come through as PressToShape layers (hidden ones included), and files saved by PressToShape should open in Inkscape with their layers. Page sizes in mm, cm, in or pt carry over in both directions. PressToShape is in early development, though, so there may be issues.
+Mostly, with limits. PressToShape reads general SVG: rectangles (rounded too), circles, ellipses, lines, polylines, polygons, paths and text (multi-line text becomes one text object per line), with nested groups, `<use>` copies and symbols, transforms, and styles from attributes, `<style>` sheets with class and id rules (as Illustrator exports them) and inline styles. Opacity, even-odd fills, dashes, line ends and corners should come through. Inkscape layers should come through as PressToShape layers (hidden ones included), and files saved by PressToShape should open in Inkscape with their layers. Page sizes in mm, cm, in or pt carry over in both directions. PressToShape is in early development, though, so there may be issues.
 
-Not supported yet: gradients, clip paths, masks, `<use>`, embedded images and CSS stylesheets. They're skipped or approximated (unsupported paint shows as grey). Rectangles, ellipses and text under rotate/scale/skew transforms should keep their type; skew on text is dropped, and paths get the transform applied to their points. Re-saving such a file from PressToShape can lose information, so keep a copy of the original.
+Not supported yet: gradients, clip paths, masks, embedded images, filters, markers (arrowheads), groups as objects (their shapes come in one by one), fonts and mixed styles within one text line. They're skipped or approximated (gradients show as grey), and after opening such a file a dialog lists what couldn't be imported. Rectangles, ellipses and text under rotate/scale/skew transforms should keep their type; skew on text is dropped, and paths get the transform applied to their points. Re-saving such a file as SVG loses those parts, so keep a copy of the original or save as `.p2s`.
 
 ### What's a Composite?
 

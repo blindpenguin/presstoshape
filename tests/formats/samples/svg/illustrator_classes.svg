@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hand-written test file in the style of an Illustrator SVG export. -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 200 100" style="enable-background:new 0 0 200 100;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#E30613;}
+	.st1{fill:none;stroke:#1D1D1B;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}
+	.st2{fill:#1D1D1B;}
+	.st3{font-family:'Helvetica';}
+	.st4{font-size:12px;}
+	.st5{opacity:0.5;fill:#009FE3;}
+	.st6{fill:none;stroke:#1D1D1B;stroke-miterlimit:10;stroke-dasharray:4,2;}
+</style>
+<g>
+	<rect x="10" y="10" class="st0" width="50" height="30"/>
+	<path class="st1" d="M70,40l50-30"/>
+	<circle class="st5" cx="150" cy="25" r="15"/>
+	<line class="st6" x1="10" y1="60" x2="190" y2="60"/>
+</g>
+<text transform="matrix(1 0 0 1 10 90)" class="st2 st3 st4">Hello</text>
+</svg>

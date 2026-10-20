@@ -196,4 +196,5 @@ def test_opening_an_edited_composite_says_so(tmp_path):
     reopened = Session()
     documents.open_file(reopened, str(target))
     assert isinstance(all_shapes(reopened)[-1], PathShape)
-    assert "edited in another program" in reopened.state.status_message
+    assert "1 import note" in reopened.state.status_message
+    assert "edited in another program" in reopened.state.import_notes[0]

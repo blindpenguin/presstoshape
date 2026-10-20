@@ -4,7 +4,8 @@ from presstoshape.editing import queries
 from presstoshape.editing.operations import booleans, selection, shapes, style
 from presstoshape.editing.session import Session
 from presstoshape.geometry import booleans as boolean_geometry
-from presstoshape.models.shapes import PathShape
+from presstoshape.geometry.segments import rect_segments
+from presstoshape.models.shapes import PathShape, Style
 from tests.helpers import all_shapes
 
 
@@ -120,3 +121,16 @@ def test_operations_need_two_outlines():
 def test_unknown_operation_raises():
     with pytest.raises(ValueError):
         booleans.combine(Session(), "merge")
+
+
+def test_union_keeps_the_hole_of_an_evenodd_shape():
+    session = Session()
+    ring = rect_segments(0, 0, 10, 10) + rect_segments(3, 3, 4, 4)
+    layer = session.state.document.layers[0]
+    layer.shapes += [
+        PathShape(90, ring, Style(fill_rule="evenodd")),
+        PathShape(91, rect_segments(20, 0, 5, 5), Style()),
+    ]
+    selection.set_selection(session, {90, 91})
+    booleans.combine(session, "union")
+    assert _area(all_shapes(session)[0]) == pytest.approx(84 + 25)

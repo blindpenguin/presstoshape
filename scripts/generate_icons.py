@@ -41,6 +41,9 @@ ICONS = {
     "settings_canvas": "artboard",
     "orientation_portrait": "rectangle-vertical",
     "orientation_landscape": "rectangle",
+    "align_start": "align-left",
+    "align_middle": "align-center",
+    "align_end": "align-right",
 }
 
 

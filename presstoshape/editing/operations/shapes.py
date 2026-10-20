@@ -2,16 +2,17 @@
 
 from collections.abc import Callable
 from dataclasses import replace
+from typing import get_args
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations._document import new_id, replace_shape
+from presstoshape.editing.operations._document import map_selected, new_id, replace_shape
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, box_from_drag
 from presstoshape.geometry.segments import smooth_segments
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Tool
-from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Segment, Shape, TextShape
+from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Segment, Shape, TextAnchor, TextShape
 
 # Shape fields the selection panel may edit directly, with their minimum value (None = unbounded).
 EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
@@ -143,3 +144,30 @@ def set_shape_field(session: Session, shape_id: int, field: str, value: float | 
             # The rotation is about the center; keep the angle while the center moves with the new geometry.
             updated = transforms.with_rotation(updated, rotation)
         replace_shape(state, updated)
+
+
+def set_corner_radius(session: Session, radius: float) -> None:
+    """Rounds the corners of every selected rectangle (both radii); other shapes are left alone."""
+    radius = max(0.0, float(radius))
+    rects = [shape for shape in queries.selected_shapes(session.state) if isinstance(shape, RectShape)]
+    if all(rect.rx == radius and rect.ry == radius for rect in rects):
+        return
+    with session.edit(_("Change corner radius"), merge_key="corner_radius"):
+        map_selected(
+            session.state,
+            lambda shape: replace(shape, rx=radius, ry=radius) if isinstance(shape, RectShape) else shape,
+        )
+
+
+def set_text_anchor(session: Session, anchor: TextAnchor) -> None:
+    """Which point of the selected text lines sits at their position; the position stays, the text moves."""
+    if anchor not in get_args(TextAnchor):
+        raise ValueError(f"unknown text anchor {anchor!r}")
+    texts = [shape for shape in queries.selected_shapes(session.state) if isinstance(shape, TextShape)]
+    if all(text.anchor == anchor for text in texts):
+        return
+    with session.edit(_("Change text alignment")):
+        map_selected(
+            session.state,
+            lambda shape: replace(shape, anchor=anchor) if isinstance(shape, TextShape) else shape,
+        )

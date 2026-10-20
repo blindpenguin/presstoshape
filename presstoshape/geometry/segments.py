@@ -29,8 +29,25 @@ def smooth_segments(points: list[Point]) -> tuple[Segment, ...]:
     return tuple(segments)
 
 
-def rect_segments(x: float, y: float, w: float, h: float) -> tuple[Segment, ...]:
-    return (MoveTo(x, y), LineTo(x + w, y), LineTo(x + w, y + h), LineTo(x, y + h), Close())
+def rect_segments(x: float, y: float, w: float, h: float, rx: float = 0.0, ry: float = 0.0) -> tuple[Segment, ...]:
+    """Clockwise from the top-left; radii are clamped to half the size, and a zero radius gives sharp corners."""
+    rx, ry = min(max(rx, 0.0), abs(w) / 2), min(max(ry, 0.0), abs(h) / 2)
+    if rx <= 0 or ry <= 0:
+        return (MoveTo(x, y), LineTo(x + w, y), LineTo(x + w, y + h), LineTo(x, y + h), Close())
+    kx, ky = rx * _KAPPA, ry * _KAPPA
+    right, bottom = x + w, y + h
+    return (
+        MoveTo(x + rx, y),
+        LineTo(right - rx, y),
+        CubicTo(right - rx + kx, y, right, y + ry - ky, right, y + ry),
+        LineTo(right, bottom - ry),
+        CubicTo(right, bottom - ry + ky, right - rx + kx, bottom, right - rx, bottom),
+        LineTo(x + rx, bottom),
+        CubicTo(x + rx - kx, bottom, x, bottom - ry + ky, x, bottom - ry),
+        LineTo(x, y + ry),
+        CubicTo(x, y + ry - ky, x + rx - kx, y, x + rx, y),
+        Close(),
+    )
 
 
 def ellipse_segments(cx: float, cy: float, rx: float, ry: float) -> tuple[Segment, ...]:
