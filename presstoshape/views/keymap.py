@@ -77,6 +77,9 @@ KEYMAP: dict[str, Binding] = {
     "path.make_composite": Binding("Ctrl+Alt+C"),
     "object.group": Binding("Ctrl+G"),
     "object.ungroup": Binding("Ctrl+Shift+G"),
+    # Figma's bindings; Inkscape's plain H / V would clash with the Select tool's V.
+    "object.flip_horizontal": Binding("Shift+H"),
+    "object.flip_vertical": Binding("Shift+V"),
     "object.raise": Binding("PgUp"),
     "object.lower": Binding("PgDown"),
     "object.raise_to_top": Binding("Home"),
@@ -121,7 +124,10 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
         ],
     ),  # fmt: skip
     (N_("&Path"), [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
-    (N_("&Object"), ["object.group", "object.ungroup", None, *ARRANGE_IDS]),
+    (
+        N_("&Object"),
+        ["object.group", "object.ungroup", None, "object.flip_horizontal", "object.flip_vertical", None, *ARRANGE_IDS],
+    ),
     (N_("&View"), ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),
     (N_("&Tools"), TOOL_IDS),
     (N_("&Help"), ["help.about"]),

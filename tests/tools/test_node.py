@@ -122,3 +122,25 @@ def test_node_tool_edits_a_path_part_inside_a_composite():
     drag(g, (100, 0), (110, 20))
     part = queries.find_shape(session.state, composite_id).parts[0]
     assert (part.segments[1].x, part.segments[1].y) == (110, 20)
+
+
+def test_arrow_keys_nudge_selected_nodes_or_else_the_paths():
+    session, g, sid = _node_setup()
+    selection.set_selection(session, {sid})
+    assert g.nudge(1, 0, NONE)
+    assert queries.find_shape(session.state, sid).segments[0].x == 1
+    drag(g, (100, 0), (100, 0))
+    assert g.nudge(0, 1, Mods(shift=True))
+    path = queries.find_shape(session.state, sid)
+    assert (path.segments[1].x, path.segments[1].y) == (101, 10)
+    assert session.undo_label == "Nudge nodes"
+
+
+def test_arrow_keys_with_alt_move_one_screen_pixel_and_report_nothing_to_move():
+    session, g, sid = _node_setup()
+    g.pixel_size = 0.25
+    selection.set_selection(session, {sid})
+    g.nudge(-1, 0, Mods(alt=True))
+    assert queries.find_shape(session.state, sid).segments[0].x == -0.25
+    selection.set_selection(session, set())
+    assert not g.nudge(1, 0, NONE)

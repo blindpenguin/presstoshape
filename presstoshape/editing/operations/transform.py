@@ -2,6 +2,7 @@
 
 from presstoshape.editing import queries
 from presstoshape.editing.operations._document import map_selected, replace_shape
+from presstoshape.editing.registry import register
 from presstoshape.editing.session import Session
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
@@ -67,3 +68,42 @@ def set_bounds(session: Session, shape_id: int, field: str, value: float) -> Non
         return
     with session.edit(_(_BOUNDS_LABELS[field]), merge_key=f"{shape_id}:{field}"):
         replace_shape(session.state, updated)
+
+
+def nudge(session: Session, dx: float, dy: float) -> None:
+    """Moves the selection by (dx, dy); repeated nudges (a held arrow key) form one undo step."""
+    state = session.state
+    if not state.selection or (dx, dy) == (0, 0):
+        return
+    count = len(state.selection)
+    with session.edit(_("Nudge"), merge_key="nudge"):
+        map_selected(state, lambda shape: transforms.translate(shape, dx, dy))
+        state.status_message = ngettext("Nudged {count} object", "Nudged {count} objects", count).format(count=count)
+
+
+def flip(session: Session, horizontal: bool) -> None:
+    """Mirrors the selection about the centre of its bounds. Text keeps reading forwards: only its position is
+    mirrored."""
+    state = session.state
+    selected = queries.selected_shapes(state)
+    if not selected:
+        return
+    cache = PathCache()
+    boxes = [cache.geometry_bounds(shape) for shape in selected]
+    center_x = (min(box.left() for box in boxes) + max(box.right() for box in boxes)) / 2
+    center_y = (min(box.top() for box in boxes) + max(box.bottom() for box in boxes)) / 2
+    mirror = affine.scaling(-1, 1) if horizontal else affine.scaling(1, -1)
+    matrix = affine.compose(
+        affine.translation(center_x, center_y), affine.compose(mirror, affine.translation(-center_x, -center_y))
+    )
+    with session.edit(_("Flip horizontally") if horizontal else _("Flip vertically")):
+        map_selected(state, lambda shape: transforms.transform_shape(shape, matrix, MIN_EXTENT))
+        state.status_message = _("Flipped horizontally") if horizontal else _("Flipped vertically")
+
+
+def _has_selection(session: Session) -> bool:
+    return bool(queries.selected_shapes(session.state))
+
+
+register("object.flip_horizontal", N_("Flip &Horizontal"), lambda session: flip(session, True), _has_selection)
+register("object.flip_vertical", N_("Flip &Vertical"), lambda session: flip(session, False), _has_selection)

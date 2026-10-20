@@ -396,6 +396,16 @@ msgstr[0] "Knoten verschieben"
 msgstr[1] "Knoten verschieben"
 
 #: presstoshape/editing/operations/node_editing.py
+msgid "Nudge nodes"
+msgstr "Knoten verschieben"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nudged {count} node"
+msgid_plural "Nudged {count} nodes"
+msgstr[0] "{count} Knoten verschoben"
+msgstr[1] "{count} Knoten verschoben"
+
+#: presstoshape/editing/operations/node_editing.py
 msgid "Move handle"
 msgstr "Anfasser verschieben"
 
@@ -637,6 +647,40 @@ msgstr[1] "{count} Objekte transformiert"
 #: presstoshape/editing/operations/transform.py
 msgid "Rotate"
 msgstr "Drehen"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Nudge"
+msgstr "Verschieben"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Nudged {count} object"
+msgid_plural "Nudged {count} objects"
+msgstr[0] "{count} Objekt verschoben"
+msgstr[1] "{count} Objekte verschoben"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip horizontally"
+msgstr "Horizontal spiegeln"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip vertically"
+msgstr "Vertikal spiegeln"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flipped horizontally"
+msgstr "Horizontal gespiegelt"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flipped vertically"
+msgstr "Vertikal gespiegelt"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip &Horizontal"
+msgstr "Hori&zontal spiegeln"
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip &Vertical"
+msgstr "Verti&kal spiegeln"
 
 #: presstoshape/editing/operations/view.py
 msgctxt "tool"

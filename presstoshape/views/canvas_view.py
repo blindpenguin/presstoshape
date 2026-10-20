@@ -37,6 +37,9 @@ _COLORS = CanvasColors(
 _log = logging.getLogger(__name__)
 
 
+# Arrow keys nudge what the active tool works on; when there is nothing to move they scroll, as before.
+_ARROWS = {Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0), Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}
+
 class CanvasView(QAbstractScrollArea):
     """Scroll area whose viewport is a Skia surface; the document is redrawn from state on every frame.
 
@@ -312,6 +315,8 @@ class CanvasView(QAbstractScrollArea):
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and self._toolbox.active.key("enter"):
+            self._repaint()
+        elif event.key() in _ARROWS and self._toolbox.active.nudge(*_ARROWS[event.key()], self._mods(event)):
             self._repaint()
         elif event.key() == Qt.Key.Key_Escape:
             self._toolbox.active.escape()

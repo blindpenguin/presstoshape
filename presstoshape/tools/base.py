@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import edit_mode, selection
+from presstoshape.editing.operations import edit_mode, selection, transform
 from presstoshape.editing.session import Session
+from presstoshape.geometry import units
 from presstoshape.geometry.boxes import Point
 from presstoshape.models.app_state import AppState
 from presstoshape.render import hit_test
@@ -109,6 +110,23 @@ class BaseTool:
     def key(self, name: str) -> bool:
         """Tool-specific keys ("enter"); True when handled."""
         return False
+
+    def nudge(self, x: int, y: int, mods: Mods) -> bool:
+        """Arrow key in direction (x, y): moves what this tool works on by one step (Shift: ten steps, Alt: one
+        screen pixel). False when there is nothing to move, so the view can scroll instead."""
+        if self.active:
+            return True
+        document = self._context.state.document
+        step = self._context.pixel_size if mods.alt else units.nudge_px(document.unit, document.dpi)
+        if mods.shift:
+            step *= 10
+        return self._nudge_by(x * step, y * step)
+
+    def _nudge_by(self, dx: float, dy: float) -> bool:
+        if not self._context.state.selection:
+            return False
+        transform.nudge(self._context.session, dx, dy)
+        return True
 
     def escape(self) -> None:
         """Cancels a gesture, else clears the selection, else leaves one level of Composite edit mode."""

@@ -1,6 +1,6 @@
 import pytest
 
-from presstoshape.geometry.units import UNITS, convert, from_px, to_px
+from presstoshape.geometry.units import UNITS, convert, from_px, nudge_px, to_px
 
 
 @pytest.mark.parametrize("dpi, width, height", [(72, 595.28, 841.89), (96, 793.70, 1122.52), (300, 2480.31, 3507.87)])
@@ -24,3 +24,9 @@ def test_px_is_identity_whatever_the_dpi():
 @pytest.mark.parametrize("unit", UNITS)
 def test_round_trips(unit):
     assert from_px(to_px(42.42, unit, 300), unit, 300) == pytest.approx(42.42)
+
+
+def test_nudge_steps_are_round_in_each_unit():
+    assert nudge_px("px", 300) == 1
+    assert nudge_px("mm", 96) == pytest.approx(to_px(0.5, "mm", 96))
+    assert nudge_px("pt", 72) == pytest.approx(1)

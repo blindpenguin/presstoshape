@@ -62,6 +62,22 @@ def move_nodes(session: Session, shape_id: int, indices: set[int], dx: float, dy
     _edit_path(session, path, moved, ngettext("Move node", "Move nodes", count), message)
 
 
+def nudge_nodes(session: Session, dx: float, dy: float) -> None:
+    """Moves the selected nodes of every edited path; repeated nudges form one undo step."""
+    state = session.state
+    by_path: dict[int, set[int]] = {}
+    for shape_id, index in state.node_selection:
+        by_path.setdefault(shape_id, set()).add(index)
+    paths = [(path, indices) for shape_id, indices in by_path.items() if (path := _edited_path(session, shape_id))]
+    if not paths or (dx, dy) == (0, 0):
+        return
+    count = sum(len(indices) for _path, indices in paths)
+    with session.edit(_("Nudge nodes"), merge_key="nudge_nodes"):
+        for path, indices in paths:
+            replace_shape(state, replace(path, segments=nodes.move_nodes(path.segments, indices, dx, dy)))
+        state.status_message = ngettext("Nudged {count} node", "Nudged {count} nodes", count).format(count=count)
+
+
 def move_control(session: Session, shape_id: int, ref: tuple[int, int], point: Point, keep_smooth: bool = True) -> None:
     path = _edited_path(session, shape_id)
     if path is None or not _is_control(path.segments, ref):

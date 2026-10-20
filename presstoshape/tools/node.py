@@ -37,6 +37,13 @@ class NodeTool(BaseTool):
         self._band_base: set[tuple[int, int]] = set()
         self._cursor = CursorType.ARROW
 
+    def _nudge_by(self, dx: float, dy: float) -> bool:
+        """Selected nodes move; without any, the selected paths do (as with the Select tool)."""
+        if not self._context.state.node_selection:
+            return super()._nudge_by(dx, dy)
+        node_editing.nudge_nodes(self._context.session, dx, dy)
+        return True
+
     @property
     def active(self) -> bool:
         return self._mode is not None

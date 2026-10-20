@@ -395,6 +395,16 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: presstoshape/editing/operations/node_editing.py
+msgid "Nudge nodes"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nudged {count} node"
+msgid_plural "Nudged {count} nodes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/node_editing.py
 msgid "Move handle"
 msgstr ""
 
@@ -635,6 +645,40 @@ msgstr[1] ""
 
 #: presstoshape/editing/operations/transform.py
 msgid "Rotate"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Nudge"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Nudged {count} object"
+msgid_plural "Nudged {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip horizontally"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip vertically"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flipped horizontally"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flipped vertically"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip &Horizontal"
+msgstr ""
+
+#: presstoshape/editing/operations/transform.py
+msgid "Flip &Vertical"
 msgstr ""
 
 #: presstoshape/editing/operations/view.py
