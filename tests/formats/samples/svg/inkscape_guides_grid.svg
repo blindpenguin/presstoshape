@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Hand-written test file: an A4 page in mm with guides and a grid, in the namedview format Inkscape uses. -->
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="view"
+     showgrid="true"
+     inkscape:document-units="mm">
+    <sodipodi:guide position="20,0" orientation="1,0" id="left-margin" />
+    <sodipodi:guide position="0,267" orientation="0,-1" id="top-margin" />
+    <sodipodi:guide position="105,148.5" orientation="0.70710678,0.70710678" id="diagonal" />
+    <inkscape:grid type="xygrid" id="grid" units="mm" originx="0" originy="0" spacingx="5" spacingy="5"
+       empspacing="2" enabled="true" visible="true" />
+  </sodipodi:namedview>
+  <g inkscape:label="Layer 1" inkscape:groupmode="layer" id="layer1">
+    <rect x="20" y="30" width="50" height="40" style="fill:#3366cc" />
+  </g>
+</svg>

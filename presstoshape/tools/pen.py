@@ -6,6 +6,7 @@ from presstoshape.geometry.segments import smooth_segments
 from presstoshape.models.app_state import Tool
 from presstoshape.render.overlay import Overlay
 from presstoshape.tools.base import BaseTool, Mods, ToolContext
+from presstoshape.tools.snapper import Snapper
 
 _DEDUPE_PX = 3.0
 
@@ -15,6 +16,7 @@ class PenTool(BaseTool):
         super().__init__(context)
         self._points: list[Point] = []
         self._pointer: Point | None = None
+        self._snapper: Snapper | None = None
 
     @property
     def active(self) -> bool:
@@ -27,15 +29,19 @@ class PenTool(BaseTool):
         if self._points:
             points = self._points + ([self._pointer] if self._pointer is not None else [])
             preview = (smooth_segments(self._dedupe(points)), state.tool_styles[Tool.PEN])
-        return Overlay(frozenset(state.selection), preview=preview)
+        snap = self._snapper.hits if self._snapper is not None else ()
+        return Overlay(frozenset(state.selection), preview=preview, snap=snap)
 
     def press(self, point: Point, mods: Mods) -> None:
-        self._points.append(point)
+        # Targets stay put while a path is being clicked together, so they are collected once.
+        if self._snapper is None:
+            self._snapper = self._context.snapper()
+        self._points.append(self._snapper.point(point, ignore=mods.ctrl))
         self._pointer = None
 
     def move(self, point: Point, mods: Mods) -> None:
-        if self._points:
-            self._pointer = point
+        if self._points and self._snapper is not None:
+            self._pointer = self._snapper.point(point, ignore=mods.ctrl)
             self._context.repaint()
 
     def double_click(self, point: Point, mods: Mods) -> None:
@@ -55,6 +61,7 @@ class PenTool(BaseTool):
     def cancel(self) -> None:
         self._points = []
         self._pointer = None
+        self._snapper = None
 
     def _dedupe(self, points: list[Point]) -> list[Point]:
         # Double-click also delivers a press, so near-duplicate points (in screen px) are dropped.

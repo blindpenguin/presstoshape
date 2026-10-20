@@ -7,6 +7,7 @@ from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import Segment
 from presstoshape.render.overlay import Overlay
 from presstoshape.tools.base import BaseTool, Mods, ToolContext
+from presstoshape.tools.snapper import Snapper
 
 
 class _BoxTool(BaseTool):
@@ -17,6 +18,7 @@ class _BoxTool(BaseTool):
         self._start: Point | None = None
         self._end: Point = (0.0, 0.0)
         self._square = False
+        self._snapper = Snapper.off()
 
     @property
     def active(self) -> bool:
@@ -28,27 +30,29 @@ class _BoxTool(BaseTool):
         preview = None
         if self._start is not None:
             preview = (self._segments(self._start, self._end, self._square), state.tool_styles[self.tool_type])
-        return Overlay(frozenset(state.selection), preview=preview)
+        return Overlay(frozenset(state.selection), preview=preview, snap=self._snapper.hits)
 
     def press(self, point: Point, mods: Mods) -> None:
-        self._start = self._end = point
+        self._snapper = self._context.snapper()
+        self._start = self._end = self._snapper.point(point, ignore=mods.ctrl)
         self._square = mods.shift
 
     def move(self, point: Point, mods: Mods) -> None:
         if self._start is None:
             return
-        self._end, self._square = point, mods.shift
+        self._end, self._square = self._snapper.point(point, ignore=mods.ctrl), mods.shift
         self._context.repaint()
 
     def release(self, point: Point, mods: Mods) -> None:
         if self._start is None:
             return
-        start = self._start
+        start, end = self._start, self._snapper.point(point, ignore=mods.ctrl)
         self.cancel()
-        self._commit(start, point, mods.shift)
+        self._commit(start, end, mods.shift)
 
     def cancel(self) -> None:
         self._start = None
+        self._snapper = Snapper.off()
 
     def _segments(self, start: Point, end: Point, square: bool) -> tuple[Segment, ...]:
         raise NotImplementedError

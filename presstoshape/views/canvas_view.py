@@ -4,14 +4,18 @@ from dataclasses import replace
 
 import skia
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt, QTimer, Signal
-from PySide6.QtWidgets import QAbstractScrollArea, QInputDialog
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import QAbstractScrollArea, QDialog, QInputDialog, QWidget
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import view
+from presstoshape.editing.operations import guides, view
 from presstoshape.editing.session import Session
+from presstoshape.geometry import units
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
+from presstoshape.models.layout import Guide
 from presstoshape.models.shapes import Shape, children_of
+from presstoshape.render.guides import draw_grid, draw_guides
 from presstoshape.render.overlay import CanvasColors
 from presstoshape.render.paths import PathCache
 from presstoshape.render.picture import DocumentPicture, EditModeDrawing
@@ -19,8 +23,11 @@ from presstoshape.render.scene import draw_background, draw_overlays, parse_colo
 from presstoshape.render.viewport import Viewport, scene_rect
 from presstoshape.tools.base import CursorType, Mods, ToolContext
 from presstoshape.tools.registry import Toolbox
+from presstoshape.tools.snapper import Snapper
 from presstoshape.views import theme
 from presstoshape.views.cursors import qt_cursor
+from presstoshape.views.guide_dialog import GuideDialog
+from presstoshape.views.ruler_view import RULER_SIZE, Ruler
 from presstoshape.views.skia_surface import SkiaGLWidget, SkiaRasterWidget, create_surface
 
 _FIT_MARGIN_PX = 40
@@ -32,6 +39,9 @@ _COLORS = CanvasColors(
     artboard_border=theme.ARTBOARD_BORDER,
     preview=theme.PREVIEW_STROKE,
     selection=theme.SELECTION,
+    guide=theme.GUIDE,
+    grid=theme.GRID,
+    snap=theme.SNAP,
 )
 
 _log = logging.getLogger(__name__)
@@ -58,7 +68,9 @@ class CanvasView(QAbstractScrollArea):
         self._cache = PathCache()
         self._picture = DocumentPicture(self._cache)
         self._edit_mode = EditModeDrawing(self._cache)
-        self._toolbox = Toolbox(ToolContext(session, self._cache, self._repaint, self._ask_text))
+        self._toolbox = Toolbox(
+            ToolContext(session, self._cache, self._repaint, self._ask_text, edit_guide=self._edit_guide)
+        )
         self._vp = Viewport()
         self._residual = (0.0, 0.0)
         self._zoom: int | None = None
@@ -76,6 +88,18 @@ class CanvasView(QAbstractScrollArea):
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._install_surface(create_surface(self._paint, renderer))
+        # Rulers sit in the viewport margins; a drag out of one creates a guide.
+        self._rulers = {"horizontal": Ruler("horizontal", self), "vertical": Ruler("vertical", self)}
+        self._ruler_corner = QWidget(self)
+        self._ruler_corner.setAutoFillBackground(True)
+        self._rulers_shown: bool | None = None
+        self._new_guide: Guide | None = None
+        self._new_guide_orientation = "horizontal"
+        self._guide_snapper = Snapper.off()
+        for ruler in self._rulers.values():
+            ruler.guide_drag_started.connect(self._begin_new_guide)
+            ruler.guide_dragged.connect(self._drag_new_guide)
+            ruler.guide_released.connect(self._release_new_guide)
         self.horizontalScrollBar().valueChanged.connect(lambda v: self._on_scroll(x=v))
         self.verticalScrollBar().valueChanged.connect(lambda v: self._on_scroll(y=v))
 
@@ -116,6 +140,7 @@ class CanvasView(QAbstractScrollArea):
             self._doc_size = (doc.width, doc.height)
             self._vp = replace(self._vp, scene=scene_rect(doc.width, doc.height)).clamped()
         self._toolbox.switch(state.active_tool)
+        self._show_rulers(state.view.show_rulers)
         if state.zoom_percent != self._zoom:
             self._apply_zoom(state.zoom_percent)
         self._cache.prune(_nested_ids(shape for layer in doc.layers for shape in layer.shapes))
@@ -159,6 +184,7 @@ class CanvasView(QAbstractScrollArea):
 
     def _repaint(self) -> None:
         self.viewport().update()
+        self._update_rulers()
         hint = self._toolbox.active.hint
         if hint != self._hint:
             self._hint = hint
@@ -183,6 +209,8 @@ class CanvasView(QAbstractScrollArea):
             return
         canvas.setMatrix(self._vp.matrix(dpr))
         overlay = self._toolbox.active.overlay
+        if self._new_guide is not None:
+            overlay = replace(overlay, guide_preview=self._new_guide, snap=self._guide_snapper.hits)
         chain = containers.edit_chain(state)
         hidden = frozenset({chain[0].id}) if chain else frozenset()
         draw_background(canvas, state.document, _COLORS)
@@ -190,7 +218,104 @@ class CanvasView(QAbstractScrollArea):
         self._picture.draw_copies(canvas, overlay.copies, overlay.matrix)
         if chain:
             self._edit_mode.draw(canvas, chain, overlay, self._vp.zoom, _COLORS)
+        visible = self._vp.visible_rect()
+        # Snapping only looks around what is on screen; before the first layout there is nothing to go by.
+        self._toolbox.context.visible_rect = visible if self._vp.width > 0 and self._vp.height > 0 else None
+        view = state.view
+        if view.show_grid:
+            draw_grid(canvas, units.grid_of(state.document), visible, self._vp.zoom, parse_color(theme.GRID))
+        if view.show_guides or overlay.guide_preview is not None:
+            shown = state.document.guides if view.show_guides else ()
+            draw_guides(canvas, shown, visible, parse_color(theme.GUIDE), overlay.guide_preview)
         draw_overlays(canvas, queries.pickable_shapes(state), overlay, self._cache, self._vp.zoom, _COLORS)
+
+    # --- rulers and new guides -------------------------------------------------
+
+    def _show_rulers(self, shown: bool) -> None:
+        if shown == self._rulers_shown:
+            return
+        self._rulers_shown = shown
+        margin = RULER_SIZE if shown else 0
+        self.setViewportMargins(margin, margin, 0, 0)
+        for widget in (*self._rulers.values(), self._ruler_corner):
+            widget.setVisible(shown)
+        self._place_rulers()
+
+    def _place_rulers(self) -> None:
+        if not self._rulers_shown:
+            return
+        area = self.viewport().geometry()
+        self._rulers["horizontal"].setGeometry(area.x(), area.y() - RULER_SIZE, area.width(), RULER_SIZE)
+        self._rulers["vertical"].setGeometry(area.x() - RULER_SIZE, area.y(), RULER_SIZE, area.height())
+        self._ruler_corner.setGeometry(area.x() - RULER_SIZE, area.y() - RULER_SIZE, RULER_SIZE, RULER_SIZE)
+        self._update_rulers()
+
+    def _update_rulers(self) -> None:
+        """Ticks for the current scroll and zoom, the pointer, and the extent of the selection frame."""
+        state = self._state
+        if not self._rulers_shown or state is None:
+            return
+        zoom = self._vp.zoom
+        left, top = self._vp.to_doc((0.0, 0.0))
+        pointer = self._hover_pos
+        extent_x = extent_y = None
+        frame = self._toolbox.active.overlay.frame
+        if frame is not None:
+            corners = [self._vp.to_screen(frame.point(u, v)) for u, v in ((0, 0), (1, 0), (0, 1), (1, 1))]
+            xs, ys = [corner[0] for corner in corners], [corner[1] for corner in corners]
+            extent_x, extent_y = (min(xs), max(xs)), (min(ys), max(ys))
+        document = state.document
+        self._rulers["horizontal"].set_view(
+            left, zoom, document.unit, document.dpi, pointer.x() if pointer is not None else None, extent_x
+        )
+        self._rulers["vertical"].set_view(
+            top, zoom, document.unit, document.dpi, pointer.y() if pointer is not None else None, extent_y
+        )
+
+    def _begin_new_guide(self, orientation: str) -> None:
+        if self._state is None:
+            return
+        self._guide_snapper = self._toolbox.context.snapper(guides=False)
+        self._new_guide = None
+        self._new_guide_orientation = orientation
+
+    def _drag_new_guide(self, global_pos: QPoint) -> None:
+        local = self.viewport().mapFromGlobal(global_pos)
+        x, y = self._vp.to_doc((local.x(), local.y()))
+        horizontal = self._new_guide_orientation == "horizontal"
+        ctrl = bool(QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+        position = self._guide_snapper.axis(y if horizontal else x, horizontal, ignore=ctrl)
+        self._new_guide = Guide(-1, self._new_guide_orientation, position)
+        self._hover_pos = QPointF(local)
+        self._repaint()
+
+    def _release_new_guide(self, global_pos: QPoint) -> None:
+        guide = self._new_guide
+        self._new_guide = None
+        self._guide_snapper = Snapper.off()
+        local = self.viewport().mapFromGlobal(global_pos)
+        # Released back over the ruler (or outside the canvas): no guide.
+        if guide is not None and self.viewport().rect().contains(local):
+            guides.add_guide(self._session, guide.orientation, guide.position)
+        self._repaint()
+
+    def _off_canvas(self, event) -> bool:
+        """Over a ruler (left of or above the canvas), where a dragged guide is dropped to delete it."""
+        pos = event.position()
+        return bool(self._rulers_shown) and (pos.x() < 0 or pos.y() < 0)
+
+    def _edit_guide(self, guide_id: int) -> None:
+        state = self._state
+        guide = next((guide for guide in state.document.guides if guide.id == guide_id), None) if state else None
+        if guide is None:
+            return
+        dialog = GuideDialog(guide, state.document.unit, state.document.dpi, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        if dialog.deleted:
+            guides.delete_guide(self._session, guide_id)
+        else:
+            guides.move_guide(self._session, guide_id, dialog.position)
 
     # --- view navigation ----------------------------------------------------
 
@@ -236,6 +361,7 @@ class CanvasView(QAbstractScrollArea):
             shift = new - old
             self._vp = self._vp.scrolled(shift.x(), shift.y())
         self._viewport_origin = new
+        self._place_rulers()
         if self._keeps_artboard_centered:
             self.center_artboard()
         else:
@@ -292,6 +418,7 @@ class CanvasView(QAbstractScrollArea):
             self._scroll_by(-round(delta.x()), -round(delta.y()))
             return
         self._hover_pos = event.position()
+        self._toolbox.context.pointer_off_canvas = self._off_canvas(event)
         self._toolbox.active.move(self._doc_pos(event), self._mods(event))
         self._update_cursor()
 
@@ -302,7 +429,9 @@ class CanvasView(QAbstractScrollArea):
             self._update_cursor()
             return
         if event.button() == Qt.MouseButton.LeftButton:
+            self._toolbox.context.pointer_off_canvas = self._off_canvas(event)
             self._toolbox.active.release(self._doc_pos(event), self._mods(event))
+            self._toolbox.context.pointer_off_canvas = False
             self._repaint()
             self._update_cursor()
 

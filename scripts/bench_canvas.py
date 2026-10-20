@@ -4,7 +4,8 @@ Repaints the real canvas while panning, zooming, and moving/scaling/rotating a s
 95th-percentile frame time. Gesture frames include the gesture's own per-move work (e.g. rebuilding scaled
 shapes). GL frames wait for the GPU to finish, so times include GPU work. `hover` times the cursor query alone.
 `part` drags one part of a 20-part Composite in edit mode (the result is recomputed every frame). `gpan` pans
-with all shapes in one group, `inside` drags 500 of them with that group entered.
+with all shapes in one group, `inside` drags 500 of them with that group entered. `snap` is `drag` with snapping
+targets and the grid on, `grid` pans with the grid shown.
 
 Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N]
        PRESSTOSHAPE_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
@@ -180,6 +181,20 @@ def main() -> None:
     x0, y0 = _start_gesture(select, _Mode.ROTATE, Handle.ROTATE_NE)
     _report("rotate", _measure(viewport, lambda i: select.move((x0 - 3 * i, y0 + 5 * i), none), args.frames, True))
     select.cancel()
+
+    # The same move with snapping targets collected (as a real press does) and a grid shown.
+    view.toggle_grid(session)
+    view.set_snap_target(session, "grid", True)
+    _start_gesture(select, _Mode.MOVE)
+    select._start_move_snapping()
+    _report("snap", _measure(viewport, lambda i: select.move((float(i), float(i)), none), args.frames, True))
+    select.cancel()
+    before_grid = canvas._vp
+    _report("grid", _measure(viewport, lambda i: canvas._scroll_by(7 if i % 40 < 20 else -7, 3), args.frames))
+    view.toggle_grid(session)
+    # Back to the view the grid pan started from, so the later scenarios stay comparable between versions.
+    canvas._vp = before_grid
+    canvas._sync_scrollbars()
 
     rng = random.Random(2)
     side = state.document.width

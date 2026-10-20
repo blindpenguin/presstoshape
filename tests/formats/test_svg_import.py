@@ -8,6 +8,7 @@ import pytest
 from presstoshape.formats.svg import read_shapes_svg, read_svg, read_svg_with_notes, write_svg
 from presstoshape.geometry import units
 from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import EllipseShape, GroupShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
 from tests.helpers import leaves
 
@@ -434,3 +435,53 @@ def test_groups_are_written_as_g_and_read_back():
     assert '<g opacity="0.5">' in svg and '<g opacity="0.25">' in svg
     reread = read_svg(svg)
     assert reread == document
+
+
+def test_inkscape_guides_and_grid_open_in_document_px():
+    document, notes = _fixture("inkscape_guides_grid.svg")
+    scale = units.to_px(1, "mm", 96)
+    vertical, horizontal = document.guides
+    assert (vertical.orientation, vertical.position) == ("vertical", pytest.approx(20 * scale))
+    assert (horizontal.orientation, horizontal.position) == ("horizontal", pytest.approx(30 * scale))
+    assert document.grid.spacing == pytest.approx(5 * scale) and document.grid.major_every == 2
+    assert notes == ["1 angled guide was left out"]
+    ids = [shape.id for layer in document.layers for shape in layer.shapes] + [guide.id for guide in document.guides]
+    assert len(ids) == len(set(ids)) and document.next_id > max(ids)
+
+
+def test_guides_and_grid_round_trip_through_svg():
+    document = Document(
+        100,
+        80,
+        [Layer("L", True, [RectShape(1, 0, 0, 5, 5, Style())])],
+        next_id=4,
+        guides=(Guide(2, "horizontal", 12.5), Guide(3, "vertical", 70)),
+        grid=GridSettings(4, 4),
+    )
+    svg = write_svg(document)
+    assert "sodipodi:guide" in svg and 'position="0,67.5"' in svg and "inkscape:grid" in svg
+    assert read_svg(svg) == document
+
+
+def test_documents_without_guides_write_no_namedview():
+    assert "namedview" not in write_svg(Document(100, 80, [Layer("L", True, [])]))
+
+
+def test_grid_spacing_with_a_unit_and_broken_grids():
+    def grid_of(spacing):
+        svg = _svg(
+            '<sodipodi:namedview xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd">'
+            f'<inkscape:grid type="xygrid" spacingx="{spacing}" empspacing="4"/></sodipodi:namedview>',
+            'width="100" height="100" viewBox="0 0 100 100"',
+        )
+        return read_svg_with_notes(svg)
+
+    document, notes = grid_of("0.5in")
+    assert document.grid.spacing == pytest.approx(48) and notes == []
+    document, notes = grid_of("lots")
+    assert document.grid is None and notes == ["1 grid setting couldn't be read, the default grid is used"]
+
+
+def test_pasting_ignores_guides():
+    shapes, notes = read_shapes_svg((SAMPLES / "inkscape_guides_grid.svg").read_text(encoding="utf-8"))
+    assert notes == [] and len(shapes) == 1

@@ -25,6 +25,8 @@ _SHAPES = {
     CursorType.IBEAM: Qt.CursorShape.IBeamCursor,
     CursorType.NODE: Qt.CursorShape.PointingHandCursor,
     CursorType.DUPLICATE: Qt.CursorShape.DragCopyCursor,
+    CursorType.GUIDE_HORIZONTAL: Qt.CursorShape.SplitVCursor,
+    CursorType.GUIDE_VERTICAL: Qt.CursorShape.SplitHCursor,
 }
 
 _CUSTOM = {

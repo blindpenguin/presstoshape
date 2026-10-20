@@ -22,6 +22,8 @@ class Note(Enum):
     UNKNOWN_ELEMENT = auto()
     COMPOSITE_UNREADABLE = auto()
     COMPOSITE_EDITED = auto()
+    ANGLED_GUIDE = auto()
+    BROKEN_GRID = auto()
 
 
 def _message(note: Note, count: int) -> str:
@@ -98,6 +100,14 @@ def _message(note: Note, count: int) -> str:
             text = ngettext(
                 "{count} composite was edited in another program and was opened as a path",
                 "{count} composites were edited in another program and were opened as paths",
+                count,
+            )
+        case Note.ANGLED_GUIDE:
+            text = ngettext("{count} angled guide was left out", "{count} angled guides were left out", count)
+        case Note.BROKEN_GRID:
+            text = ngettext(
+                "{count} grid setting couldn't be read, the default grid is used",
+                "{count} grid settings couldn't be read, the default grid is used",
                 count,
             )
     return text.format(count=count)

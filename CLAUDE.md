@@ -60,6 +60,7 @@ presstoshape/
 ├── geometry/                 # pure shape math, no state
 │   ├── affine.py             # 2D affine tuples (SVG matrix order)
 │   ├── boxes.py              # Point, Rect, drag boxes
+│   ├── align.py / snapping.py / rulers.py   # align/distribute offsets, snap targets and queries, ruler ticks
 │   ├── segments.py           # building/mapping path segments
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
@@ -115,6 +116,8 @@ Rules:
 - Coordinates are document pixels (1/`Document.dpi` inch) everywhere below the views. `Document.unit` only changes how lengths are shown and entered: convert at the widget boundary (`views/unit_fields.LengthSpinBox`, `geometry/units`), never in operations, geometry or rendering.
 - Shape `transform` stays canonical: go through `geometry.transforms` (`transform_shape`, `translate`, `with_rotation`) rather than composing matrices onto shapes by hand. Paths keep an identity transform (baked into segments).
 - Tools decide cursors as `CursorType` (Qt-free, tested); only `views/cursors.py` maps them to Qt.
+- Snapping: tools build a `Snapper` once per gesture (`ToolContext.snapper(...)`, targets from the visible area) and ask it for corrected points/offsets while dragging; Ctrl ignores it; its hits go into `Overlay.snap` for feedback. The math lives in `geometry/snapping.py`, never per frame over all shapes.
+- Guides and the grid belong to the `Document` (undoable, saved); show/lock/snap toggles are view state on `AppState` (rulers and snapping remembered in app settings, grid/guides visibility in `.p2s` working state). Commands with a check mark register a `checked` callback.
 - One `Session` per app, created by `App` and passed explicitly — no module-level state. The registries hold definitions only. Nest sub-dataclasses per feature in `models/` rather than separate singletons. The one exception is the active translation catalog in `i18n`: installed once by `App` before the Session exists, read-only afterwards (a language change needs a restart).
 
 ## Translations (i18n)

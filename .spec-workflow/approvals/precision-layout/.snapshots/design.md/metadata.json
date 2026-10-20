@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/precision-layout/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-20T17:22:29.979Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792516949972_i4giiwbkp",
+      "approvalTitle": "Design: Precision & layout"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-20T17:23:59.746Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792516949972_i4giiwbkp",
+      "approvalTitle": "Design: Precision & layout"
+    }
+  ]
+}

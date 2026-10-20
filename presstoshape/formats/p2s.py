@@ -13,6 +13,7 @@ from presstoshape.geometry import units
 from presstoshape.geometry.boxes import Point
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, Tool
+from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
     Close,
@@ -64,6 +65,10 @@ class SavedState:
     selection: frozenset[int] = frozenset()
     selected_layer: int | None = None
     edit_path: tuple[int, ...] = ()
+    # Precision aids shown or locked when the file was saved.
+    show_grid: bool | None = None
+    show_guides: bool | None = None
+    lock_guides: bool | None = None
 
 
 class P2sError(ValueError):
@@ -150,7 +155,7 @@ def encode_shape(shape: Shape) -> dict[str, Any]:
 
 
 def encode_document(document: Document) -> dict[str, Any]:
-    return {
+    fields: dict[str, Any] = {
         **_numbers(width=document.width, height=document.height),
         "unit": document.unit,
         "dpi": _number(document.dpi),
@@ -160,6 +165,14 @@ def encode_document(document: Document) -> dict[str, Any]:
             for layer in document.layers
         ],
     }
+    if document.guides:
+        fields["guides"] = [
+            {"id": guide.id, "orientation": guide.orientation, "position": _number(guide.position)}
+            for guide in document.guides
+        ]
+    if document.grid is not None:
+        fields["grid"] = {"spacing": _number(document.grid.spacing), "major_every": document.grid.major_every}
+    return fields
 
 
 # --- decoding ---------------------------------------------------------------------------------------
@@ -385,7 +398,8 @@ def decode_document(value: Any, where: str = "document") -> Document:
         layers.append(Layer(name, visible, shapes))
     if not layers:
         raise _damaged(f"{where}.layers", _("should have at least one layer"))
-    ids = [shape_id for layer in layers for shape_id in _all_ids(layer.shapes)]
+    guides = _decode_guides(fields.get("guides", []), f"{where}.guides")
+    ids = [shape_id for layer in layers for shape_id in _all_ids(layer.shapes)] + [guide.id for guide in guides]
     if len(ids) != len(set(ids)):
         raise _damaged(where, _("uses a shape id twice"))
     next_id = read_int(_field(fields, "next_id", where), f"{where}.next_id", minimum=0)
@@ -403,7 +417,29 @@ def decode_document(value: Any, where: str = "document") -> Document:
         next_id=max([next_id, *(shape_id + 1 for shape_id in ids)]),
         unit=unit,
         dpi=dpi,
+        guides=guides,
+        grid=_decode_grid(fields["grid"], f"{where}.grid") if "grid" in fields else None,
     )
+
+
+def _decode_guides(value: Any, where: str) -> tuple[Guide, ...]:
+    guides = []
+    for index, item in enumerate(read_list(value, where)):
+        item_where = f"{where}[{index}]"
+        fields = read_object(item, item_where)
+        orientation = _field(fields, "orientation", item_where)
+        if orientation not in ("horizontal", "vertical"):
+            raise _damaged(f"{item_where}.orientation", _one_of(("horizontal", "vertical")))
+        guide_id = read_int(_field(fields, "id", item_where), f"{item_where}.id", minimum=0)
+        guides.append(Guide(guide_id, orientation, _number_field(fields, "position", item_where)))
+    return tuple(guides)
+
+
+def _decode_grid(value: Any, where: str) -> GridSettings:
+    fields = read_object(value, where)
+    spacing = _number_field(fields, "spacing", where, minimum=0.001)
+    major_every = read_int(_field(fields, "major_every", where), f"{where}.major_every", minimum=1)
+    return GridSettings(spacing, major_every)
 
 
 # --- working state ---------------------------------------------------------------------------------
@@ -427,6 +463,9 @@ def encode_state(state: SavedState) -> dict[str, Any]:
     if state.selected_layer is not None:
         fields["selected_layer"] = state.selected_layer
     fields["edit_path"] = list(state.edit_path)
+    for key in ("show_grid", "show_guides", "lock_guides"):
+        if getattr(state, key) is not None:
+            view[key] = getattr(state, key)
     return fields
 
 
@@ -469,7 +508,17 @@ def decode_state(value: Any, where: str = "state") -> SavedState:
         selection=frozenset(read_int(item, f"{where}.selection[{index}]", 0) for index, item in enumerate(selection)),
         selected_layer=None if layer is None else read_int(layer, f"{where}.selected_layer"),
         edit_path=tuple(read_int(item, f"{where}.edit_path[{index}]", 0) for index, item in enumerate(edit_path)),
+        show_grid=_optional_bool(view, "show_grid", f"{where}.view"),
+        show_guides=_optional_bool(view, "show_guides", f"{where}.view"),
+        lock_guides=_optional_bool(view, "lock_guides", f"{where}.view"),
     )
+
+
+def _optional_bool(fields: dict[str, Any], key: str, where: str) -> bool | None:
+    value = fields.get(key)
+    if value is not None and not isinstance(value, bool):
+        raise _damaged(f"{where}.{key}", _("should be true or false"))
+    return value
 
 
 # --- archive ------------------------------------------------------------------------------------------

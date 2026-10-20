@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/precision-layout/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-20T17:25:12.882Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792517112875_iawivfari",
+      "approvalTitle": "Tasks: Precision & layout"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-20T17:25:37.488Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792517112875_iawivfari",
+      "approvalTitle": "Tasks: Precision & layout"
+    }
+  ]
+}

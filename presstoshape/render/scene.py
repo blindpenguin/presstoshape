@@ -7,6 +7,8 @@ import skia
 
 from presstoshape.geometry import nodes as path_nodes
 from presstoshape.geometry import transforms
+from presstoshape.geometry.snapping import SnapHit, SnapTarget
+from presstoshape.i18n import pgettext
 from presstoshape.models.app_state import Document
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
@@ -25,7 +27,7 @@ from presstoshape.models.shapes import (
 from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache, stroke_paint, to_skia_matrix, to_skia_path
-from presstoshape.render.text import anchor_offset, text_blob
+from presstoshape.render.text import anchor_offset, text_blob, typeface
 
 _DASH_PX = 4.0
 _RUBBER_BAND_ALPHA = 0x33
@@ -39,6 +41,11 @@ _MODE_DASHES_PX: dict[str, tuple[float, ...]] = {
     "exclude": (6.0, 3.0, 1.5, 3.0),
 }
 _EVERYWHERE = skia.Rect.MakeLTRB(-1e7, -1e7, 1e7, 1e7)
+# Snap feedback, in screen px.
+_SNAP_DASH_PX = 4.0
+_SNAP_CROSS_PX = 4.0
+_SNAP_LABEL_PX = 11.0
+_SNAP_LABEL_OFFSET_PX = 8.0
 
 
 def parse_color(value: str) -> int:
@@ -369,3 +376,42 @@ def draw_overlays(
         fill = skia.Paint(Color=(selection_color & 0x00FFFFFF) | (_RUBBER_BAND_ALPHA << 24))
         canvas.drawRect(rect, fill)
         canvas.drawRect(rect, _hairline(selection_color))
+    if overlay.snap:
+        _draw_snap_feedback(canvas, overlay.snap, zoom, parse_color(colors.snap))
+
+
+def snap_label(target: SnapTarget) -> str:
+    labels = {
+        "grid": pgettext("snap", "Grid"),
+        "guide": pgettext("snap", "Guide"),
+        "artboard": pgettext("snap", "Artboard"),
+        "edge": pgettext("snap", "Edge"),
+        "centre": pgettext("snap", "Centre"),
+        "node": pgettext("snap", "Node"),
+    }
+    return labels[target]
+
+
+def _draw_snap_feedback(canvas: skia.Canvas, hits: Sequence[SnapHit], zoom: float, color: int) -> None:
+    """Dashed lines to what was lined up with, a cross at snapped points, and one small label."""
+    line_paint = _hairline(color, _SNAP_DASH_PX / zoom)
+    line_paint.setAntiAlias(True)
+    for hit in hits:
+        if hit.line is not None:
+            (x0, y0), (x1, y1) = hit.line
+            canvas.drawLine(x0, y0, x1, y1, line_paint)
+        if hit.axis == "point":
+            arm = _SNAP_CROSS_PX / zoom
+            x, y = hit.at
+            cross = skia.Paint(Color=color, Style=skia.Paint.kStroke_Style, StrokeWidth=1.5 / zoom, AntiAlias=True)
+            canvas.drawLine(x - arm, y - arm, x + arm, y + arm, cross)
+            canvas.drawLine(x - arm, y + arm, x + arm, y - arm, cross)
+    first = hits[0]
+    font = skia.Font(typeface(), _SNAP_LABEL_PX / zoom)
+    text = snap_label(first.target)
+    pad = 3 / zoom
+    x, y = first.at[0] + _SNAP_LABEL_OFFSET_PX / zoom, first.at[1] - _SNAP_LABEL_OFFSET_PX / zoom
+    width = font.measureText(text)
+    background = skia.Rect.MakeLTRB(x - pad, y - font.getSize() - pad / 2, x + width + pad, y + pad)
+    canvas.drawRoundRect(background, pad, pad, skia.Paint(Color=color, AntiAlias=True))
+    canvas.drawSimpleText(text, x, y - pad / 2, font, skia.Paint(Color=skia.ColorWHITE, AntiAlias=True))

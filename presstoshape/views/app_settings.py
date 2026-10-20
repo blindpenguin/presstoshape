@@ -2,11 +2,13 @@
 portable Windows build, an INI file next to the executable so nothing is written outside its folder."""
 
 import sys
+from dataclasses import fields
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, QStandardPaths
 
 from presstoshape.editing.operations.documents import DocumentSetup, setup_problem
+from presstoshape.models.layout import SnapSettings
 
 # Shipped only in the portable ZIP; its presence switches a packaged build to settings beside the executable.
 PORTABLE_MARKER = "portable.txt"
@@ -165,3 +167,42 @@ def keep_backups(settings: QSettings) -> bool:
 
 def set_keep_backups(settings: QSettings, value: bool) -> None:
     settings.setValue(_BACKUPS_KEY, value)
+
+
+_RULERS_KEY = "view/showRulers"
+_SNAP_GROUP = "snapping"
+
+
+def _as_bool(value: object, default: bool) -> bool:
+    if value is None:
+        return default
+    return value not in (False, "false", "0", 0)
+
+
+def show_rulers(settings: QSettings) -> bool:
+    return _as_bool(settings.value(_RULERS_KEY), True)
+
+
+def set_show_rulers(settings: QSettings, value: bool) -> None:
+    settings.setValue(_RULERS_KEY, value)
+
+
+def snap_settings(settings: QSettings) -> SnapSettings:
+    """Snapping switches and distance; missing or broken values keep their defaults."""
+    defaults = SnapSettings()
+    values = {}
+    for field in fields(SnapSettings):
+        stored = settings.value(f"{_SNAP_GROUP}/{field.name}")
+        if field.name == "distance_px":
+            try:
+                values[field.name] = min(30.0, max(2.0, float(stored)))
+            except (TypeError, ValueError):
+                values[field.name] = defaults.distance_px
+        else:
+            values[field.name] = _as_bool(stored, getattr(defaults, field.name))
+    return SnapSettings(**values)
+
+
+def set_snap_settings(settings: QSettings, snapping: SnapSettings) -> None:
+    for field in fields(SnapSettings):
+        settings.setValue(f"{_SNAP_GROUP}/{field.name}", getattr(snapping, field.name))

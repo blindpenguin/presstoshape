@@ -10,6 +10,9 @@ ARTBOARD = "#ffffff"
 ARTBOARD_BORDER = "#52525b"
 PREVIEW_STROKE = "#60a5fa"
 SELECTION = "#2563eb"
+GUIDE = "#06b6d4"
+GRID = "#94a3b8"
+SNAP = "#f97316"
 
 
 def apply(app: QApplication) -> None:

@@ -5,6 +5,7 @@ from pathlib import Path
 from presstoshape.formats.p2s import SavedState, read_p2s
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, MIGRATIONS, upgrade
 from presstoshape.models.app_state import Document, Layer, Tool
+from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
@@ -164,3 +165,27 @@ def expected_v5() -> tuple[Document, SavedState]:
 
 def test_v5_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v5.p2s").read_bytes()) == expected_v5()
+
+
+def expected_v6() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v6.p2s holds: guides, an own grid and their view state."""
+    document = Document(
+        width=400.0,
+        height=300.0,
+        layers=[Layer("Layer 1", True, [RectShape(1, 40.0, 40.0, 100.0, 60.0, Style())])],
+        next_id=4,
+        unit="mm",
+        dpi=96.0,
+        guides=(Guide(2, "vertical", 40.0), Guide(3, "horizontal", 100.0)),
+        grid=GridSettings(18.897637795275593, 2),
+    )
+    return document, SavedState(zoom_percent=100, show_grid=True, show_guides=True, lock_guides=True)
+
+
+def test_v5_files_have_no_guides_or_grid():
+    document, state = read_p2s((SAMPLES / "v5.p2s").read_bytes())
+    assert document.guides == () and document.grid is None and state.show_grid is None
+
+
+def test_v6_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v6.p2s").read_bytes()) == expected_v6()

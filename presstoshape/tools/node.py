@@ -12,6 +12,7 @@ from presstoshape.models.shapes import PathShape
 from presstoshape.render.handles import node_at
 from presstoshape.render.overlay import NodeOverlay, Overlay
 from presstoshape.tools.base import BaseTool, CursorType, Mods, ToolContext
+from presstoshape.tools.snapper import Snapper
 
 _NON_PATH_HINT = N_("Node tool edits paths. Use Path → Object to Path (Ctrl+Shift+C) first.")
 # How close (screen px) a double-click must be to a segment to insert a node there.
@@ -36,6 +37,10 @@ class NodeTool(BaseTool):
         self._live: PathShape | None = None
         self._band_base: set[tuple[int, int]] = set()
         self._cursor = CursorType.ARROW
+        self._snapper = Snapper.off()
+        # Node drags: where the pressed node started, and how far the drag moves the nodes (after snapping).
+        self._anchor: Point = (0.0, 0.0)
+        self._delta: Point = (0.0, 0.0)
 
     def _nudge_by(self, dx: float, dy: float) -> bool:
         """Selected nodes move; without any, the selected paths do (as with the Select tool)."""
@@ -75,7 +80,9 @@ class NodeTool(BaseTool):
         moving = frozenset({self._live.id}) if self._live is not None else frozenset()
         live = (self._live,) if self._live is not None else ()
         band = self._band() if self._mode is _Mode.BAND else None
-        return Overlay(selected_ids, rubber_band=band, moving=moving, live=live, nodes=tuple(overlays))
+        return Overlay(
+            selected_ids, rubber_band=band, moving=moving, live=live, nodes=tuple(overlays), snap=self._snapper.hits
+        )
 
     # --- events ---------------------------------------------------------------
 
@@ -101,6 +108,9 @@ class NodeTool(BaseTool):
                 node_editing.set_node_selection(session, {ref})
             self._mode, self._path = _Mode.NODES, path
             self._indices = self._selected_nodes(path.id)
+            # The pressed node is what snaps; the others move along by the same amount.
+            self._anchor = next(info.point for info in nodes.nodes(path.segments) if info.index == target)
+            self._snapper = self._context.snapper(exclude={path.id}, own_path=(path, self._indices))
             return
         if self._segment_at(point) is not None:
             return
@@ -118,8 +128,10 @@ class NodeTool(BaseTool):
         self._end = point
         path = self._path
         if self._mode is _Mode.NODES and path is not None:
-            dx, dy = point[0] - self._start[0], point[1] - self._start[1]
-            self._live = replace(path, segments=nodes.move_nodes(path.segments, self._indices, dx, dy))
+            wanted = (self._anchor[0] + point[0] - self._start[0], self._anchor[1] + point[1] - self._start[1])
+            snapped = self._snapper.point(wanted, ignore=mods.ctrl)
+            self._delta = (snapped[0] - self._anchor[0], snapped[1] - self._anchor[1])
+            self._live = replace(path, segments=nodes.move_nodes(path.segments, self._indices, *self._delta))
         elif self._mode is _Mode.CONTROL and path is not None and self._control is not None:
             segments = nodes.move_control(path.segments, self._control, point, keep_smooth=not mods.alt)
             self._live = replace(path, segments=segments)
@@ -129,15 +141,14 @@ class NodeTool(BaseTool):
         if self._mode is None:
             return
         self.move(point, mods)
-        mode, path, control, indices = self._mode, self._path, self._control, self._indices
+        mode, path, control, indices, delta = self._mode, self._path, self._control, self._indices, self._delta
         band_refs = self._band_base | self._band_hits() if mode is _Mode.BAND else set()
         clicked_empty = mode is _Mode.BAND and point == self._start
         self.cancel()
         session = self._context.session
         state = self._context.state
         if mode is _Mode.NODES and path is not None:
-            dx, dy = point[0] - self._start[0], point[1] - self._start[1]
-            node_editing.move_nodes(session, path.id, indices, dx, dy)
+            node_editing.move_nodes(session, path.id, indices, *delta)
         elif mode is _Mode.CONTROL and path is not None and control is not None:
             if point != self._start:
                 node_editing.move_control(session, path.id, control, point, keep_smooth=not mods.alt)
@@ -165,6 +176,8 @@ class NodeTool(BaseTool):
         self._path = self._control = self._live = None
         self._indices = set()
         self._band_base = set()
+        self._snapper = Snapper.off()
+        self._anchor = self._delta = (0.0, 0.0)
 
     def hover(self, point: Point) -> CursorType:
         if self._mode is not None:

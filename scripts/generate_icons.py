@@ -44,6 +44,17 @@ ICONS = {
     "align_start": "align-left",
     "align_middle": "align-center",
     "align_end": "align-right",
+    "object_align_left": "layout-align-left",
+    "object_align_hcenter": "layout-align-center",
+    "object_align_right": "layout-align-right",
+    "object_align_top": "layout-align-top",
+    "object_align_vcenter": "layout-align-middle",
+    "object_align_bottom": "layout-align-bottom",
+    "distribute_x": "spacing-horizontal",
+    "distribute_y": "spacing-vertical",
+    "distribute_centers_x": "layout-distribute-vertical",
+    "distribute_centers_y": "layout-distribute-horizontal",
+    "snapping": "magnet",
 }
 
 

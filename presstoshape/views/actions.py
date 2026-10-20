@@ -35,7 +35,8 @@ class AppActions:
         self._session = session
         self._actions: dict[str, QAction] = {}
         for entry in registry.operations():
-            self._add(entry.id, _(entry.label), partial(entry.invoke, session))
+            action = self._add(entry.id, _(entry.label), partial(entry.invoke, session))
+            action.setCheckable(entry.checked is not None)
         for command_id, slot in window_commands.items():
             self._add(command_id, _(WINDOW_COMMANDS[command_id]), slot)
         self._tool_group = QActionGroup(parent)
@@ -72,7 +73,13 @@ class AppActions:
     def refresh(self, state: AppState) -> None:
         session = self._session
         for entry in registry.operations():
-            self._actions[entry.id].setEnabled(entry.can_run(session))
+            action = self._actions[entry.id]
+            action.setEnabled(entry.can_run(session))
+            if entry.checked is not None:
+                # Qt toggles a checkable action itself on click; the state decides what it shows.
+                action.blockSignals(True)
+                action.setChecked(entry.checked(session))
+                action.blockSignals(False)
         self._label_history("edit.undo", _("&Undo"), session.undo_label)
         self._label_history("edit.redo", _("&Redo"), session.redo_label)
         self._tool_actions[state.active_tool].setChecked(True)

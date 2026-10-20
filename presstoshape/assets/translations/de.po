@@ -7,6 +7,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: presstoshape/editing/operations/align.py
+msgid "&Left"
+msgstr "&Links"
+
+#: presstoshape/editing/operations/align.py
+msgid "Align left"
+msgstr "Links ausrichten"
+
+#: presstoshape/editing/operations/align.py
+msgid "Centre &Horizontally"
+msgstr "&Horizontal zentrieren"
+
+#: presstoshape/editing/operations/align.py
+msgid "Align centres horizontally"
+msgstr "Mitten horizontal ausrichten"
+
+#: presstoshape/editing/operations/align.py
+msgid "&Right"
+msgstr "&Rechts"
+
+#: presstoshape/editing/operations/align.py
+msgid "Align right"
+msgstr "Rechts ausrichten"
+
+#: presstoshape/editing/operations/align.py
+msgid "&Top"
+msgstr "&Oben"
+
+#: presstoshape/editing/operations/align.py
+msgid "Align top"
+msgstr "Oben ausrichten"
+
+#: presstoshape/editing/operations/align.py
+msgid "Centre &Vertically"
+msgstr "&Vertikal zentrieren"
+
+#: presstoshape/editing/operations/align.py
+msgid "Align centres vertically"
+msgstr "Mitten vertikal ausrichten"
+
+#: presstoshape/editing/operations/align.py
+msgid "&Bottom"
+msgstr "&Unten"
+
+#: presstoshape/editing/operations/align.py
+msgid "Align bottom"
+msgstr "Unten ausrichten"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute &Horizontally"
+msgstr "&Horizontal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute horizontally"
+msgstr "Horizontal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute &Vertically"
+msgstr "&Vertikal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute vertically"
+msgstr "Vertikal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute &Centres Horizontally"
+msgstr "&Mitten horizontal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute centres horizontally"
+msgstr "Mitten horizontal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute C&entres Vertically"
+msgstr "M&itten vertikal verteilen"
+
+#: presstoshape/editing/operations/align.py
+msgid "Distribute centres vertically"
+msgstr "Mitten vertikal verteilen"
+
 #: presstoshape/editing/operations/arrange.py
 msgid "&Raise"
 msgstr "&Schrittweise nach vorne"
@@ -350,6 +430,42 @@ msgstr "Gruppierung aufheben"
 #: presstoshape/editing/operations/groups.py
 msgid "Ungrouped"
 msgstr "Gruppierung aufgehoben"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Add guide"
+msgstr "Hilfslinie hinzufügen"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Added a guide"
+msgstr "Hilfslinie hinzugefügt"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Move guide"
+msgstr "Hilfslinie verschieben"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Delete guide"
+msgstr "Hilfslinie löschen"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Deleted a guide"
+msgstr "Hilfslinie gelöscht"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Cl&ear Guides"
+msgstr "Hilfslinien &entfernen"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Clear guides"
+msgstr "Hilfslinien entfernen"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Cleared all guides"
+msgstr "Alle Hilfslinien entfernt"
+
+#: presstoshape/editing/operations/guides.py
+msgid "Change grid"
+msgstr "Raster ändern"
 
 #: presstoshape/editing/operations/history.py
 #: presstoshape/views/actions.py
@@ -733,6 +849,86 @@ msgstr "Ver&kleinern"
 msgid "&Actual Size"
 msgstr "&Originalgröße"
 
+#: presstoshape/editing/operations/view.py
+msgid "Show &Rulers"
+msgstr "&Lineale anzeigen"
+
+#: presstoshape/editing/operations/view.py
+msgid "Rulers shown"
+msgstr "Lineale angezeigt"
+
+#: presstoshape/editing/operations/view.py
+msgid "Rulers hidden"
+msgstr "Lineale ausgeblendet"
+
+#: presstoshape/editing/operations/view.py
+msgid "Show &Grid"
+msgstr "&Raster anzeigen"
+
+#: presstoshape/editing/operations/view.py
+msgid "Grid shown"
+msgstr "Raster angezeigt"
+
+#: presstoshape/editing/operations/view.py
+msgid "Grid hidden"
+msgstr "Raster ausgeblendet"
+
+#: presstoshape/editing/operations/view.py
+msgid "Show G&uides"
+msgstr "&Hilfslinien anzeigen"
+
+#: presstoshape/editing/operations/view.py
+msgid "Guides shown"
+msgstr "Hilfslinien angezeigt"
+
+#: presstoshape/editing/operations/view.py
+msgid "Guides hidden"
+msgstr "Hilfslinien ausgeblendet"
+
+#: presstoshape/editing/operations/view.py
+msgid "&Lock Guides"
+msgstr "Hilfslinien &sperren"
+
+#: presstoshape/editing/operations/view.py
+msgid "Guides locked"
+msgstr "Hilfslinien gesperrt"
+
+#: presstoshape/editing/operations/view.py
+msgid "Guides unlocked"
+msgstr "Hilfslinien entsperrt"
+
+#: presstoshape/editing/operations/view.py
+msgid "&Snapping"
+msgstr "Einras&ten"
+
+#: presstoshape/editing/operations/view.py
+msgid "Snapping on"
+msgstr "Einrasten an"
+
+#: presstoshape/editing/operations/view.py
+msgid "Snapping off"
+msgstr "Einrasten aus"
+
+#: presstoshape/editing/operations/view.py
+msgid "&Grid"
+msgstr "&Raster"
+
+#: presstoshape/editing/operations/view.py
+msgid "G&uides"
+msgstr "&Hilfslinien"
+
+#: presstoshape/editing/operations/view.py
+msgid "&Artboard"
+msgstr "&Zeichenfläche"
+
+#: presstoshape/editing/operations/view.py
+msgid "&Objects"
+msgstr "&Objekte"
+
+#: presstoshape/editing/operations/view.py
+msgid "&Nodes"
+msgstr "&Knoten"
+
 #: presstoshape/editing/session.py
 msgid "Undo"
 msgstr "Rückgängig gemacht"
@@ -802,10 +998,6 @@ msgid "is an unknown shape type {type}"
 msgstr "ist ein unbekannter Formtyp {type}"
 
 #: presstoshape/formats/p2s.py
-msgid "should be true or false"
-msgstr "sollte true oder false sein"
-
-#: presstoshape/formats/p2s.py
 msgid "should have at least one layer"
 msgstr "sollte mindestens eine Ebene haben"
 
@@ -816,6 +1008,10 @@ msgstr "verwendet eine Form-ID doppelt"
 #: presstoshape/formats/p2s.py
 msgid "should have 2 numbers"
 msgstr "sollte 2 Zahlen enthalten"
+
+#: presstoshape/formats/p2s.py
+msgid "should be true or false"
+msgstr "sollte true oder false sein"
 
 #: presstoshape/formats/p2s.py
 msgid "damaged file: {name} is too large"
@@ -935,6 +1131,18 @@ msgid_plural "{count} composites were edited in another program and were opened 
 msgstr[0] "{count} Komposit wurde in einem anderen Programm bearbeitet und als Pfad geöffnet"
 msgstr[1] "{count} Komposits wurden in einem anderen Programm bearbeitet und als Pfade geöffnet"
 
+#: presstoshape/formats/svg_notes.py
+msgid "{count} angled guide was left out"
+msgid_plural "{count} angled guides were left out"
+msgstr[0] "{count} schräge Hilfslinie wurde weggelassen"
+msgstr[1] "{count} schräge Hilfslinien wurden weggelassen"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} grid setting couldn't be read, the default grid is used"
+msgid_plural "{count} grid settings couldn't be read, the default grid is used"
+msgstr[0] "{count} Rastereinstellung konnte nicht gelesen werden, das Standardraster wird verwendet"
+msgstr[1] "{count} Rastereinstellungen konnten nicht gelesen werden, das Standardraster wird verwendet"
+
 #: presstoshape/formats/svg_reader.py
 msgid "not an SVG document"
 msgstr "kein SVG-Dokument"
@@ -1031,6 +1239,36 @@ msgstr "Linkvorschau"
 msgid "Default"
 msgstr "Standard"
 
+#: presstoshape/render/scene.py
+msgctxt "snap"
+msgid "Grid"
+msgstr "Raster"
+
+#: presstoshape/render/scene.py
+msgctxt "snap"
+msgid "Guide"
+msgstr "Hilfslinie"
+
+#: presstoshape/render/scene.py
+msgctxt "snap"
+msgid "Artboard"
+msgstr "Zeichenfläche"
+
+#: presstoshape/render/scene.py
+msgctxt "snap"
+msgid "Edge"
+msgstr "Kante"
+
+#: presstoshape/render/scene.py
+msgctxt "snap"
+msgid "Centre"
+msgstr "Mitte"
+
+#: presstoshape/render/scene.py
+msgctxt "snap"
+msgid "Node"
+msgstr "Knoten"
+
 #: presstoshape/tools/node.py
 msgid "Node tool edits paths. Use Path → Object to Path (Ctrl+Shift+C) first."
 msgstr "Das Knotenwerkzeug bearbeitet Pfade. Zuerst Pfad → Objekt in Pfad umwandeln (Strg+Umschalt+C) verwenden."
@@ -1066,6 +1304,23 @@ msgstr "&Text"
 #: presstoshape/tools/select.py
 msgid "Rotate {angle:.1f}°"
 msgstr "Drehen {angle:.1f}°"
+
+#: presstoshape/views/align_panel.py
+msgid "Relative to"
+msgstr "Bezogen auf"
+
+#: presstoshape/views/align_panel.py
+#: presstoshape/views/tool_options_view.py
+msgid "Selection"
+msgstr "Auswahl"
+
+#: presstoshape/views/align_panel.py
+msgid "Artboard"
+msgstr "Zeichenfläche"
+
+#: presstoshape/views/align_panel.py
+msgid "A single object is always aligned to the artboard"
+msgstr "Ein einzelnes Objekt wird immer an der Zeichenfläche ausgerichtet"
 
 #: presstoshape/views/canvas_view.py
 msgid "Text:"
@@ -1117,6 +1372,48 @@ msgstr "Größe"
 #: presstoshape/views/export_dialog.py
 msgid "{width} × {height} px"
 msgstr "{width} × {height} px"
+
+#: presstoshape/views/grid_dialog.py
+msgid "Grid"
+msgstr "Raster"
+
+#: presstoshape/views/grid_dialog.py
+msgid "Spacing"
+msgstr "Abstand"
+
+#: presstoshape/views/grid_dialog.py
+msgid "Every this many lines, a stronger major line is drawn"
+msgstr "Nach so vielen Linien wird jeweils eine kräftigere Hauptlinie gezeichnet"
+
+#: presstoshape/views/grid_dialog.py
+msgid "Major line every"
+msgstr "Hauptlinie alle"
+
+#: presstoshape/views/guide_dialog.py
+msgid "Guide"
+msgstr "Hilfslinie"
+
+#: presstoshape/views/guide_dialog.py
+msgid "Horizontal guide, measured from the top of the artboard"
+msgstr "Waagrechte Hilfslinie, gemessen vom oberen Rand der Zeichenfläche"
+
+#: presstoshape/views/guide_dialog.py
+#: presstoshape/views/selection_view.py
+msgid "Y"
+msgstr "Y"
+
+#: presstoshape/views/guide_dialog.py
+msgid "Vertical guide, measured from the left of the artboard"
+msgstr "Senkrechte Hilfslinie, gemessen vom linken Rand der Zeichenfläche"
+
+#: presstoshape/views/guide_dialog.py
+#: presstoshape/views/selection_view.py
+msgid "X"
+msgstr "X"
+
+#: presstoshape/views/guide_dialog.py
+msgid "Delete Guide"
+msgstr "Hilfslinie löschen"
 
 #: presstoshape/views/import_report_dialog.py
 msgid "Import Notes"
@@ -1179,6 +1476,10 @@ msgid "&Settings…"
 msgstr "E&instellungen…"
 
 #: presstoshape/views/keymap.py
+msgid "Grid Se&ttings…"
+msgstr "Rastereinstellun&gen…"
+
+#: presstoshape/views/keymap.py
 msgid "&About PressToShape"
 msgstr "Über &PressToShape"
 
@@ -1207,8 +1508,20 @@ msgid "&Object"
 msgstr "&Objekt"
 
 #: presstoshape/views/keymap.py
+msgid "&Align"
+msgstr "&Ausrichten"
+
+#: presstoshape/views/keymap.py
+msgid "&Distribute"
+msgstr "Ver&teilen"
+
+#: presstoshape/views/keymap.py
 msgid "&View"
 msgstr "&Ansicht"
+
+#: presstoshape/views/keymap.py
+msgid "S&nap To"
+msgstr "Einrasten &an"
 
 #: presstoshape/views/keymap.py
 msgid "&Tools"
@@ -1241,6 +1554,10 @@ msgstr "Werkzeug"
 #: presstoshape/views/main_window.py
 msgid "Layers"
 msgstr "Ebenen"
+
+#: presstoshape/views/main_window.py
+msgid "Align"
+msgstr "Ausrichten"
 
 #: presstoshape/views/main_window.py
 msgid "{name} (recovered)"
@@ -1372,14 +1689,6 @@ msgid "Discard the unsaved changes of {name} for good?"
 msgstr "Die ungespeicherten Änderungen an {name} endgültig verwerfen?"
 
 #: presstoshape/views/selection_view.py
-msgid "X"
-msgstr "X"
-
-#: presstoshape/views/selection_view.py
-msgid "Y"
-msgstr "Y"
-
-#: presstoshape/views/selection_view.py
 msgid "W"
 msgstr "B"
 
@@ -1498,6 +1807,14 @@ msgstr "CPU"
 #: presstoshape/views/settings/canvas_page.py
 msgid "Renderer"
 msgstr "Darstellung"
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "How close (on screen) a dragged object must come to a target to snap"
+msgstr "Wie nah (auf dem Bildschirm) ein gezogenes Objekt einem Ziel kommen muss, um einzurasten"
+
+#: presstoshape/views/settings/canvas_page.py
+msgid "Snap distance"
+msgstr "Einrastabstand"
 
 #: presstoshape/views/settings/canvas_page.py
 msgid "The {variable} environment variable currently forces {renderer}."
@@ -1769,10 +2086,6 @@ msgstr "Ziehen zum Zeichnen. Glättung: wie ruhig die Linie wird, von eng an der
 #: presstoshape/views/tool_options_view.py
 msgid "Click on the canvas to place text."
 msgstr "Auf die Arbeitsfläche klicken, um Text zu platzieren."
-
-#: presstoshape/views/tool_options_view.py
-msgid "Selection"
-msgstr "Auswahl"
 
 #: presstoshape/views/tool_options_view.py
 msgid "Node tool"

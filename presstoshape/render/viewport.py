@@ -65,6 +65,11 @@ class Viewport:
         tx, ty = self.offset()
         return (p[0] - tx) / self.zoom, (p[1] - ty) / self.zoom
 
+    def visible_rect(self) -> Rect:
+        """The document area the view shows (x, y, w, h)."""
+        left, top = self.to_doc((0.0, 0.0))
+        return left, top, self.width / self.zoom, self.height / self.zoom
+
     def matrix(self, dpr: float = 1.0) -> skia.Matrix:
         tx, ty = self.offset()
         z = self.zoom * dpr

@@ -43,6 +43,7 @@ presstoshape/                   # repo root
     │   ├── transforms.py       # outline, translate, canonical shape transforms
     │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)
     │   ├── units.py            # px/mm/cm/in/pt conversions at a DPI
+    │   ├── align.py / snapping.py / rulers.py   # align/distribute offsets, snap targets and queries, ruler ticks
     │   └── fitting.py          # freehand strokes → cubic beziers (Schneider fit, corners kept)
     ├── formats/
     │   ├── svg.py              # SVG write; re-exports the read functions
@@ -50,19 +51,21 @@ presstoshape/                   # repo root
     │   ├── svg_values.py       # attribute/property value parsing (lengths, opacities, dashes, transforms, path data)
     │   ├── svg_names.py        # namespaces and qualified names shared by reader and writer
     │   ├── svg_notes.py        # counted import notes (what couldn't be imported), worded for the user
+    │   ├── svg_namedview.py    # guides and grid in sodipodi:namedview (read and write)
     │   ├── css.py              # the CSS subset of <style> sheets: simple selectors, cascade, !important
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
     │   └── p2s_migrations.py   # upgrades older .p2s format versions
-    ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay
+    ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay, guides (+ grid)
     ├── editing/
     │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()
     │   ├── registry.py         # Operation table: id, menu label, can_run
     │   ├── queries.py          # read-only questions about state
     │   ├── containers.py       # active container (layer, or the entered group/Composite chain via edit_path)
-    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, arrange, paths, node_editing, style, layers, documents
+    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, align, guides, arrange, paths, node_editing, style, layers, documents
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox
+    │   ├── snapper.py          # per-gesture snap targets (visible area) and queries
     │   └── select.py / node.py / pen.py / pencil.py / shapes.py / text.py
     └── views/                  # Qt widgets only
         ├── main_window.py      # assembles panels, fans out refresh(), window commands (dialogs)
@@ -72,6 +75,7 @@ presstoshape/                   # repo root
         ├── settings/           # Settings window: dialog.py (PAGES), pages.py, one module per category page
         ├── recovery_keeper.py / recover_dialog.py   # crash recovery: run lock + snapshot timer, startup dialog
         ├── import_report_dialog.py   # lists what an opened SVG lost on import
+        ├── ruler_view.py / align_panel.py / guide_dialog.py / grid_dialog.py   # precision aids
         ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)

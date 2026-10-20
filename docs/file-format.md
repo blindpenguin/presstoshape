@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **5**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **6**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -49,6 +49,13 @@ All numbers are JSON numbers (written as floats where the model holds floats). `
 | `layers` | list, at least one | Bottom to top, like SVG document order. |
 
 Each layer: `{"name": string, "visible": bool, "shapes": [shape, …]}`, shapes bottom to top.
+
+Optional precision aids on the document:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `guides` | list | `{"id": integer, "orientation": "horizontal" or "vertical", "position": number}`. The position is the y of a horizontal guide or the x of a vertical one, in document pixels. Guide ids share the shape ids' range. |
+| `grid` | object | `{"spacing": number > 0, "major_every": integer ≥ 1}`: minor line distance in document pixels and the major line interval. Left out when the document uses the default grid for its unit. |
 
 ### Shapes
 
@@ -130,6 +137,7 @@ Working state. Everything here is optional. Readers drop values that don't match
 | `selection` | Selected shape ids. |
 | `selected_layer` | Index of the active layer. |
 | `edit_path` | Ids of the entered Composites and groups, outer to inner; empty when none is entered. |
+| `view.show_grid`, `view.show_guides`, `view.lock_guides` | Whether the grid and guides were shown and the guides locked. |
 
 Undo history and the active tool are not stored.
 
@@ -142,6 +150,7 @@ Undo history and the active tool are not stored.
 | 3 | nightlies from October 2026 | `state.tools.pencil_smoothing`; the Pencil's style is stored under `tools.styles.pencil`. Version 2 files need no change. |
 | 4 | nightlies from October 2026 | Optional style fields `opacity`, `fill_opacity`, `stroke_opacity`, `fill_rule`, `cap`, `join`, `miter_limit`, `dashes`, `dash_offset`; rect `rx`/`ry`; text `anchor`. Version 3 files need no change. |
 | 5 | nightlies from October 2026 | Shape type `group`. `state.edit_path` may now name groups too. Version 4 files need no change. |
+| 6 | nightlies from October 2026 | Optional `document.guides` and `document.grid`, and their view state in `state.view`. Version 5 files need no change. |
 
 Rules for changing the format:
 

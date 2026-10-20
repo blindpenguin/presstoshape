@@ -5,7 +5,7 @@ import os
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from presstoshape.editing import containers, queries
@@ -91,6 +91,8 @@ def new_document(session: Session, setup: DocumentSetup = DEFAULT_SETUP) -> None
 def apply_saved_state(state: AppState, saved: SavedState) -> None:
     """Working state from a .p2s file; ids that no longer match the document are dropped, not trusted."""
     state.tool_styles.update(saved.tool_styles)
+    shown = {key: getattr(saved, key) for key in ("show_grid", "show_guides", "lock_guides")}
+    state.view = replace(state.view, **{key: value for key, value in shown.items() if value is not None})
     if saved.font_size is not None:
         state.font_size = saved.font_size
     if saved.new_part_mode is not None:
@@ -147,6 +149,9 @@ def saved_state(state: AppState, view_center: tuple[float, float] | None) -> Sav
         selection=frozenset(state.selection),
         selected_layer=state.selected_layer_index,
         edit_path=containers.valid_edit_path(state),
+        show_grid=state.view.show_grid,
+        show_guides=state.view.show_guides,
+        lock_guides=state.view.lock_guides,
     )
 
 

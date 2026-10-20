@@ -7,6 +7,7 @@ formats/svg_reader.py and is re-exported here, so callers import both directions
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 
+from presstoshape.formats.svg_namedview import namedview_element
 from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, LABEL, MODE, q
 from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
@@ -70,6 +71,8 @@ def path_d(segments: tuple[Segment, ...]) -> str:
 
 def write_svg(doc: Document) -> str:
     root = ET.Element(q("svg"), page_attributes(doc))
+    if doc.guides or doc.grid is not None:
+        root.append(namedview_element(doc))
     for i, layer in enumerate(doc.layers, 1):
         attrs = {"id": f"layer{i}", GROUPMODE: "layer", LABEL: layer.name}
         if not layer.visible:

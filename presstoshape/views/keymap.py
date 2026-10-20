@@ -40,6 +40,7 @@ WINDOW_COMMANDS = {
     "edit.paste_in_place": N_("Paste &in Place"),
     "view.zoom_fit": N_("Zoom to &Fit"),
     "edit.settings": N_("&Settings…"),
+    "view.grid_settings": N_("Grid Se&ttings…"),
     "help.about": N_("&About PressToShape"),
 }
 
@@ -74,6 +75,21 @@ KEYMAP: dict[str, Binding] = {
     "view.zoom_out": Binding("-", icons.ZOOM_OUT),
     "view.zoom_fit": Binding("5", icons.ZOOM_FIT),
     "view.zoom_actual": Binding("1"),
+    # Inkscape's keys for the frequent precision toggles; Illustrator's Ctrl+R for rulers.
+    "view.show_rulers": Binding("Ctrl+R"),
+    "view.show_grid": Binding("#"),
+    "view.show_guides": Binding("|"),
+    "view.snapping": Binding("%", icons.SNAPPING),
+    "object.align_left": Binding(icon=icons.OBJECT_ALIGN_LEFT),
+    "object.align_hcenter": Binding(icon=icons.OBJECT_ALIGN_HCENTER),
+    "object.align_right": Binding(icon=icons.OBJECT_ALIGN_RIGHT),
+    "object.align_top": Binding(icon=icons.OBJECT_ALIGN_TOP),
+    "object.align_vcenter": Binding(icon=icons.OBJECT_ALIGN_VCENTER),
+    "object.align_bottom": Binding(icon=icons.OBJECT_ALIGN_BOTTOM),
+    "object.distribute_x": Binding(icon=icons.DISTRIBUTE_X),
+    "object.distribute_y": Binding(icon=icons.DISTRIBUTE_Y),
+    "object.distribute_centers_x": Binding(icon=icons.DISTRIBUTE_CENTERS_X),
+    "object.distribute_centers_y": Binding(icon=icons.DISTRIBUTE_CENTERS_Y),
     "path.make_composite": Binding("Ctrl+Alt+C"),
     "object.group": Binding("Ctrl+G"),
     "object.ungroup": Binding("Ctrl+Shift+G"),
@@ -103,6 +119,21 @@ COMPOSITE_IDS: list[str | None | tuple[str, list[str]]] = [
     "path.flatten_composite",
 ]
 ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lower_to_bottom"]
+ALIGN_IDS = [
+    "object.align_left",
+    "object.align_hcenter",
+    "object.align_right",
+    "object.align_top",
+    "object.align_vcenter",
+    "object.align_bottom",
+]
+DISTRIBUTE_IDS = [
+    "object.distribute_x",
+    "object.distribute_y",
+    "object.distribute_centers_x",
+    "object.distribute_centers_y",
+]
+SNAP_TARGET_IDS = ["view.snap_grid", "view.snap_guides", "view.snap_artboard", "view.snap_objects", "view.snap_nodes"]
 
 # The File menu's recent files submenu; menu_bar_view creates it here and MainWindow fills it when it opens.
 RECENT_MENU = "file.open_recent"
@@ -126,9 +157,22 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
     (N_("&Path"), [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
     (
         N_("&Object"),
-        ["object.group", "object.ungroup", None, "object.flip_horizontal", "object.flip_vertical", None, *ARRANGE_IDS],
-    ),
-    (N_("&View"), ["view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual"]),
+        [
+            "object.group", "object.ungroup", None,
+            "object.flip_horizontal", "object.flip_vertical", None,
+            (N_("&Align"), ALIGN_IDS), (N_("&Distribute"), DISTRIBUTE_IDS), None,
+            *ARRANGE_IDS,
+        ],
+    ),  # fmt: skip
+    (
+        N_("&View"),
+        [
+            "view.zoom_in", "view.zoom_out", "view.zoom_fit", "view.zoom_actual", None,
+            "view.show_rulers", "view.show_grid", "view.show_guides", "view.lock_guides", "view.clear_guides",
+            "view.grid_settings", None,
+            "view.snapping", (N_("S&nap To"), SNAP_TARGET_IDS),
+        ],
+    ),  # fmt: skip
     (N_("&Tools"), TOOL_IDS),
     (N_("&Help"), ["help.about"]),
 ]
@@ -138,6 +182,7 @@ ZOOM_LABEL = "view.zoom_label"
 MAIN_TOOLBAR: list[str | None] = [
     "file.new", "file.open", "file.save", None,
     "edit.undo", "edit.redo", None,
-    "view.zoom_out", ZOOM_LABEL, "view.zoom_in", "view.zoom_fit",
+    "view.zoom_out", ZOOM_LABEL, "view.zoom_in", "view.zoom_fit", None,
+    "view.snapping",
 ]  # fmt: skip
 TOOL_STRIP: list[str | None] = [*TOOL_IDS, None, *BOOLEAN_IDS, "edit.delete"]

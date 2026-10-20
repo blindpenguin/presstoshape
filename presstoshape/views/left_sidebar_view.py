@@ -11,6 +11,7 @@ class ToolPalette(QToolBar):
 
     def __init__(self, actions: AppActions) -> None:
         super().__init__(_("Tools"))
+        self.setObjectName("tools_toolbar")
         self.setMovable(False)
         self.setOrientation(Qt.Orientation.Vertical)
         self.setIconSize(QSize(24, 24))

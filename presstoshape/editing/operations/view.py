@@ -83,3 +83,82 @@ def set_pencil_smoothing(session: Session, value: int) -> None:
 def set_font_size(session: Session, size: float) -> None:
     session.state.font_size = max(1.0, size)
     session.notify()
+
+
+# --- rulers, grid, guides and snapping: view state, not undo steps ---------------------------------------
+
+
+def _toggle_view(session: Session, field: str, on: str, off: str) -> None:
+    state = session.state
+    value = not getattr(state.view, field)
+    state.view = replace(state.view, **{field: value})
+    state.status_message = on if value else off
+    session.notify()
+
+
+@operation("view.show_rulers", N_("Show &Rulers"), checked=lambda session: session.state.view.show_rulers)
+def toggle_rulers(session: Session) -> None:
+    _toggle_view(session, "show_rulers", _("Rulers shown"), _("Rulers hidden"))
+
+
+@operation("view.show_grid", N_("Show &Grid"), checked=lambda session: session.state.view.show_grid)
+def toggle_grid(session: Session) -> None:
+    _toggle_view(session, "show_grid", _("Grid shown"), _("Grid hidden"))
+
+
+@operation("view.show_guides", N_("Show G&uides"), checked=lambda session: session.state.view.show_guides)
+def toggle_guides(session: Session) -> None:
+    _toggle_view(session, "show_guides", _("Guides shown"), _("Guides hidden"))
+
+
+@operation("view.lock_guides", N_("&Lock Guides"), checked=lambda session: session.state.view.lock_guides)
+def toggle_lock_guides(session: Session) -> None:
+    _toggle_view(session, "lock_guides", _("Guides locked"), _("Guides unlocked"))
+
+
+@operation("view.snapping", N_("&Snapping"), checked=lambda session: session.state.snapping.enabled)
+def toggle_snapping(session: Session) -> None:
+    state = session.state
+    state.snapping = replace(state.snapping, enabled=not state.snapping.enabled)
+    state.status_message = _("Snapping on") if state.snapping.enabled else _("Snapping off")
+    session.notify()
+
+
+SNAP_TARGETS = ("grid", "guides", "artboard", "objects", "nodes")
+# Target -> menu label in View → Snap To.
+SNAP_TARGET_LABELS = {
+    "grid": N_("&Grid"),
+    "guides": N_("G&uides"),
+    "artboard": N_("&Artboard"),
+    "objects": N_("&Objects"),
+    "nodes": N_("&Nodes"),
+}
+
+
+def set_snap_target(session: Session, target: str, on: bool) -> None:
+    if target not in SNAP_TARGETS:
+        raise ValueError(f"unknown snap target {target!r}")
+    state = session.state
+    state.snapping = replace(state.snapping, **{target: on})
+    session.notify()
+
+
+def set_snap_distance(session: Session, distance_px: float) -> None:
+    session.state.snapping = replace(session.state.snapping, distance_px=min(30.0, max(2.0, float(distance_px))))
+    session.notify()
+
+
+def _snap_target_command(target: str):
+    def run(session: Session) -> None:
+        set_snap_target(session, target, not getattr(session.state.snapping, target))
+
+    return run
+
+
+for _target in SNAP_TARGETS:
+    register(
+        f"view.snap_{_target}",
+        SNAP_TARGET_LABELS[_target],
+        _snap_target_command(_target),
+        checked=lambda session, target=_target: getattr(session.state.snapping, target),
+    )

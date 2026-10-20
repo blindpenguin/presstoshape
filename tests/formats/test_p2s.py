@@ -19,6 +19,7 @@ from presstoshape.formats.p2s import (
 )
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION
 from presstoshape.models.app_state import Document, Layer, Tool
+from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     Close,
     CompositeShape,
@@ -374,3 +375,48 @@ def test_damaged_groups_name_the_broken_place(change, where):
     with pytest.raises(P2sError) as error:
         decode_document(encoded)
     assert where in str(error.value)
+
+
+def test_guides_grid_and_their_view_state_round_trip():
+    document = Document(
+        guides=(Guide(5, "horizontal", 12.5), Guide(6, "vertical", -3.0)), grid=GridSettings(7.5, 3), next_id=7
+    )
+    assert _round_trip(document) == document
+    state = SavedState(show_grid=True, show_guides=False, lock_guides=True)
+    assert read_p2s(write_p2s(document, state, None, "x")) == (document, state)
+    assert "guides" not in encode_document(Document()) and "grid" not in encode_document(Document())
+
+
+@pytest.mark.parametrize(
+    "change, where",
+    [
+        (lambda doc: doc["guides"][0].update(orientation="diagonal"), "guides[0].orientation"),
+        (lambda doc: doc["guides"][0].update(position="left"), "guides[0].position"),
+        (lambda doc: doc["guides"][0].update(id=5), "id twice"),
+        (lambda doc: doc["grid"].update(spacing=0), "grid.spacing"),
+        (lambda doc: doc["grid"].update(major_every=0), "grid.major_every"),
+    ],
+)
+def test_damaged_guides_and_grids_name_the_broken_place(change, where):
+    document = Document(
+        layers=[Layer("L", True, [RectShape(5, 0, 0, 1, 1, RED)])],
+        guides=(Guide(6, "horizontal", 1.0),),
+        grid=GridSettings(5.0, 2),
+        next_id=7,
+    )
+    encoded = copy.deepcopy(encode_document(document))
+    change(encoded)
+    with pytest.raises(P2sError) as error:
+        decode_document(encoded)
+    assert where in str(error.value)
+
+
+def test_saved_view_state_is_applied_on_open(tmp_path):
+    from presstoshape.editing.operations import documents
+    from presstoshape.editing.session import Session
+
+    target = tmp_path / "view.p2s"
+    target.write_bytes(write_p2s(Document(), SavedState(show_grid=True, lock_guides=True), None, "x"))
+    session = Session()
+    documents.open_file(session, str(target))
+    assert session.state.view.show_grid and session.state.view.lock_guides and session.state.view.show_guides

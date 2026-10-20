@@ -23,6 +23,8 @@ class Operation:
     label: str
     run: Callable[[Session], None]
     can_run: Check = _always
+    # Toggles (Show Grid, Snapping): whether the menu entry shows a check mark. None for plain commands.
+    checked: Check | None = None
 
     def invoke(self, session: Session) -> None:
         if self.can_run(session):
@@ -32,19 +34,21 @@ class Operation:
 _OPERATIONS: dict[str, Operation] = {}
 
 
-def register(id: str, label: str, run: Callable[[Session], None], can_run: Check | None = None) -> Operation:
+def register(
+    id: str, label: str, run: Callable[[Session], None], can_run: Check | None = None, checked: Check | None = None
+) -> Operation:
     if id in _OPERATIONS:
         raise ValueError(f"operation {id!r} is already registered")
-    entry = Operation(id, label, run, can_run or _always)
+    entry = Operation(id, label, run, can_run or _always, checked)
     _OPERATIONS[id] = entry
     return entry
 
 
-def operation(id: str, label: str, can_run: Check | None = None):
+def operation(id: str, label: str, can_run: Check | None = None, checked: Check | None = None):
     """Registers `fn(session)` and returns it unchanged, so it stays a plain function to call."""
 
     def decorate(fn: Callable[[Session], None]) -> Callable[[Session], None]:
-        register(id, label, fn, can_run)
+        register(id, label, fn, can_run, checked)
         return fn
 
     return decorate

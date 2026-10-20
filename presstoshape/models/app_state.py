@@ -3,6 +3,7 @@ from enum import Enum, auto
 from typing import Literal
 
 from presstoshape.i18n import _
+from presstoshape.models.layout import AlignReference, GridSettings, Guide, SnapSettings, ViewOptions
 from presstoshape.models.shapes import PartMode, Shape, Style
 
 
@@ -42,6 +43,9 @@ class Document:
     # Shown/entered unit and resolution; width, height and all geometry stay in document pixels.
     unit: Unit = "px"
     dpi: float = 96.0
+    guides: tuple[Guide, ...] = ()
+    # None: the default grid for the unit (geometry.units.grid_of).
+    grid: GridSettings | None = None
 
 
 @dataclass
@@ -102,3 +106,6 @@ class AppState:
     # What the last opened file lost on import (SVG features PressToShape can't keep); the window shows and clears
     # them. Not part of the document or undo.
     import_notes: list[str] = field(default_factory=list)
+    view: ViewOptions = ViewOptions()
+    snapping: SnapSettings = SnapSettings()
+    align_reference: AlignReference = "selection"

@@ -10,6 +10,8 @@ from presstoshape.views.keymap import MAIN_TOOLBAR, ZOOM_LABEL
 class MainToolbar(QToolBar):
     def __init__(self, actions: AppActions) -> None:
         super().__init__(_("Main toolbar"))
+        # Named, so the window layout can be saved and restored.
+        self.setObjectName("main_toolbar")
         self.setMovable(False)
         self.setIconSize(QSize(22, 22))
         self._zoom = QLabel()

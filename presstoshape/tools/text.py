@@ -9,6 +9,7 @@ class TextTool(BaseTool):
     cursor = CursorType.IBEAM
 
     def press(self, point: Point, mods: Mods) -> None:
+        position = self._context.snapper().point(point, ignore=mods.ctrl)
         text = self._context.ask_text()
         if text is not None:
-            shapes.add_text(self._context.session, point, text)
+            shapes.add_text(self._context.session, position, text)

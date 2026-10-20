@@ -49,3 +49,32 @@ def test_tool_styles_are_brought_into_range():
     view.set_tool_style(session, Tool.RECTANGLE, opacity=-1, dashes=(1, 2, 3), stroke_width=-2)
     tool_style = session.state.tool_styles[Tool.RECTANGLE]
     assert (tool_style.opacity, tool_style.dashes, tool_style.stroke_width) == (0, (1, 2, 3, 1, 2, 3), 0)
+
+
+def test_view_toggles_are_not_undo_steps_and_report_their_state():
+    from presstoshape.editing.registry import find
+
+    session = Session()
+    for command_id, read in (
+        ("view.show_rulers", lambda: session.state.view.show_rulers),
+        ("view.show_grid", lambda: session.state.view.show_grid),
+        ("view.show_guides", lambda: session.state.view.show_guides),
+        ("view.lock_guides", lambda: session.state.view.lock_guides),
+        ("view.snapping", lambda: session.state.snapping.enabled),
+        ("view.snap_grid", lambda: session.state.snapping.grid),
+        ("view.snap_nodes", lambda: session.state.snapping.nodes),
+    ):
+        command = find(command_id)
+        before = read()
+        assert command.checked(session) == before
+        command.invoke(session)
+        assert read() != before and command.checked(session) == read()
+    assert not session.can_undo
+
+
+def test_snap_distance_is_clamped():
+    session = Session()
+    view.set_snap_distance(session, 100)
+    assert session.state.snapping.distance_px == 30
+    view.set_snap_distance(session, 0)
+    assert session.state.snapping.distance_px == 2

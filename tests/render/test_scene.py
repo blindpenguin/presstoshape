@@ -2,7 +2,9 @@ import skia
 
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.segments import rect_segments
+from presstoshape.geometry.snapping import SnapHit
 from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
@@ -15,6 +17,7 @@ from presstoshape.models.shapes import (
     TextShape,
 )
 from presstoshape.render.export import render_png
+from presstoshape.render.guides import draw_grid, draw_guides
 from presstoshape.render.handles import Frame
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache
@@ -367,3 +370,54 @@ def test_recorded_edit_mode_drawing_matches_the_plain_one():
     for _frame in range(2):
         recorded = _edit_surface(chain, overlay, drawing).makeImageSnapshot().toarray()
         assert (recorded == plain).all()
+
+
+def _surface_with(draw):
+    surface = skia.Surface(100, 100)
+    canvas = surface.getCanvas()
+    canvas.clear(skia.ColorTRANSPARENT)
+    draw(canvas)
+    return surface
+
+
+def test_guides_are_one_pixel_lines_across_the_view():
+    guides = (Guide(1, "vertical", 30.0), Guide(2, "horizontal", 60.0))
+    surface = _surface_with(lambda canvas: draw_guides(canvas, guides, (0, 0, 100, 100), 0xFF00FFFF))
+    assert _pixel(surface, 30, 5)[3] == 255 and _pixel(surface, 95, 60)[3] == 255
+    assert _pixel(surface, 32, 5) == TRANSPARENT
+
+
+def test_a_dragged_guide_is_drawn_at_its_preview_position():
+    guides = (Guide(1, "vertical", 30.0),)
+    preview = Guide(1, "vertical", 70.0)
+    surface = _surface_with(lambda canvas: draw_guides(canvas, guides, (0, 0, 100, 100), 0xFF00FFFF, preview))
+    assert _pixel(surface, 70, 5)[3] == 255 and _pixel(surface, 30, 5) == TRANSPARENT
+
+
+def test_grid_draws_minor_and_major_lines_and_hides_dense_ones():
+    grid = GridSettings(10.0, 5)
+    surface = _surface_with(lambda canvas: draw_grid(canvas, grid, (0, 0, 100, 100), 1.0, 0xFF000000))
+    minor, major = _pixel(surface, 10, 5)[3], _pixel(surface, 50, 5)[3]
+    assert 0 < minor < major
+    assert _pixel(surface, 15, 5) == TRANSPARENT
+
+    def zoomed_out(canvas):
+        canvas.scale(0.4, 0.4)
+        draw_grid(canvas, grid, (0, 0, 250, 250), 0.4, 0xFF000000)
+
+    surface = _surface_with(zoomed_out)
+    # Minor lines would be 4 px apart: only the majors (every 20 px on screen) stay.
+    assert _pixel(surface, 4, 5) == TRANSPARENT and _pixel(surface, 20, 5)[3] > 0
+
+
+def test_snap_feedback_draws_a_line_and_a_label():
+    hit = SnapHit("x", 50.0, "centre", ((50.0, 10.0), (50.0, 90.0)), (50.0, 10.0))
+    overlay = Overlay(snap=(hit,))
+    surface = _surface_with(lambda canvas: draw_overlays(canvas, [], overlay, PathCache(), 1.0, COLORS))
+    assert any(_pixel(surface, 50, y)[3] > 0 for y in range(20, 80))
+    assert any(_pixel(surface, x, 0)[3] > 0 for x in range(56, 80))
+
+
+def test_png_export_has_no_guides_or_grid():
+    doc = Document(100, 100, [Layer("L", True, [])], guides=(Guide(1, "vertical", 50.0),))
+    assert render_png(doc, 1.0) == render_png(Document(100, 100, [Layer("L", True, [])]), 1.0)

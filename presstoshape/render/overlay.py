@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 
 from presstoshape.geometry.boxes import Rect
+from presstoshape.geometry.snapping import SnapHit
+from presstoshape.models.layout import Guide
 from presstoshape.models.shapes import IDENTITY_TRANSFORM, Segment, Shape, Style, Transform
 from presstoshape.render.handles import Frame
 
@@ -16,6 +18,9 @@ class CanvasColors:
     artboard_border: str
     preview: str
     selection: str
+    guide: str = "#06b6d4"
+    grid: str = "#64748b"
+    snap: str = "#f97316"
 
 
 @dataclass(frozen=True)
@@ -43,3 +48,7 @@ class Overlay:
     # Selection frame with handles, already following the live gesture.
     frame: Frame | None = None
     nodes: tuple[NodeOverlay, ...] = ()
+    # What the running gesture snapped to, for feedback lines and labels.
+    snap: tuple[SnapHit, ...] = ()
+    # A guide being dragged: drawn here instead of where the document has it (same id), or a new one (id -1).
+    guide_preview: Guide | None = None

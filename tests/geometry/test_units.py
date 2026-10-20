@@ -1,6 +1,8 @@
 import pytest
 
-from presstoshape.geometry.units import UNITS, convert, from_px, nudge_px, to_px
+from presstoshape.geometry.units import UNITS, convert, default_grid, from_px, grid_of, nudge_px, to_px
+from presstoshape.models.app_state import Document
+from presstoshape.models.layout import GridSettings
 
 
 @pytest.mark.parametrize("dpi, width, height", [(72, 595.28, 841.89), (96, 793.70, 1122.52), (300, 2480.31, 3507.87)])
@@ -30,3 +32,17 @@ def test_nudge_steps_are_round_in_each_unit():
     assert nudge_px("px", 300) == 1
     assert nudge_px("mm", 96) == pytest.approx(to_px(0.5, "mm", 96))
     assert nudge_px("pt", 72) == pytest.approx(1)
+
+
+def test_default_grids_are_round_in_each_unit():
+    assert default_grid("px", 300) == GridSettings(10, 10)
+    mm = default_grid("mm", 96)
+    assert (from_px(mm.spacing, "mm", 96), mm.major_every) == (pytest.approx(5), 2)
+    assert from_px(default_grid("in", 72).spacing, "in", 72) == pytest.approx(0.25)
+
+
+def test_grid_of_prefers_the_documents_own_grid():
+    document = Document(unit="mm", dpi=96)
+    assert grid_of(document) == default_grid("mm", 96)
+    document.grid = GridSettings(3.0, 7)
+    assert grid_of(document) == GridSettings(3.0, 7)

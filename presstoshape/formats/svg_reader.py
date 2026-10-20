@@ -15,6 +15,7 @@ import xml.etree.ElementTree as ET
 import svgelements as se
 
 from presstoshape.formats import css
+from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_names import (
     COMPOSITE,
     GROUPMODE,
@@ -26,7 +27,7 @@ from presstoshape.formats.svg_names import (
     q,
 )
 from presstoshape.formats.svg_notes import Note, NoteCollector
-from presstoshape.formats.svg_page import read_page
+from presstoshape.formats.svg_page import Page, read_page
 from presstoshape.formats.svg_values import (
     NUMBER,
     collapse_whitespace,
@@ -129,7 +130,7 @@ def read_svg_with_notes(text: str) -> tuple[Document, list[str]]:
     root = _parse_root(text)
     page = read_page(root)
     base_matrix = compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
-    document, notes = _read_layers(root, base_matrix)
+    document, notes = _read_layers(root, base_matrix, page)
     document.width, document.height = page.width, page.height
     document.unit, document.dpi = page.unit, page.dpi
     return document, notes
@@ -152,7 +153,8 @@ def _parse_root(text: str) -> ET.Element:
     return root
 
 
-def _read_layers(root: ET.Element, base_matrix: Affine) -> tuple[Document, list[str]]:
+def _read_layers(root: ET.Element, base_matrix: Affine, page: Page | None = None) -> tuple[Document, list[str]]:
+    """Layers and shapes; with `page` (opening a file, not pasting) also guides and the grid."""
     reader = _Reader(root)
     base_style = reader.style(_DEFAULT_STYLE, root)
     base_opacity = parse_fraction(base_style.get("opacity"))
@@ -180,7 +182,8 @@ def _read_layers(root: ET.Element, base_matrix: Affine) -> tuple[Document, list[
                 layers.append(loose)
             loose.shapes.extend(shapes)
 
-    document = Document(layers=layers or [Layer(layer_name(1))], next_id=reader.next_id)
+    guides, grid = read_namedview(root, page, reader.new_id, reader.notes) if page is not None else ((), None)
+    document = Document(layers=layers or [Layer(layer_name(1))], next_id=reader.next_id, guides=guides, grid=grid)
     return document, reader.notes.messages()
 
 
@@ -207,7 +210,7 @@ class _Reader:
         self.sheet = css.parse("\n".join(sheets))
         self.notes.add(Note.CSS_SKIPPED, self.sheet.skipped)
 
-    def _new_id(self) -> int:
+    def new_id(self) -> int:
         self.next_id += 1
         return self.next_id - 1
 
@@ -317,7 +320,7 @@ class _Reader:
             self.notes.add(Note.UNKNOWN_ELEMENT)
             return
         # Taken before the children's, so ids follow document order like PressToShape's own files.
-        group_id = self._new_id()
+        group_id = self.new_id()
         children: list[Shape] = []
         self._depth += 1
         try:
@@ -394,7 +397,7 @@ class _Reader:
             if not parts:
                 raise ValueError("composite without parts")
             paint = plain.style if plain is not None else Style()
-            composite = CompositeShape(self._new_id(), tuple(parts), tuple(modes), paint)
+            composite = CompositeShape(self.new_id(), tuple(parts), tuple(modes), paint)
         except (ValueError, TypeError, IndexError):
             self.notes.add(Note.COMPOSITE_UNREADABLE)
             return plain
@@ -461,8 +464,8 @@ class _Reader:
                 return None
             rx, ry = corner_radii(el.get("rx"), el.get("ry"))
             if translate_only:
-                return RectShape(self._new_id(), x + tx, y + ty, w, h, paint, rx=rx, ry=ry)
-            return self._transformed(RectShape(self._new_id(), x, y, w, h, paint, rx=rx, ry=ry), m)
+                return RectShape(self.new_id(), x + tx, y + ty, w, h, paint, rx=rx, ry=ry)
+            return self._transformed(RectShape(self.new_id(), x, y, w, h, paint, rx=rx, ry=ry), m)
 
         if tag in ("circle", "ellipse"):
             cx, cy = parse_length(el.get("cx")), parse_length(el.get("cy"))
@@ -473,8 +476,8 @@ class _Reader:
             if rx <= 0 or ry <= 0:
                 return None
             if translate_only:
-                return EllipseShape(self._new_id(), cx + tx, cy + ty, rx, ry, paint)
-            return self._transformed(EllipseShape(self._new_id(), cx, cy, rx, ry, paint), m)
+                return EllipseShape(self.new_id(), cx + tx, cy + ty, rx, ry, paint)
+            return self._transformed(EllipseShape(self.new_id(), cx, cy, rx, ry, paint), m)
 
         if tag == "line":
             x1, y1, x2, y2 = (parse_length(el.get(k)) for k in ("x1", "y1", "x2", "y2"))
@@ -510,7 +513,7 @@ class _Reader:
             size = parse_length(run.style.get("font-size"), 16.0)
             anchor = one_of(run.style.get("text-anchor"), ("start", "middle", "end"), "start")
             paint = self._paint(run.style, m, opacity)
-            text = TextShape(self._new_id(), run.x, run.y, content, size, paint, anchor=anchor)
+            text = TextShape(self.new_id(), run.x, run.y, content, size, paint, anchor=anchor)
             # Rotation and uniform scale are kept; skew can't be represented on text and is dropped.
             shape = self._transformed(text, m)
             if shape is not None:
@@ -544,7 +547,7 @@ class _Reader:
     def _path(self, segments: tuple[Segment, ...], m: Affine, paint: Style) -> PathShape:
         if m != IDENTITY:
             segments = transform_segments(segments, lambda x, y: apply(m, x, y))
-        return PathShape(self._new_id(), segments, paint)
+        return PathShape(self.new_id(), segments, paint)
 
 
 class _TextRun:

@@ -4,21 +4,27 @@ import math
 from enum import Enum, auto
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import clipboard, edit_mode, selection, transform
+from presstoshape.editing.operations import clipboard, edit_mode, guides, selection, transform
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
+from presstoshape.geometry.align import union
 from presstoshape.geometry.boxes import Point, Rect, rect_from_points
 from presstoshape.i18n import _
+from presstoshape.models.layout import Guide
 from presstoshape.models.shapes import CompositeShape, GroupShape, Shape
 from presstoshape.render import hit_test
+from presstoshape.render.guides import guide_at
 from presstoshape.render.handles import Frame, Handle, handle_at, handle_direction, selection_frame
 from presstoshape.render.overlay import Overlay
-from presstoshape.tools.base import BaseTool, CursorType, Mods, ToolContext, resize_cursor_type
+from presstoshape.tools.base import HIT_TOLERANCE_PX, BaseTool, CursorType, Mods, ToolContext, resize_cursor_type
+from presstoshape.tools.snapper import Snapper, shape_points
 
 # Above this many shapes a scale preview replays the recorded shapes under the matrix (strokes scale too until
 # release) instead of rebuilding each shape per mouse move.
 _EXACT_PREVIEW_LIMIT = 200
 _ROTATE_SNAP_DEG = 15.0
+# Moving more shapes than this snaps by their bounding box only, not their nodes too.
+_SNAP_POINTS_LIMIT = 200
 
 
 class _Mode(Enum):
@@ -26,6 +32,7 @@ class _Mode(Enum):
     MOVE = auto()
     SCALE = auto()
     ROTATE = auto()
+    GUIDE = auto()
 
 
 class SelectTool(BaseTool):
@@ -46,6 +53,11 @@ class SelectTool(BaseTool):
         self.hint: str | None = None
         self._frame_key: tuple[Shape, ...] | None = None
         self._frame: Frame | None = None
+        self._snapper = Snapper.off()
+        # Moving: the moving shapes' box and nodes, as they were when the drag started.
+        self._move_box: Rect = (0.0, 0.0, 0.0, 0.0)
+        self._move_points: list[Point] = []
+        self._guide: Guide | None = None
 
     @property
     def active(self) -> bool:
@@ -65,16 +77,28 @@ class SelectTool(BaseTool):
         selected_ids = frozenset(state.selection)
         if self._mode is _Mode.BAND:
             return Overlay(frozenset(self._band_base | self._band_hits()), rubber_band=self._band())
+        if self._mode is _Mode.GUIDE:
+            return Overlay(selected_ids, frame=self.frame(), snap=self._snapper.hits, guide_preview=self._guide)
         frame = self.frame()
         if self._mode is None or frame is None:
             return Overlay(selected_ids, frame=frame)
+        snap = self._snapper.hits
         if self._duplicating:
             return Overlay(
-                selected_ids, matrix=self._matrix, copies=tuple(self._moving), frame=frame.transformed(self._matrix)
+                selected_ids,
+                matrix=self._matrix,
+                copies=tuple(self._moving),
+                frame=frame.transformed(self._matrix),
+                snap=snap,
             )
         moving = frozenset(shape.id for shape in self._moving)
         return Overlay(
-            selected_ids, moving=moving, matrix=self._matrix, live=self._live, frame=frame.transformed(self._matrix)
+            selected_ids,
+            moving=moving,
+            matrix=self._matrix,
+            live=self._live,
+            frame=frame.transformed(self._matrix),
+            snap=snap,
         )
 
     # --- events ---------------------------------------------------------------
@@ -89,8 +113,16 @@ class SelectTool(BaseTool):
             self._mode = _Mode.ROTATE if handle.is_rotate else _Mode.SCALE
             self._handle, self._frame0 = handle, frame
             self._moving = queries.selected_shapes(self._context.state)
+            if self._mode is _Mode.SCALE:
+                self._snapper = self._context.snapper(exclude=(shape.id for shape in self._moving))
             return
         hit = self._context.shape_at(point)
+        guide = self._guide_at(point) if hit is None else None
+        if guide is not None:
+            self._mode, self._guide = _Mode.GUIDE, guide
+            self._cursor = self._guide_cursor(guide)
+            self._snapper = self._context.snapper(guides=False)
+            return
         if hit is None:
             self._mode = _Mode.BAND
             self._band_base = set(state.selection) if mods.ctrl else set()
@@ -104,6 +136,7 @@ class SelectTool(BaseTool):
         self._duplicating = mods.alt
         self._cursor = CursorType.DUPLICATE if mods.alt else CursorType.MOVE
         self._moving = queries.selected_shapes(self._context.state)
+        self._start_move_snapping()
 
     def move(self, point: Point, mods: Mods) -> None:
         if self._mode is None:
@@ -111,10 +144,16 @@ class SelectTool(BaseTool):
         self._end = point
         match self._mode:
             case _Mode.MOVE:
-                self._matrix = affine.translation(point[0] - self._start[0], point[1] - self._start[1])
+                offset = (point[0] - self._start[0], point[1] - self._start[1])
+                dx, dy = self._snapper.offset(self._move_box, offset, self._move_points, ignore=mods.ctrl)
+                self._matrix = affine.translation(dx, dy)
             case _Mode.SCALE:
-                self._matrix = self._scale_matrix(point, mods)
+                self._matrix = self._scale_matrix(self._snapper.point(point, ignore=mods.ctrl), mods)
                 self._live = self._exact_preview()
+            case _Mode.GUIDE if self._guide is not None:
+                horizontal = self._guide.orientation == "horizontal"
+                position = self._snapper.axis(point[1] if horizontal else point[0], horizontal, ignore=mods.ctrl)
+                self._guide = Guide(self._guide.id, self._guide.orientation, position)
             case _Mode.ROTATE:
                 self._matrix = self._rotate_matrix(point, mods)
         self._context.repaint()
@@ -123,7 +162,7 @@ class SelectTool(BaseTool):
         if self._mode is None:
             return
         self.move(point, mods)
-        mode, matrix, duplicating = self._mode, self._matrix, self._duplicating
+        mode, matrix, duplicating, guide = self._mode, self._matrix, self._duplicating, self._guide
         chosen = self._band_base | self._band_hits() if mode is _Mode.BAND else set()
         self.cancel()
         session = self._context.session
@@ -138,6 +177,11 @@ class SelectTool(BaseTool):
                     selection.move_selection(session, matrix[4], matrix[5])
             case _Mode.SCALE | _Mode.ROTATE:
                 transform.transform_selection(session, matrix)
+            case _Mode.GUIDE if guide is not None:
+                if self._context.pointer_off_canvas:
+                    guides.delete_guide(session, guide.id)
+                else:
+                    guides.move_guide(session, guide.id, guide.position)
         self._context.repaint()
 
     def cancel(self) -> None:
@@ -148,6 +192,9 @@ class SelectTool(BaseTool):
         self._handle = self._frame0 = None
         self._matrix = affine.IDENTITY
         self._live = ()
+        self._snapper = Snapper.off()
+        self._move_points = []
+        self._guide = None
         self.hint = None
 
     def double_click(self, point: Point, mods: Mods) -> None:
@@ -155,7 +202,11 @@ class SelectTool(BaseTool):
         state = self._context.state
         hit = self._context.shape_at(point)
         shape = queries.find_shape(state, hit) if hit is not None else None
-        if isinstance(shape, (CompositeShape, GroupShape)):
+        guide = self._guide_at(point) if hit is None else None
+        if guide is not None:
+            self.cancel()
+            self._context.edit_guide(guide.id)
+        elif isinstance(shape, (CompositeShape, GroupShape)):
             self.cancel()
             edit_mode.enter(self._context.session, shape.id)
         elif hit is None and containers.editing(state):
@@ -180,7 +231,33 @@ class SelectTool(BaseTool):
         handle = handle_at(frame, point, self._context.zoom) if frame is not None else None
         if handle is not None:
             return CursorType.ROTATE if handle.is_rotate else resize_cursor_type(handle_direction(frame, handle))
-        return CursorType.MOVE if self._context.shape_at(point) is not None else CursorType.ARROW
+        if self._context.shape_at(point) is not None:
+            return CursorType.MOVE
+        guide = self._guide_at(point)
+        return self._guide_cursor(guide) if guide is not None else CursorType.ARROW
+
+    # --- snapping and guides --------------------------------------------------
+
+    def _start_move_snapping(self) -> None:
+        cache = self._context.cache
+        boxes = []
+        for shape in self._moving:
+            bounds = cache.geometry_bounds(shape)
+            boxes.append((bounds.left(), bounds.top(), bounds.width(), bounds.height()))
+        self._move_box = union(boxes) if boxes else (0.0, 0.0, 0.0, 0.0)
+        snap_nodes = self._context.state.snapping.nodes and len(self._moving) <= _SNAP_POINTS_LIMIT
+        self._move_points = [point for shape in self._moving for point in shape_points(shape)] if snap_nodes else []
+        self._snapper = self._context.snapper(exclude=(shape.id for shape in self._moving))
+
+    def _guide_at(self, point: Point) -> Guide | None:
+        state = self._context.state
+        if not state.view.show_guides or state.view.lock_guides:
+            return None
+        return guide_at(state.document.guides, point, HIT_TOLERANCE_PX * self._context.pixel_size)
+
+    @staticmethod
+    def _guide_cursor(guide: Guide) -> CursorType:
+        return CursorType.GUIDE_HORIZONTAL if guide.orientation == "horizontal" else CursorType.GUIDE_VERTICAL
 
     # --- transform math -------------------------------------------------------
 

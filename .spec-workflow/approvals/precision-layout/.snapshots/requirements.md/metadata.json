@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/specs/precision-layout/requirements.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-20T17:16:15.377Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792516575355_kq9iqu4nh",
+      "approvalTitle": "Requirements: Precision & layout (align/distribute, rulers, guides, grid, snapping)"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-20T17:18:37.103Z",
+      "trigger": "revision_requested",
+      "approvalId": "approval_1792516575355_kq9iqu4nh",
+      "approvalTitle": "Requirements: Precision & layout (align/distribute, rulers, guides, grid, snapping)"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2026-10-20T17:19:45.144Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792516735547_b3f9vbsbe",
+      "approvalTitle": "Requirements (revised): Precision & layout, Align panel in the right sidebar"
+    }
+  ]
+}

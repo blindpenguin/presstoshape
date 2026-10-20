@@ -7,11 +7,13 @@ from presstoshape.formats.svg_page import PRESSTOSHAPE_NS
 SVG_NS = "http://www.w3.org/2000/svg"
 INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape"
 XLINK_NS = "http://www.w3.org/1999/xlink"
+SODIPODI_NS = "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
 ET.register_namespace("", SVG_NS)
 # Composite definitions live in PRESSTOSHAPE_NS, inside the result path's <metadata>: viewers don't render it
 # and Inkscape keeps it.
 ET.register_namespace("inkscape", INKSCAPE_NS)
 ET.register_namespace("presstoshape", PRESSTOSHAPE_NS)
+ET.register_namespace("sodipodi", SODIPODI_NS)
 COMPOSITE = f"{{{PRESSTOSHAPE_NS}}}composite"
 MODE = f"{{{PRESSTOSHAPE_NS}}}mode"
 PART_MODES = ("add", "subtract", "intersect", "exclude")

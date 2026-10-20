@@ -7,7 +7,7 @@ old payload into the next version's shape, and adds tests/formats/samples/v<old_
 from collections.abc import Callable
 from typing import Any
 
-CURRENT_VERSION = 5
+CURRENT_VERSION = 6
 
 
 def _add_unit_and_dpi(payload: dict[str, Any]) -> dict[str, Any]:
@@ -21,7 +21,7 @@ def _add_unit_and_dpi(payload: dict[str, Any]) -> dict[str, Any]:
 def _unchanged(payload: dict[str, Any]) -> dict[str, Any]:
     """Versions 3 to 5 only added things older files don't contain: 3 the optional `tools.pencil_smoothing`, 4
     optional style opacities, fill rule and stroke options, rect radii and text anchor, 5 the "group" shape
-    type."""
+    type, 6 optional guides, grid and their view state."""
     return payload
 
 
@@ -31,6 +31,7 @@ MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
     2: _unchanged,
     3: _unchanged,
     4: _unchanged,
+    5: _unchanged,
 }
 
 

@@ -1,6 +1,6 @@
 """What every tool shares: modifiers, cursor types, the tool context and BaseTool. Qt-free, so tools stay testable."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -8,11 +8,13 @@ from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import edit_mode, selection, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
-from presstoshape.geometry.boxes import Point
+from presstoshape.geometry.boxes import Point, Rect
 from presstoshape.models.app_state import AppState
+from presstoshape.models.shapes import PathShape
 from presstoshape.render import hit_test
 from presstoshape.render.overlay import Overlay
 from presstoshape.render.paths import PathCache
+from presstoshape.tools.snapper import Snapper
 
 HIT_TOLERANCE_PX = 3.0
 
@@ -40,6 +42,9 @@ class CursorType(Enum):
     NODE = auto()
     NODE_INSERT = auto()
     DUPLICATE = auto()
+    # Dragging a horizontal guide moves it up and down; a vertical one left and right.
+    GUIDE_HORIZONTAL = auto()
+    GUIDE_VERTICAL = auto()
 
 
 def resize_cursor_type(angle_deg: float) -> CursorType:
@@ -59,6 +64,12 @@ class ToolContext:
     ask_text: Callable[[], str | None] = lambda: None
     # Doc units per screen px.
     pixel_size: float = 1.0
+    # The document area the canvas shows (x, y, w, h), so snapping can ignore what's off-screen; None = all.
+    visible_rect: Rect | None = None
+    # Set by the canvas while the pointer is outside the canvas (over a ruler): a guide released there goes.
+    pointer_off_canvas: bool = False
+    # Opens the guide position dialog; a dialog, so the view provides it.
+    edit_guide: Callable[[int], None] = lambda guide_id: None
 
     @property
     def state(self) -> AppState:
@@ -67,6 +78,12 @@ class ToolContext:
     @property
     def zoom(self) -> float:
         return 1.0 / self.pixel_size
+
+    def snapper(
+        self, exclude: Iterable[int] = (), own_path: tuple[PathShape, set[int]] | None = None, guides: bool = True
+    ) -> Snapper:
+        """Snap targets for a gesture starting now."""
+        return Snapper.build(self.state, self.cache, self.pixel_size, self.visible_rect, exclude, own_path, guides)
 
     def shape_at(self, point: Point) -> int | None:
         """Top-most shape under `point`, with a few screen px of tolerance for thin strokes."""

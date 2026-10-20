@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, QSize, Qt
@@ -7,15 +8,18 @@ from PySide6.QtWidgets import QDialog, QDockWidget, QFileDialog, QMainWindow, QM
 
 from presstoshape import i18n
 from presstoshape.editing.operations import clipboard as clipboard_ops
-from presstoshape.editing.operations import documents, recovery, view
+from presstoshape.editing.operations import documents, guides, recovery, view
 from presstoshape.editing.session import Session
+from presstoshape.geometry import units
 from presstoshape.i18n import N_, _
 from presstoshape.version import app_version
 from presstoshape.views import app_settings, clipboard, menu_bar_view, window_placement
 from presstoshape.views.actions import AppActions
+from presstoshape.views.align_panel import AlignPanel
 from presstoshape.views.canvas_view import CanvasView
 from presstoshape.views.edit_bar_view import EditBar
 from presstoshape.views.export_dialog import ExportPngDialog
+from presstoshape.views.grid_dialog import GridDialog
 from presstoshape.views.import_report_dialog import ImportReportDialog
 from presstoshape.views.layers_view import LayersPanel
 from presstoshape.views.left_sidebar_view import ToolPalette
@@ -76,10 +80,21 @@ class MainWindow(QMainWindow):
 
         self._tool_options = ToolOptionsPanel(session)
         # Left dock area sits inside the left toolbar area, so this lands between tool strip and canvas.
-        self._tool_dock = self._add_dock(_("Tool"), self._tool_options, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self._tool_dock = self._add_dock(
+            "tool", _("Tool"), self._tool_options, Qt.DockWidgetArea.LeftDockWidgetArea
+        )
         self._tool_dock.setFixedWidth(_TOOL_DOCK_WIDTH)
         self._layers = LayersPanel(session)
-        self._add_dock(_("Layers"), self._layers)
+        layers_dock = self._add_dock("layers", _("Layers"), self._layers)
+        self._align = AlignPanel(session, self._actions)
+        align_dock = self._add_dock("align", _("Align"), self._align)
+        self.splitDockWidget(layers_dock, align_dock, Qt.Orientation.Vertical)
+        # Layers keep most of the height; the split the user makes is restored with the window.
+        self.resizeDocks([layers_dock, align_dock], [3, 1], Qt.Orientation.Vertical)
+        if settings is not None:
+            session.state.view = replace(session.state.view, show_rulers=app_settings.show_rulers(settings))
+            session.state.snapping = app_settings.snap_settings(settings)
+        self._saved_view = (session.state.view.show_rulers, session.state.snapping)
 
         self._status = StatusBar()
         self.setStatusBar(self._status)
@@ -90,9 +105,11 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def _add_dock(
-        self, title: str, widget: QWidget, area: Qt.DockWidgetArea = Qt.DockWidgetArea.RightDockWidgetArea
+        self, name: str, title: str, widget: QWidget, area: Qt.DockWidgetArea = Qt.DockWidgetArea.RightDockWidgetArea
     ) -> QDockWidget:
         dock = QDockWidget(title)
+        # Named, so the dock layout can be saved and restored.
+        dock.setObjectName(f"{name}_dock")
         dock.setWidget(widget)
         dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         dock.setMinimumWidth(_DOCK_WIDTH)
@@ -116,6 +133,7 @@ class MainWindow(QMainWindow):
             self.canvas,
             self._tool_options,
             self._layers,
+            self._align,
             self._status,
         )
         for panel in views:
@@ -123,8 +141,18 @@ class MainWindow(QMainWindow):
         for command_id in ("edit.cut", "edit.copy"):
             self._actions.set_enabled(command_id, bool(state.selection))
         self._update_paste_actions()
+        self._remember_view()
         # Screenshots and the self-test run without user settings, so there is nothing to change.
         self._actions.set_enabled("edit.settings", self._settings is not None)
+
+    def _remember_view(self) -> None:
+        """Rulers and snapping are app preferences: kept for the next start when they change."""
+        current = (self._state.view.show_rulers, self._state.snapping)
+        if self._settings is None or current == self._saved_view:
+            return
+        self._saved_view = current
+        app_settings.set_show_rulers(self._settings, current[0])
+        app_settings.set_snap_settings(self._settings, current[1])
 
     def _update_paste_actions(self) -> None:
         offered = clipboard.can_paste()
@@ -145,6 +173,7 @@ class MainWindow(QMainWindow):
             "edit.paste_in_place": self.paste_in_place,
             "edit.settings": self.open_settings,
             "view.zoom_fit": self.fit_to_window,
+            "view.grid_settings": self.open_grid_settings,
             "help.about": self.show_about,
         }
 
@@ -352,6 +381,13 @@ class MainWindow(QMainWindow):
         if self._keeper is not None:
             # The recovery interval may have changed.
             self._keeper.refresh()
+        view.set_snap_distance(self._session, app_settings.snap_settings(self._settings).distance_px)
+
+    def open_grid_settings(self) -> None:
+        document = self._state.document
+        dialog = GridDialog(units.grid_of(document), document.unit, document.dpi, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            guides.set_grid(self._session, dialog.grid.spacing, dialog.grid.major_every)
 
     def fit_to_window(self) -> None:
         self.canvas.fit_artboard()
