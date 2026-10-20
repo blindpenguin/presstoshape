@@ -1705,16 +1705,26 @@ msgid "Bevel"
 msgstr "Abgeschrägt"
 
 #: presstoshape/views/style_editor.py
-msgid "Ends"
+msgid "How open line ends look: Butt stops at the end point, Round and Square reach half the stroke width past it"
+msgstr "Wie offene Linienenden aussehen: Flach endet am Endpunkt, Rund und Quadratisch reichen eine halbe Konturstärke darüber hinaus"
+
+#: presstoshape/views/style_editor.py
+msgctxt "stroke"
+msgid "Cap"
 msgstr "Enden"
 
 #: presstoshape/views/style_editor.py
-msgid "Corners"
-msgstr "Ecken"
+msgid "How the stroke turns at sharp corners. It changes only the stroke's outer edge, so it shows on thick strokes; to round a rectangle itself, use Corner radius"
+msgstr "Wie die Kontur an spitzen Ecken abbiegt. Das ändert nur die Außenkante der Kontur und fällt daher bei dicken Konturen auf; um ein Rechteck selbst abzurunden, den Eckenradius verwenden"
 
 #: presstoshape/views/style_editor.py
-msgid "How far a mitred corner may stick out, in stroke widths, before it is bevelled"
-msgstr "Wie weit eine spitze Ecke in Konturstärken herausragen darf, bevor sie abgeschrägt wird"
+msgctxt "stroke"
+msgid "Join"
+msgstr "Verbindung"
+
+#: presstoshape/views/style_editor.py
+msgid "At very sharp angles a mitre join becomes a long spike. Past this length (in stroke widths) the corner is bevelled instead. At 4 that only happens below about 29°, so most corners don't change"
+msgstr "Bei sehr spitzen Winkeln wird eine spitze Verbindung zu einem langen Stachel. Ab dieser Länge (in Konturstärken) wird die Ecke stattdessen abgeschrägt. Bei 4 geschieht das erst unter etwa 29°, die meisten Ecken ändern sich also nicht"
 
 #: presstoshape/views/style_editor.py
 msgid "Mitre limit"

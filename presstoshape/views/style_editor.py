@@ -172,13 +172,30 @@ class StyleEditor(QWidget):
             ("bevel", pgettext("line join", "Bevel")),
         )
         self._cap = _ChoiceBox(caps, self._emitter("cap"))
-        self.form.addRow(_("Ends"), self._cap)
+        self._cap.setToolTip(
+            _(
+                "How open line ends look: Butt stops at the end point, Round and Square reach half the stroke width "
+                "past it"
+            )
+        )
+        self.form.addRow(pgettext("stroke", "Cap"), self._cap)
         self._join = _ChoiceBox(joins, self._emitter("join"))
-        self.form.addRow(_("Corners"), self._join)
+        self._join.setToolTip(
+            _(
+                "How the stroke turns at sharp corners. It changes only the stroke's outer edge, so it shows on thick "
+                "strokes; to round a rectangle itself, use Corner radius"
+            )
+        )
+        self.form.addRow(pgettext("stroke", "Join"), self._join)
         self._miter = QDoubleSpinBox()
         self._miter.setRange(1, 100)
         self._miter.setDecimals(1)
-        self._miter.setToolTip(_("How far a mitred corner may stick out, in stroke widths, before it is bevelled"))
+        self._miter.setToolTip(
+            _(
+                "At very sharp angles a mitre join becomes a long spike. Past this length (in stroke widths) the corner "
+                "is bevelled instead. At 4 that only happens below about 29°, so most corners don't change"
+            )
+        )
         self._miter.valueChanged.connect(self._emitter("miter_limit"))
         self.form.addRow(_("Mitre limit"), self._miter)
         self._dash_edit = QLineEdit()
