@@ -13,6 +13,7 @@ from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
     CompositeShape,
     EllipseShape,
+    GroupShape,
     PathShape,
     RectShape,
     Segment,
@@ -26,7 +27,8 @@ _ORTHO_EPS = 1e-9
 
 
 def outline(shape: Shape) -> tuple[Segment, ...] | None:
-    """Shape geometry as path segments with its transform applied, or None for text (no vector outline here).
+    """Shape geometry as path segments with its transform applied, or None for text and groups (no single vector
+    outline).
 
     A Composite's outline is its parts combined by their modes; degenerate parts that pathops can't handle give
     an empty outline rather than an error, so one bad part can't break drawing.
@@ -40,7 +42,7 @@ def outline(shape: Shape) -> tuple[Segment, ...] | None:
             segments = ellipse_segments(cx, cy, rx, ry)
         case PathShape(segments=segments):
             pass
-        case TextShape():
+        case TextShape() | GroupShape():
             return None
     return _apply_affine(segments, shape.transform)
 
@@ -77,6 +79,8 @@ def translate(shape: Shape, dx: float, dy: float) -> Shape:
     match shape:
         case CompositeShape():
             return replace(shape, parts=tuple(translate(part, dx, dy) for part in shape.parts))
+        case GroupShape():
+            return replace(shape, children=tuple(translate(child, dx, dy) for child in shape.children))
         case PathShape():
             return replace(shape, segments=transform_segments(shape.segments, lambda x, y: (x + dx, y + dy)))
         case RectShape() | TextShape():
@@ -117,6 +121,9 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0, scale_radi
     """
     if isinstance(shape, CompositeShape):
         return replace(shape, parts=tuple(transform_shape(part, m, min_extent, scale_radii) for part in shape.parts))
+    if isinstance(shape, GroupShape):
+        children = tuple(transform_shape(child, m, min_extent, scale_radii) for child in shape.children)
+        return replace(shape, children=children)
     total = affine.compose(m, shape.transform)
     if isinstance(shape, PathShape):
         return replace(shape, segments=_apply_affine(shape.segments, total), transform=IDENTITY_TRANSFORM)

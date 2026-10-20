@@ -51,6 +51,7 @@ from presstoshape.models.shapes import (
     Close,
     CompositeShape,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -113,7 +114,8 @@ _NOT_RENDERED = frozenset(
         "metadata",
     }
 )
-_MAX_USE_DEPTH = 32
+# Nested groups and <use> chains deeper than this are cut off (real drawings stay far below it).
+_MAX_DEPTH = 32
 
 
 def read_svg(text: str) -> Document:
@@ -193,6 +195,7 @@ def _local_name(element: ET.Element) -> str | None:
 class _Reader:
     def __init__(self, root: ET.Element) -> None:
         self.next_id = 1
+        self._depth = 0
         self.notes = NoteCollector()
         # The first element with an id wins, as browsers do.
         self.ids: dict[str, ET.Element] = {}
@@ -258,7 +261,11 @@ class _Reader:
             return
         matrix = compose(matrix, parse_transform(element.get("transform")))
         self._note_effects(style)
-        if tag in ("g", "a", "switch"):
+        if tag in ("g", "a"):
+            # Inkscape sublayers too: PressToShape has no nested layers yet.
+            self._group(element, style, matrix, out, opacity, uses)
+            return
+        if tag == "switch":
             self.visit_group(element, style, matrix, out, opacity, uses)
             return
         opacity *= parse_fraction(style.get("opacity"))
@@ -295,6 +302,33 @@ class _Reader:
         if group_opacity < 1 and len(out) - before > 1:
             self.notes.add(Note.GROUP_OPACITY)
 
+    def _group(
+        self,
+        element: ET.Element,
+        style: dict[str, str],
+        matrix: Affine,
+        out: list[Shape],
+        opacity: float,
+        uses: tuple[str, ...],
+    ) -> None:
+        """The element's content as one group, with the element's opacity (and what ancestors handed down) as the
+        group's own. Empty groups are dropped; very deep nesting is cut off with a note."""
+        if self._depth >= _MAX_DEPTH:
+            self.notes.add(Note.UNKNOWN_ELEMENT)
+            return
+        # Taken before the children's, so ids follow document order like PressToShape's own files.
+        group_id = self._new_id()
+        children: list[Shape] = []
+        self._depth += 1
+        try:
+            for child in element:
+                self.visit(child, style, matrix, children, 1.0, uses)
+        finally:
+            self._depth -= 1
+        if children:
+            group_opacity = min(1.0, opacity * parse_fraction(style.get("opacity")))
+            out.append(GroupShape(group_id, tuple(children), group_opacity))
+
     def _note_effects(self, style: dict[str, str]) -> None:
         for key, note in _EFFECT_NOTES:
             value = style.get(key)
@@ -319,7 +353,7 @@ class _Reader:
         if target is None:
             self.notes.add(Note.MISSING_REFERENCE)
             return
-        if target_id in uses or len(uses) >= _MAX_USE_DEPTH:
+        if target_id in uses or len(uses) >= _MAX_DEPTH:
             self.notes.add(Note.CYCLIC_REFERENCE)
             return
         matrix = compose(matrix, translation(parse_length(element.get("x")), parse_length(element.get("y"))))
@@ -329,7 +363,7 @@ class _Reader:
             if symbol_style.get("display") == "none":
                 return
             matrix = compose(matrix, _symbol_matrix(target, element))
-            self.visit_group(target, symbol_style, matrix, out, opacity, uses)
+            self._group(target, symbol_style, matrix, out, opacity, uses)
         else:
             self.visit(target, style, matrix, out, opacity, uses)
 

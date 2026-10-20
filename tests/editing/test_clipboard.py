@@ -1,7 +1,7 @@
 import json
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import clipboard, composites, layers, selection, shapes
+from presstoshape.editing.operations import clipboard, composites, edit_mode, layers, selection, shapes
 from presstoshape.editing.operations.clipboard import (
     copy_selection,
     cut_selection,
@@ -43,7 +43,7 @@ def _composite_session() -> tuple[Session, int, int, int]:
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session, "subtract")
     (composite_id,) = session.state.selection
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     return session, composite_id, bottom, top
 
 
@@ -117,7 +117,7 @@ def test_paste_in_place_keeps_coordinates():
 
 def test_repeated_paste_never_reuses_ids_even_inside_composites():
     session, composite_id, *_ = _composite_session()
-    composites.leave_all(session.state)
+    edit_mode.leave_all(session.state)
     selection.set_selection(session, {composite_id})
     content = copy_selection(session)
     paste(session, content.native, None, None)
@@ -145,7 +145,7 @@ def test_svg_is_used_when_native_data_is_broken_or_from_another_version():
     assert [(shape.cx, shape.cy) for shape in all_shapes(session)] == [(105, 105), (105, 105)]
 
 
-def test_foreign_svg_layers_and_groups_paste_flat_in_order():
+def test_foreign_svg_layers_paste_flat_and_groups_stay_groups():
     session = Session()
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">'
@@ -153,7 +153,7 @@ def test_foreign_svg_layers_and_groups_paste_flat_in_order():
         '<g inkscape:groupmode="layer"><g><circle r="2"/><path d="M0 0 L5 5"/></g></g></svg>'
     )
     paste(session, None, svg, (0, 0))
-    assert [type(shape).__name__ for shape in all_shapes(session)] == ["RectShape", "EllipseShape", "PathShape"]
+    assert [type(shape).__name__ for shape in all_shapes(session)] == ["RectShape", "GroupShape"]
     assert len(session.state.document.layers) == 1
 
 

@@ -92,7 +92,7 @@ def release_composite(session: Session) -> None:
                 result.extend(released[shape.id].parts if shape.id in released else [shape])
             return result
 
-        containers.change_container(state, unpack, modes if containers.editing(state) else None)
+        containers.change_container(state, unpack, modes if containers.edited_composite(state) else None)
         state.selection = {part.id for composite in composites for part in composite.parts}
         state.status_message = _("Released the Composite")
 
@@ -115,44 +115,6 @@ def flatten_composite(session: Session) -> None:
 
 
 # --- edit mode ---------------------------------------------------------------------------
-
-
-def enter(session: Session, composite_id: int) -> None:
-    """Opens the edit mode of a Composite among the pickable shapes. Not an undo step."""
-    state = session.state
-    target = next((shape for shape in queries.pickable_shapes(state) if shape.id == composite_id), None)
-    if not isinstance(target, CompositeShape):
-        return
-    state.edit_path = (*containers.valid_edit_path(state), composite_id)
-    state.selection = set()
-    state.node_selection = frozenset()
-    state.status_message = _("Editing a Composite: Esc or Done to leave")
-    session.end_merge()
-    session.notify()
-
-
-def leave(session: Session, levels: int = 1) -> None:
-    """Leaves edit mode `levels` deep and selects the Composite that was left. Not an undo step."""
-    state = session.state
-    path = containers.valid_edit_path(state)
-    if not path:
-        return
-    levels = max(1, min(levels, len(path)))
-    left = path[len(path) - levels]
-    state.edit_path = path[: len(path) - levels]
-    state.selection = {left}
-    state.node_selection = frozenset()
-    state.status_message = _("Editing a Composite") if state.edit_path else _("Ready")
-    session.end_merge()
-    session.notify()
-
-
-def leave_all(state: AppState) -> None:
-    """Silently closes edit mode, for operations that change what's around the Composite (layers, documents)."""
-    if state.edit_path:
-        state.edit_path = ()
-        state.selection = set()
-        state.node_selection = frozenset()
 
 
 def set_part_mode(session: Session, mode: PartMode) -> None:

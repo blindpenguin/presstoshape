@@ -1,7 +1,7 @@
 import pytest
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import arrange, composites, selection, shapes
+from presstoshape.editing.operations import arrange, composites, edit_mode, selection, shapes
 from presstoshape.editing.session import Session
 from presstoshape.geometry import booleans, transforms
 from tests.helpers import all_shapes
@@ -46,7 +46,7 @@ def test_reordering_parts_changes_the_composite_result():
     selection.set_selection(session, {big, cutter, patch})
     composites.make_composite(session)
     (composite_id,) = session.state.selection
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {cutter})
     composites.set_part_mode(session, "subtract")
     before = booleans._to_skia(transforms.outline(queries.find_shape(session.state, composite_id))).area

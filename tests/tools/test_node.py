@@ -1,7 +1,7 @@
 
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import composites, node_editing, selection, shapes, view
+from presstoshape.editing.operations import composites, edit_mode, node_editing, selection, shapes, view
 from presstoshape.geometry import nodes
 from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import CursorType, Mods
@@ -114,7 +114,7 @@ def test_node_tool_edits_a_path_part_inside_a_composite():
     selection.set_selection(session, {path_id, rect})
     composites.make_composite(session)
     (composite_id,) = session.state.selection
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {path_id})
     view.select_tool(session, Tool.NODE)
     g.set_tool(Tool.NODE)

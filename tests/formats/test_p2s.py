@@ -24,6 +24,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -324,3 +325,52 @@ def test_odd_dash_lists_are_normalized_on_read():
 def test_tool_styles_keep_the_new_fields():
     state = SavedState(tool_styles={Tool.RECTANGLE: FULL})
     assert read_p2s(write_p2s(Document(), state, None, "x"))[1].tool_styles == {Tool.RECTANGLE: FULL}
+
+
+GROUPED = Document(
+    width=100.0,
+    height=100.0,
+    layers=[
+        Layer(
+            "L",
+            True,
+            [
+                GroupShape(
+                    1,
+                    (
+                        RectShape(2, 0, 0, 10, 10, RED),
+                        GroupShape(3, (TextShape(4, 0, 20, "a", 12, FULL),), opacity=0.25),
+                        CompositeShape(5, (RectShape(6, 0, 0, 5, 5, RED),), ("add",), RED),
+                    ),
+                    opacity=0.5,
+                )
+            ],
+        )
+    ],
+    next_id=7,
+)
+
+
+def test_groups_round_trip_without_style_or_transform():
+    encoded = encode_document(GROUPED)
+    group = encoded["layers"][0]["shapes"][0]
+    assert set(group) == {"type", "id", "children", "opacity"}
+    assert "opacity" not in p2s.encode_shape(GroupShape(9, (RectShape(10, 0, 0, 1, 1, RED),)))
+    assert _round_trip(GROUPED) == GROUPED
+
+
+@pytest.mark.parametrize(
+    "change, where",
+    [
+        (lambda group: group.update(children=[]), "shapes[0].children"),
+        (lambda group: group.pop("children"), "shapes[0]"),
+        (lambda group: group.update(opacity=2), "shapes[0].opacity"),
+        (lambda group: group["children"][0].update(id=1), "id twice"),
+    ],
+)
+def test_damaged_groups_name_the_broken_place(change, where):
+    encoded = copy.deepcopy(encode_document(GROUPED))
+    change(encoded["layers"][0]["shapes"][0])
+    with pytest.raises(P2sError) as error:
+        decode_document(encoded)
+    assert where in str(error.value)

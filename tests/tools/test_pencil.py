@@ -1,7 +1,7 @@
 import math
 
 from presstoshape.editing import containers
-from presstoshape.editing.operations import composites, layers, selection, shapes, view
+from presstoshape.editing.operations import composites, edit_mode, layers, selection, shapes, view
 from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import Close, CubicTo, LineTo, PathShape
 from presstoshape.tools.base import Mods
@@ -69,7 +69,7 @@ def test_inside_a_composite_the_stroke_becomes_a_part():
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session)
     (composite,) = session.state.selection
-    composites.enter(session, composite)
+    edit_mode.enter(session, composite)
     composites.set_new_part_mode(session, "subtract")
     _stroke(driver, _wave(60))
     edited = containers.edited_composite(session.state)

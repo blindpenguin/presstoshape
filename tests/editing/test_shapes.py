@@ -1,7 +1,7 @@
 import pytest
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import selection, shapes
+from presstoshape.editing.operations import edit_mode, selection, shapes
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import EllipseShape, RectShape
@@ -70,13 +70,13 @@ def test_drawn_paths_use_the_tools_style_and_land_like_other_shapes():
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session)
     (composite,) = session.state.selection
-    composites.enter(session, composite)
+    edit_mode.enter(session, composite)
     composites.set_new_part_mode(session, "subtract")
     part = shapes.add_drawn_path(session, segments, Tool.PENCIL)
     assert queries.find_shape(session.state, composite).modes[-1] == "subtract"
     assert queries.find_shape(session.state, part) is not None
 
-    composites.leave_all(session.state)
+    edit_mode.leave_all(session.state)
     layers.set_layer_visible(session, 0, False)
     assert shapes.add_drawn_path(session, segments, Tool.PENCIL) is None
     assert "hidden" in session.state.status_message

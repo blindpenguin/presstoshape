@@ -2,7 +2,7 @@ import struct
 
 import pytest
 
-from presstoshape.editing.operations import composites, documents, selection, shapes, view
+from presstoshape.editing.operations import composites, documents, edit_mode, selection, shapes, view
 from presstoshape.editing.session import Session
 from presstoshape.formats import p2s
 from presstoshape.models.app_state import Tool
@@ -46,7 +46,7 @@ def _drawing_session() -> tuple[Session, int, int]:
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session, "subtract")
     (composite_id,) = session.state.selection
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {top})
     view.set_zoom(session, 250)
     view.set_tool_style(session, Tool.RECTANGLE, fill="#123456")
@@ -292,3 +292,15 @@ def test_clean_files_have_no_import_notes(tmp_path):
         reopened.state.import_notes = ["stale"]
         documents.open_file(reopened, str(tmp_path / name))
         assert reopened.state.import_notes == []
+
+
+def test_an_entered_group_is_entered_again_after_reopening(tmp_path):
+    from pathlib import Path
+
+    sample = Path(__file__).resolve().parent.parent / "formats" / "samples" / "v5.p2s"
+    target = tmp_path / "grouped.p2s"
+    target.write_bytes(sample.read_bytes())
+    session = Session()
+    assert documents.open_file(session, str(target))
+    assert session.state.edit_path == (1,)
+    assert session.state.selection == {7}

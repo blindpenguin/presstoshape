@@ -1,14 +1,15 @@
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QToolButton, QWidget
 
 from presstoshape.editing import containers
-from presstoshape.editing.operations import composites
+from presstoshape.editing.operations import edit_mode
 from presstoshape.editing.session import Session
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
+from presstoshape.models.shapes import GroupShape
 
 
 class EditBar(QWidget):
-    """Shown above the canvas while a Composite is edited: where you are, a way back to any level, and Done."""
+    """Shown above the canvas inside a Composite or group: where you are, a way back to any level, and Done."""
 
     def __init__(self, session: Session) -> None:
         super().__init__()
@@ -22,13 +23,14 @@ class EditBar(QWidget):
         layout.addLayout(self._crumbs)
         layout.addStretch(1)
         done = QPushButton(_("Done"))
-        done.setToolTip(_("Leave this Composite (Esc)"))
-        done.clicked.connect(lambda: composites.leave(session))
+        done.setToolTip(_("Leave this level (Esc)"))
+        done.clicked.connect(lambda: edit_mode.leave(session))
         layout.addWidget(done)
         self.setVisible(False)
 
     def refresh(self, state: AppState) -> None:
-        path = containers.valid_edit_path(state)
+        chain = containers.edit_chain(state)
+        path = tuple(container.id for container in chain)
         self.setVisible(bool(path))
         if path == self._path:
             return
@@ -42,7 +44,7 @@ class EditBar(QWidget):
         layer_name = next(
             (layer.name for layer in state.document.layers if any(shape.id == path[0] for shape in layer.shapes)), ""
         )
-        names = [layer_name] + [_("Composite")] * len(path)
+        names = [layer_name] + [_("Group") if isinstance(entry, GroupShape) else _("Composite") for entry in chain]
         for depth, name in enumerate(names):
             if depth:
                 self._crumbs.addWidget(QLabel("›"))
@@ -57,4 +59,4 @@ class EditBar(QWidget):
             self._crumbs.addWidget(button)
 
     def _leave(self, levels: int) -> None:
-        composites.leave(self._session, levels)
+        edit_mode.leave(self._session, levels)

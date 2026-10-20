@@ -8,7 +8,8 @@ import pytest
 from presstoshape.formats.svg import read_shapes_svg, read_svg, read_svg_with_notes, write_svg
 from presstoshape.geometry import units
 from presstoshape.models.app_state import Document, Layer
-from presstoshape.models.shapes import EllipseShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.models.shapes import EllipseShape, GroupShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from tests.helpers import leaves
 
 SAMPLES = Path(__file__).resolve().parent / "samples" / "svg"
 
@@ -29,7 +30,7 @@ def _notes(body: str) -> list[str]:
 
 
 def _style(body: str) -> Style:
-    (shape,) = _shapes(body)
+    (shape,) = leaves(_shapes(body))
     return shape.style
 
 
@@ -81,20 +82,47 @@ def test_unsupported_css_rules_are_reported():
     assert notes == ["2 CSS rules were not applied"]
 
 
-def test_opacity_is_not_inherited_but_groups_multiply_it():
-    (shape,) = _shapes('<g opacity="0.5"><rect width="5" height="5" style="opacity: 50%"/></g>')
-    assert shape.style.opacity == pytest.approx(0.25)
+def test_groups_become_groups_with_their_own_opacity():
+    (group,) = _shapes('<g opacity="0.5"><rect width="5" height="5" style="opacity: 50%"/></g>')
+    assert isinstance(group, GroupShape) and group.opacity == 0.5
+    assert group.children[0].style.opacity == 0.5
+    assert _notes('<g opacity="0.5"><rect width="5" height="5"/><rect width="5" height="5"/></g>') == []
 
 
-def test_group_opacity_over_several_shapes_is_noted_once_per_group():
-    notes = _notes('<g opacity="0.5"><rect width="5" height="5"/><rect width="5" height="5"/></g>')
+def test_links_and_nested_groups_become_groups_and_empty_ones_vanish():
+    (link,) = _shapes('<a href="#x"><g><rect width="5" height="5"/></g><g/><g><title>Empty</title></g></a>')
+    assert isinstance(link, GroupShape) and len(link.children) == 1
+    assert isinstance(link.children[0], GroupShape)
+    assert _shapes("<g><g/></g>") == []
+
+
+def test_layer_opacity_over_several_shapes_is_still_approximated():
+    body = '<g inkscape:groupmode="layer" opacity="0.5"><rect width="5" height="5"/><rect width="5" height="5"/></g>'
+    document, notes = read_svg_with_notes(_svg(body))
+    assert [shape.style.opacity for shape in document.layers[0].shapes] == [0.5, 0.5]
     assert notes == ["1 transparent group was approximated by making each object in it transparent"]
-    assert _notes('<g opacity="0.5"><rect width="5" height="5"/></g>') == []
+
+
+def test_sublayers_become_groups_in_their_layer():
+    body = '<g inkscape:groupmode="layer"><g inkscape:groupmode="layer"><rect width="5" height="5"/></g></g>'
+    document = read_svg(_svg(body))
+    assert len(document.layers) == 1 and isinstance(document.layers[0].shapes[0], GroupShape)
+
+
+def test_group_transforms_go_to_the_shapes():
+    (group,) = _shapes('<g transform="translate(10 20)"><rect width="5" height="5"/></g>')
+    assert group.transform == (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    assert (group.children[0].x, group.children[0].y) == (10, 20)
+
+
+def test_very_deep_nesting_is_cut_off_with_a_note():
+    shapes, notes = read_shapes_svg(_svg("<g>" * 40 + '<rect width="5" height="5"/>' + "</g>" * 40))
+    assert shapes == [] and notes == ["1 other element was left out"]
 
 
 def test_visibility_hidden_skips_shapes_and_visible_brings_them_back():
     body = '<g visibility="hidden"><rect width="5" height="5"/><rect visibility="visible" width="6" height="6"/></g>'
-    shapes = _shapes(body)
+    shapes = leaves(_shapes(body))
     assert [shape.width for shape in shapes] == [6]
 
 
@@ -177,7 +205,9 @@ def test_symbol_viewbox_is_fitted_and_centred():
         '<symbol id="s" viewBox="0 0 10 10"><rect width="10" height="10"/></symbol>'
         '<use href="#s" x="5" width="40" height="20"/>'
     )
-    (rect,) = _shapes(body)
+    (group,) = _shapes(body)
+    assert isinstance(group, GroupShape)
+    (rect,) = group.children
     assert (rect.x, rect.y, rect.width, rect.height) == (15, 0, 20, 20)
 
 
@@ -186,7 +216,7 @@ def test_symbol_with_aspect_ratio_none_stretches():
         '<symbol id="s" viewBox="0 0 10 10" preserveAspectRatio="none"><rect width="10" height="10"/></symbol>'
         '<use href="#s" width="40" height="20"/>'
     )
-    (rect,) = _shapes(body)
+    (rect,) = leaves(_shapes(body))
     assert (rect.width, rect.height) == (40, 20)
 
 
@@ -332,7 +362,9 @@ def _fixture(name: str):
 def test_illustrator_export_with_css_classes():
     document, notes = _fixture("illustrator_classes.svg")
     assert notes == []
-    rect, path, circle, line, text = document.layers[0].shapes
+    group, text = document.layers[0].shapes
+    assert isinstance(group, GroupShape)
+    rect, path, circle, line = group.children
     assert rect.style.fill == "#e30613"
     assert (path.style.fill, path.style.stroke, path.style.cap, path.style.join) == (None, "#1d1d1b", "round", "round")
     assert (circle.style.fill, circle.style.opacity) == ("#009fe3", 0.5)
@@ -355,16 +387,18 @@ def test_inkscape_drawing_with_layers_and_text_lines():
     assert [text.text for text in (first, second, label, below)] == ["First line", "Second line", "Label", "below"]
     assert (first.anchor, second.y - first.y) == ("middle", pytest.approx(10 * scale))
     assert below.y - label.y == pytest.approx(12 * scale)
-    assert [shape.style.opacity for shape in document.layers[2].shapes] == [0.5, 0.5, 1.0]
-    assert notes == [
-        "1 line with markers (arrowheads) lost them",
-        "1 transparent group was approximated by making each object in it transparent",
-    ]
+    transparent, arrow = document.layers[2].shapes
+    assert isinstance(transparent, GroupShape) and transparent.opacity == 0.5
+    assert [shape.style.opacity for shape in transparent.children] == [1.0, 1.0]
+    assert arrow.style.opacity == 1.0
+    assert notes == ["1 line with markers (arrowheads) lost them"]
 
 
 def test_figma_frame_export():
     document, notes = _fixture("figma_frame.svg")
-    background, ring, card, circle, translucent, gradient = document.layers[0].shapes
+    (frame,) = document.layers[0].shapes
+    assert isinstance(frame, GroupShape)
+    background, ring, card, circle, translucent, gradient = frame.children
     assert background.style.fill == "#ffffff"
     assert ring.style.fill_rule == "evenodd"
     assert (card.rx, card.style.fill_opacity) == (8, 0.25)
@@ -379,7 +413,9 @@ def test_figma_frame_export():
 
 def test_icon_sprite_with_symbols_and_uses():
     document, notes = _fixture("icon_sprite.svg")
-    red, green, left_dot, right_dot = document.layers[0].shapes
+    red_icon, green_icon, pair = document.layers[0].shapes
+    assert all(isinstance(shape, GroupShape) for shape in (red_icon, green_icon, pair))
+    (red,), (green,), (left_dot, right_dot) = red_icon.children, green_icon.children, pair.children
     assert (red.x, red.y, red.width, red.style.fill) == (2, 2, 16, "#ff0000")
     assert (green.x, green.width, green.style.fill) == (42, 16, "#00ff00")
     assert [left_dot.segments[0], right_dot.segments[0]] == [MoveTo(80, 30), MoveTo(84, 30)]
@@ -388,3 +424,13 @@ def test_icon_sprite_with_symbols_and_uses():
         "1 reference to a missing element was left out",
         "1 reference that refers to itself was left out",
     ]
+
+
+def test_groups_are_written_as_g_and_read_back():
+    inner = GroupShape(3, (TextShape(4, 0, 20, "Hi", 12, Style()),), opacity=0.25)
+    group = GroupShape(1, (RectShape(2, 0, 0, 10, 10, Style()), inner), opacity=0.5)
+    document = Document(100, 100, [Layer("L", True, [group, RectShape(5, 50, 0, 5, 5, Style())])], next_id=6)
+    svg = write_svg(document)
+    assert '<g opacity="0.5">' in svg and '<g opacity="0.25">' in svg
+    reread = read_svg(svg)
+    assert reread == document

@@ -18,6 +18,7 @@ from presstoshape.models.shapes import (
     Style,
     TextShape,
 )
+from tests.helpers import leaves
 
 
 def _svg(body: str, attrs: str = 'width="100" height="50"') -> str:
@@ -76,7 +77,7 @@ def test_inherited_and_inline_styles():
     doc = read_svg(
         _svg('<g fill="red" stroke="blue"><rect width="5" height="5" style="stroke: none; stroke-width: 4"/></g>')
     )
-    assert doc.layers[0].shapes[0].style == Style(fill="#ff0000", stroke=None, stroke_width=4)
+    assert leaves(doc.layers[0].shapes)[0].style == Style(fill="#ff0000", stroke=None, stroke_width=4)
 
 
 def test_svg_defaults_black_fill_no_stroke():
@@ -91,7 +92,7 @@ def test_translate_and_rotation_keep_primitive():
             '<rect width="5" height="5" transform="rotate(90)"/>'
         )
     )
-    moved, rotated = doc.layers[0].shapes
+    moved, rotated = leaves(doc.layers[0].shapes)
     assert isinstance(moved, RectShape) and (moved.x, moved.y) == (11, 22)
     assert isinstance(rotated, RectShape)
     first = transforms.outline(rotated)[1]
@@ -101,7 +102,7 @@ def test_translate_and_rotation_keep_primitive():
 
 def test_scale_transform_scales_stroke_width():
     doc = read_svg(_svg('<g transform="scale(2)"><line x2="5" stroke="black" stroke-width="3"/></g>'))
-    assert doc.layers[0].shapes[0].style.stroke_width == 6
+    assert leaves(doc.layers[0].shapes)[0].style.stroke_width == 6
 
 
 def test_viewbox_defines_document_size_and_origin():
@@ -300,7 +301,7 @@ def test_read_shapes_flattens_layers_in_document_order():
         'width="10" height="10" viewBox="5 5 10 10"',
     )
     shapes, _ = read_shapes_svg(svg)
-    assert [type(shape).__name__ for shape in shapes] == ["RectShape", "RectShape", "EllipseShape"]
+    assert [type(shape).__name__ for shape in shapes] == ["RectShape", "GroupShape", "EllipseShape"]
     assert shapes[0].x == 0
 
 

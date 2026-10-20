@@ -8,6 +8,7 @@ from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -141,3 +142,25 @@ def test_v3_files_get_default_styles():
 
 def test_v4_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v4.p2s").read_bytes()) == expected_v4()
+
+
+def expected_v5() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v5.p2s holds: nested groups with opacity, a Composite inside a group, and the
+    outer group entered."""
+    red = Style(fill="#ff0000", stroke=None, stroke_width=0.0)
+    blue = Style(fill="#0000ff", stroke=None, stroke_width=0.0)
+    composite = CompositeShape(
+        4,
+        (RectShape(5, 20.0, 20.0, 60.0, 40.0, red), EllipseShape(6, 80.0, 40.0, 20.0, 20.0, red)),
+        ("add", "subtract"),
+        blue,
+    )
+    inner = GroupShape(7, (TextShape(8, 20.0, 100.0, "Grouped", 18.0, red),), opacity=0.5)
+    outer = GroupShape(1, (RectShape(2, 0.0, 0.0, 120.0, 120.0, blue), composite, inner), opacity=0.75)
+    shapes = [outer, RectShape(3, 200.0, 50.0, 40.0, 40.0, red)]
+    document = Document(width=300.0, height=200.0, layers=[Layer("Layer 1", True, shapes)], next_id=9)
+    return document, SavedState(zoom_percent=100, selection=frozenset({7}), edit_path=(1,))
+
+
+def test_v5_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v5.p2s").read_bytes()) == expected_v5()

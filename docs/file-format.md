@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **4**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **5**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -56,9 +56,9 @@ Every shape has:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `type` | string | `"rect"`, `"ellipse"`, `"path"`, `"text"` or `"composite"`. |
+| `type` | string | `"rect"`, `"ellipse"`, `"path"`, `"text"`, `"composite"` or `"group"`. |
 | `id` | integer ≥ 0 | Unique in the whole document, Composite parts included. |
-| `style` | object | `{"fill": color or null, "stroke": color or null, "stroke_width": number ≥ 0}`, plus the optional fields below. |
+| `style` | object | `{"fill": color or null, "stroke": color or null, "stroke_width": number ≥ 0}`, plus the optional fields below. Groups have none. |
 | `transform` | list of 6 numbers | Optional. Affine `[a, b, c, d, e, f]` as in SVG's `matrix()`, applied on top of the geometry. Left out when it's the identity. |
 
 Optional style fields, written only when they differ from the default (which is SVG's default):
@@ -83,6 +83,7 @@ Geometry per type:
 | `path` | `segments`: list of `["M", x, y]` (move), `["L", x, y]` (line), `["C", c1x, c1y, c2x, c2y, x, y]` (cubic bezier), `["Z"]` (close). Paths keep an identity transform: transforms are applied to the points. |
 | `text` | `x`, `y` (the anchor point on the baseline), `text` (single line), `font_size` > 0; optional `anchor`: `"start"` (default), `"middle"` or `"end"`, which point of the line sits at `x`, as SVG's `text-anchor` |
 | `composite` | `parts`: list of shapes, bottom to top (may include Composites); `modes`: one per part, each `"add"`, `"subtract"`, `"intersect"` or `"exclude"`. The first part is the base, so its mode is ignored. Composites keep an identity transform; their parts carry the transforms. |
+| `group` | `children`: list of shapes, bottom to top (any type, including groups and Composites), at least one; optional `opacity`, a number from 0 to 1 (default 1), applied to the children flattened together. Groups have no `style` and no `transform`: each child keeps its own, and transforms are applied to the children. |
 
 Example (from the sample file):
 
@@ -128,7 +129,7 @@ Working state. Everything here is optional. Readers drop values that don't match
 | `tools.pencil_smoothing` | Pencil smoothing, 0 to 100. Optional (default 50). |
 | `selection` | Selected shape ids. |
 | `selected_layer` | Index of the active layer. |
-| `edit_path` | Ids of the entered Composites, outer to inner; empty when none is entered. |
+| `edit_path` | Ids of the entered Composites and groups, outer to inner; empty when none is entered. |
 
 Undo history and the active tool are not stored.
 
@@ -140,6 +141,7 @@ Undo history and the active tool are not stored.
 | 2 | nightlies from October 2026 | `document.unit` and `document.dpi`. Version 1 files open as `"px"` at 96 DPI. |
 | 3 | nightlies from October 2026 | `state.tools.pencil_smoothing`; the Pencil's style is stored under `tools.styles.pencil`. Version 2 files need no change. |
 | 4 | nightlies from October 2026 | Optional style fields `opacity`, `fill_opacity`, `stroke_opacity`, `fill_rule`, `cap`, `join`, `miter_limit`, `dashes`, `dash_offset`; rect `rx`/`ry`; text `anchor`. Version 3 files need no change. |
+| 5 | nightlies from October 2026 | Shape type `group`. `state.edit_path` may now name groups too. Version 4 files need no change. |
 
 Rules for changing the format:
 

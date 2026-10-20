@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import composites, selection
+from presstoshape.editing.operations import edit_mode, selection
 from presstoshape.editing.session import Session
 from presstoshape.geometry.boxes import Point
 from presstoshape.models.app_state import AppState
@@ -119,7 +119,7 @@ class BaseTool:
         elif state.selection or not containers.editing(state):
             selection.set_selection(self._context.session, set())
         else:
-            composites.leave(self._context.session)
+            edit_mode.leave(self._context.session)
 
     def cancel(self) -> None:
         pass

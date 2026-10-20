@@ -127,9 +127,9 @@ class ToolOptionsPanel(QStackedWidget):
         self._editors[tool].refresh(state.tool_styles[tool])
         if tool in self._part_modes:
             form, part_mode = self._part_modes[tool]
-            editing = containers.editing(state)
-            form.setRowVisible(part_mode, editing)
-            if editing:
+            in_composite = containers.edited_composite(state) is not None
+            form.setRowVisible(part_mode, in_composite)
+            if in_composite:
                 part_mode.show_mode(state.new_part_mode)
         if tool is Tool.PENCIL and self._smoothing is not None and self._smoothing_value is not None:
             self._smoothing.blockSignals(True)

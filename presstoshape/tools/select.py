@@ -4,12 +4,12 @@ import math
 from enum import Enum, auto
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import clipboard, composites, selection, transform
+from presstoshape.editing.operations import clipboard, edit_mode, selection, transform
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.boxes import Point, Rect, rect_from_points
 from presstoshape.i18n import _
-from presstoshape.models.shapes import CompositeShape, Shape
+from presstoshape.models.shapes import CompositeShape, GroupShape, Shape
 from presstoshape.render import hit_test
 from presstoshape.render.handles import Frame, Handle, handle_at, handle_direction, selection_frame
 from presstoshape.render.overlay import Overlay
@@ -151,16 +151,16 @@ class SelectTool(BaseTool):
         self.hint = None
 
     def double_click(self, point: Point, mods: Mods) -> None:
-        """Enters a Composite; in edit mode a double-click on no part leaves one level."""
+        """Enters a Composite or group; inside one, a double-click on nothing leaves one level."""
         state = self._context.state
         hit = self._context.shape_at(point)
         shape = queries.find_shape(state, hit) if hit is not None else None
-        if isinstance(shape, CompositeShape):
+        if isinstance(shape, (CompositeShape, GroupShape)):
             self.cancel()
-            composites.enter(self._context.session, shape.id)
+            edit_mode.enter(self._context.session, shape.id)
         elif hit is None and containers.editing(state):
             self.cancel()
-            composites.leave(self._context.session)
+            edit_mode.leave(self._context.session)
         else:
             self.press(point, mods)
 
@@ -168,8 +168,8 @@ class SelectTool(BaseTool):
         if name != "enter":
             return False
         selected = queries.selected_shapes(self._context.state)
-        if len(selected) == 1 and isinstance(selected[0], CompositeShape):
-            composites.enter(self._context.session, selected[0].id)
+        if len(selected) == 1 and isinstance(selected[0], (CompositeShape, GroupShape)):
+            edit_mode.enter(self._context.session, selected[0].id)
             return True
         return False
 

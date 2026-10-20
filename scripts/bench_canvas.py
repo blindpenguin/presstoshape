@@ -3,7 +3,8 @@
 Repaints the real canvas while panning, zooming, and moving/scaling/rotating a selection, and reports average and
 95th-percentile frame time. Gesture frames include the gesture's own per-move work (e.g. rebuilding scaled
 shapes). GL frames wait for the GPU to finish, so times include GPU work. `hover` times the cursor query alone.
-`part` drags one part of a 20-part Composite in edit mode (the result is recomputed every frame).
+`part` drags one part of a 20-part Composite in edit mode (the result is recomputed every frame). `gpan` pans
+with all shapes in one group, `inside` drags 500 of them with that group entered.
 
 Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N]
        PRESSTOSHAPE_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
@@ -24,12 +25,13 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from presstoshape.app import _set_surface_format  # noqa: E402
 from presstoshape.editing import queries  # noqa: E402
-from presstoshape.editing.operations import composites, selection, view  # noqa: E402
+from presstoshape.editing.operations import edit_mode, selection, view  # noqa: E402
 from presstoshape.editing.session import Session  # noqa: E402
 from presstoshape.models.app_state import AppState, Document, Layer  # noqa: E402
 from presstoshape.models.shapes import (  # noqa: E402
     CompositeShape,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -191,10 +193,23 @@ def main() -> None:
 
     composite = _composite(state)
     shapes.append(composite)
-    composites.enter(session, composite.id)
+    edit_mode.enter(session, composite.id)
     selection.set_selection(session, {composite.parts[7].id})
     _start_gesture(select, _Mode.MOVE)
     _report("part", _measure(viewport, lambda i: select.move((float(i % 60), float(i % 40)), none), args.frames, True))
+    select.cancel()
+
+    # The same shapes inside one group (as a big imported SVG arrives): panning outside, dragging inside.
+    edit_mode.leave_all(state)
+    group = GroupShape(state.document.next_id, tuple(shapes[: args.shapes]))
+    state.document.next_id += 1
+    state.document.layers[0].shapes = [group]
+    session.notify()
+    _report("gpan", _measure(viewport, lambda i: canvas._scroll_by(7 if i % 40 < 20 else -7, 3), args.frames))
+    edit_mode.enter(session, group.id)
+    selection.set_selection(session, {shape.id for shape in group.children[:500]})
+    _start_gesture(select, _Mode.MOVE)
+    _report("inside", _measure(viewport, lambda i: select.move((float(i), float(i)), none), args.frames, True))
     select.cancel()
 
     window.close_without_prompt()

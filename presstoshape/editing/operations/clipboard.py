@@ -14,7 +14,7 @@ from presstoshape.formats.svg import read_shapes_svg, write_shapes_svg
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, Rect
 from presstoshape.i18n import N_, _, ngettext
-from presstoshape.models.shapes import PartMode, Shape, TextShape
+from presstoshape.models.shapes import GroupShape, PartMode, Shape, TextShape
 from presstoshape.render.paths import PathCache
 
 
@@ -97,7 +97,11 @@ def paste(session: Session, native: bytes | None, svg: str | None, center: Point
         session.notify()
         return False
     shapes, notes = decoded
-    in_composite = containers.editing(state)
+    inside = containers.editing(state)
+    in_composite = containers.edited_composite(state) is not None
+    if in_composite and any(isinstance(shape, GroupShape) for shape in shapes):
+        # Composite parts are outlines: a group's shapes become parts of their own.
+        shapes = _ungrouped(shapes)
     if in_composite and any(isinstance(shape, TextShape) for shape in shapes):
         shapes = [to_path(shape) if isinstance(shape, TextShape) else shape for shape in shapes]
         notes = [*notes, _("text became a path inside the Composite")]
@@ -106,7 +110,7 @@ def paste(session: Session, native: bytes | None, svg: str | None, center: Point
         dx, dy = center[0] - (x + width / 2), center[1] - (y + height / 2)
         shapes = [transforms.translate(shape, dx, dy) for shape in shapes]
     layer = queries.active_layer(state)
-    if not in_composite and not layer.visible:
+    if not inside and not layer.visible:
         notes = [*notes, _("layer '{name}' is hidden").format(name=layer.name)]
     with session.edit(_("Paste") if center is not None else _("Paste in Place")):
         pasted = with_fresh_ids(state, shapes)
@@ -150,3 +154,10 @@ def duplicate_selection(session: Session) -> None:
 def duplicate_and_move(session: Session, dx: float, dy: float) -> None:
     """Alt+drag: the copies land moved by (dx, dy); one undo step."""
     _duplicate(session, dx, dy)
+
+
+def _ungrouped(shapes: Sequence[Shape]) -> list[Shape]:
+    result: list[Shape] = []
+    for shape in shapes:
+        result.extend(_ungrouped(shape.children) if isinstance(shape, GroupShape) else [shape])
+    return result

@@ -5,8 +5,24 @@ from collections.abc import Sequence
 import skia
 
 from presstoshape.geometry.boxes import Rect
-from presstoshape.models.shapes import CompositeShape, Shape
+from presstoshape.models.shapes import CompositeShape, GroupShape, Shape
 from presstoshape.render.paths import PathCache
+
+
+def _regions(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.Path]:
+    """Pickable regions of a shape; a group's are its children's."""
+    if isinstance(shape, GroupShape):
+        return [region for child in shape.children for region in _regions(child, cache, tolerance)]
+    return _area(shape, cache, tolerance)
+
+
+def _contains(shape: Shape, cache: PathCache, x: float, y: float, tolerance: float) -> bool:
+    b = cache.bounds(shape)
+    if not (b.fLeft - tolerance <= x <= b.fRight + tolerance and b.fTop - tolerance <= y <= b.fBottom + tolerance):
+        return False
+    if isinstance(shape, GroupShape):
+        return any(_contains(child, cache, x, y, tolerance) for child in shape.children)
+    return any(region.contains(x, y) for region in _area(shape, cache, tolerance))
 
 
 def _area(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.Path]:
@@ -32,10 +48,7 @@ def shape_at(shapes: Sequence[Shape], cache: PathCache, point: tuple[float, floa
     """Top-most of `shapes` (given bottom to top) under `point`; `tolerance` (doc units) widens thin strokes."""
     x, y = point
     for shape in reversed(shapes):
-        b = cache.bounds(shape)
-        if not (b.fLeft - tolerance <= x <= b.fRight + tolerance and b.fTop - tolerance <= y <= b.fBottom + tolerance):
-            continue
-        if any(region.contains(x, y) for region in _area(shape, cache, tolerance)):
+        if _contains(shape, cache, x, y, tolerance):
             return shape.id
     return None
 
@@ -52,8 +65,7 @@ def shapes_in_rect(shapes: Sequence[Shape], cache: PathCache, rect: Rect) -> set
         if not skia.Rect.Intersects(band, bounds):
             continue
         if band.contains(bounds) or any(
-            not skia.Op(region, band_path, skia.PathOp.kIntersect_PathOp).isEmpty()
-            for region in _area(shape, cache)
+            not skia.Op(region, band_path, skia.PathOp.kIntersect_PathOp).isEmpty() for region in _regions(shape, cache)
         ):
             hits.add(shape.id)
     return hits

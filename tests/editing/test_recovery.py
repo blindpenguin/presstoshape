@@ -1,7 +1,7 @@
 import json
 import os
 
-from presstoshape.editing.operations import composites, documents, recovery, selection, shapes, view
+from presstoshape.editing.operations import composites, documents, edit_mode, recovery, selection, shapes, view
 from presstoshape.editing.session import Session
 from tests.helpers import all_shapes
 
@@ -14,7 +14,7 @@ def _dirty_session() -> tuple[Session, int]:
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session, "subtract")
     (composite,) = session.state.selection
-    composites.enter(session, composite)
+    edit_mode.enter(session, composite)
     view.set_zoom(session, 40)
     return session, composite
 

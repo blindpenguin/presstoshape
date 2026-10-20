@@ -6,6 +6,7 @@ from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -161,3 +162,26 @@ def test_square_caps_grow_the_bounds():
     plain = cache.bounds(PathShape(1, line, butt))
     square = cache.bounds(PathShape(2, line, Style(fill=None, stroke="#000000", stroke_width=10, cap="square")))
     assert square.fRight > plain.fRight + 1
+
+
+def _group_doc():
+    group = GroupShape(1, (RectShape(2, 0, 0, 10, 10, FILLED), RectShape(3, 50, 50, 10, 10, FILLED)))
+    return _doc([group])
+
+
+def test_a_group_is_hit_where_its_shapes_are():
+    doc, cache = _group_doc(), PathCache()
+    assert shape_at(_pickable(doc), cache, (55, 55), 0) == 1
+    assert shape_at(_pickable(doc), cache, (30, 30), 0) is None
+
+
+def test_rubber_band_finds_a_group_through_any_shape():
+    doc, cache = _group_doc(), PathCache()
+    assert shapes_in_rect(_pickable(doc), cache, (45, 45, 20, 20)) == {1}
+    assert shapes_in_rect(_pickable(doc), cache, (20, 20, 10, 10)) == set()
+
+
+def test_group_bounds_are_its_shapes():
+    group = _group_doc().layers[0].shapes[0]
+    bounds = PathCache().geometry_bounds(group)
+    assert (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()) == (0, 0, 60, 60)

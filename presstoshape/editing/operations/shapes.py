@@ -40,17 +40,17 @@ def _field_label(field: str) -> str:
 
 
 def _add(session: Session, make: Callable[[int], Shape], label: str, message: str) -> int | None:
-    """Adds to the active layer, or as the top-most part of the edited Composite (in the new-part mode)."""
+    """Adds to the active layer, or on top of the entered group or Composite (in the new-part mode)."""
     state = session.state
-    in_composite = containers.editing(state)
+    inside = containers.editing(state)
     layer = queries.active_layer(state)
-    if not in_composite and not layer.visible:
+    if not inside and not layer.visible:
         state.status_message = _("Layer '{name}' is hidden").format(name=layer.name)
         session.notify()
         return None
     with session.edit(label):
         shape = make(new_id(state))
-        if in_composite:
+        if inside:
             containers.change_container(state, lambda shapes: [*shapes, shape])
         else:
             layer.shapes.append(shape)
@@ -105,7 +105,7 @@ def add_drawn_path(session: Session, segments: tuple[Segment, ...], tool: Tool) 
 def add_text(session: Session, position: Point, text: str) -> int | None:
     if not text.strip():
         return None
-    if containers.editing(session.state):
+    if containers.edited_composite(session.state) is not None:
         session.state.status_message = _("Text can't be a Composite part: add it outside, then use Object to Path")
         session.notify()
         return None

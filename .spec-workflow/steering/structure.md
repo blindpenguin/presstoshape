@@ -58,8 +58,8 @@ presstoshape/                   # repo root
     │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()
     │   ├── registry.py         # Operation table: id, menu label, can_run
     │   ├── queries.py          # read-only questions about state
-    │   ├── containers.py       # active container (layer or entered Composite chain via edit_path)
-    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, arrange, paths, node_editing, style, layers, documents
+    │   ├── containers.py       # active container (layer, or the entered group/Composite chain via edit_path)
+    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, arrange, paths, node_editing, style, layers, documents
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox

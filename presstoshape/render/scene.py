@@ -11,13 +11,16 @@ from presstoshape.models.app_state import Document
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
     CompositeShape,
+    ContainerShape,
     EllipseShape,
+    GroupShape,
     PathShape,
     RectShape,
     Shape,
     Style,
     TextShape,
     Transform,
+    children_of,
 )
 from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
@@ -86,6 +89,9 @@ def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
 
 
 def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
+    if isinstance(shape, GroupShape):
+        _draw_group(canvas, shape, cache)
+        return
     style = shape.style
     if style.opacity <= 0:
         return
@@ -101,6 +107,19 @@ def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
         canvas.concat(to_skia_matrix(shape.transform))
         _draw_local(canvas, shape, cache, 1.0 if layered else style.opacity)
         canvas.restore()
+    if layered:
+        canvas.restore()
+
+
+def _draw_group(canvas: skia.Canvas, group: GroupShape, cache: PathCache) -> None:
+    """Children in order; below full opacity they are flattened in a layer first, as SVG renders group opacity."""
+    if group.opacity <= 0:
+        return
+    layered = group.opacity < 1
+    if layered:
+        canvas.saveLayerAlpha(cache.bounds(group), round(group.opacity * 255))
+    for child in group.children:
+        draw_shape(canvas, child, cache)
     if layered:
         canvas.restore()
 
@@ -228,38 +247,53 @@ def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: i
         canvas.drawRect(square, border)
 
 
-def live_composite(composite: CompositeShape, overlay: Overlay) -> CompositeShape:
-    """The edited Composite with the parts a gesture is dragging in their preview position."""
-    live = {shape.id: shape for shape in overlay.live}
-
-    def preview(part: Shape) -> Shape:
-        if part.id in live:
-            return live[part.id]
-        if part.id in overlay.moving:
-            try:
-                return transforms.transform_shape(part, overlay.matrix)
-            except ValueError:
-                return part
-        return part
-
-    return replace(composite, parts=tuple(preview(part) for part in composite.parts))
+def _live(shape: Shape, overlay: Overlay) -> Shape:
+    """`shape` where the running gesture shows it: its live replacement, or moved by the overlay matrix."""
+    live = {replacement.id: replacement for replacement in overlay.live}
+    if shape.id in live:
+        return live[shape.id]
+    if shape.id in overlay.moving:
+        try:
+            return transforms.transform_shape(shape, overlay.matrix)
+        except ValueError:
+            return shape
+    return shape
 
 
-def draw_edit_mode(
-    canvas: skia.Canvas, chain: Sequence[CompositeShape], overlay: Overlay, zoom: float, colors: CanvasColors
-) -> None:
-    """Draws the entered Composites (outer to inner; the top-level one is hidden from the document picture):
-    the top-level result with the live change, dimmed like everything else, then the innermost Composite's live
-    result and its parts' outlines styled by mode (Add solid, Subtract dashed, Intersect dotted, Exclude
-    dash-dot; the base thicker)."""
-    composite = live_composite(chain[-1], overlay)
-    outermost = composite
+def live_container(container: ContainerShape, overlay: Overlay) -> ContainerShape:
+    """The entered Composite or group with the shapes a gesture is dragging in their preview position."""
+    children = [_live(child, overlay) for child in children_of(container)]
+    if isinstance(container, GroupShape):
+        return replace(container, children=tuple(children))
+    return replace(container, parts=tuple(children))
+
+
+def _with_child(parent: ContainerShape, child: Shape) -> ContainerShape:
+    children = tuple(child if shape.id == child.id else shape for shape in children_of(parent))
+    if isinstance(parent, GroupShape):
+        return replace(parent, children=children)
+    return replace(parent, parts=children)
+
+
+def edit_mode_outer(chain: Sequence[ContainerShape], overlay: Overlay) -> Shape:
+    """The top-level shape around the entered one, as drawn dimmed behind it.
+
+    Inside a group its contents are left out (they are drawn undimmed on top), so this stays the same object
+    value while shapes inside are dragged. Inside a Composite the outer result depends on the live parts, so
+    they are included."""
+    innermost = chain[-1]
+    if isinstance(innermost, GroupShape):
+        updated: Shape = replace(innermost, children=())
+    else:
+        updated = live_container(innermost, overlay)
     for parent in reversed(chain[:-1]):
-        parts = tuple(outermost if part.id == outermost.id else part for part in parent.parts)
-        outermost = replace(parent, parts=parts)
-    _draw_path(canvas, to_skia_path(transforms.outline(outermost) or ()), outermost.style)
-    dim = parse_color(colors.pasteboard) & 0x00FFFFFF | (_DIM_ALPHA << 24)
-    canvas.drawRect(_EVERYWHERE, skia.Paint(Color=dim))
+        updated = _with_child(parent, updated)
+    return updated
+
+
+def draw_composite_parts(canvas: skia.Canvas, composite: CompositeShape, zoom: float, colors: CanvasColors) -> None:
+    """The entered Composite's live result and its parts' outlines styled by mode (Add solid, Subtract dashed,
+    Intersect dotted, Exclude dash-dot; the base thicker)."""
     _draw_path(canvas, to_skia_path(transforms.outline(composite) or ()), composite.style)
     selection_color = parse_color(colors.selection)
     for index, (part, mode) in enumerate(zip(composite.parts, composite.modes)):
@@ -275,6 +309,33 @@ def draw_edit_mode(
             if dashes:
                 paint.setPathEffect(skia.DashPathEffect.Make([length / zoom for length in dashes], 0))
         canvas.drawPath(to_skia_path(part_outline), paint)
+
+
+def draw_dim(canvas: skia.Canvas, colors: CanvasColors) -> None:
+    dim = parse_color(colors.pasteboard) & 0x00FFFFFF | (_DIM_ALPHA << 24)
+    canvas.drawRect(_EVERYWHERE, skia.Paint(Color=dim))
+
+
+def draw_edit_mode(
+    canvas: skia.Canvas,
+    chain: Sequence[ContainerShape],
+    overlay: Overlay,
+    zoom: float,
+    colors: CanvasColors,
+    cache: PathCache | None = None,
+) -> None:
+    """Draws the entered shapes (outer to inner; the top-level one is hidden from the document picture): the
+    surroundings dimmed, then the innermost Composite's live result and part outlines, or the innermost group's
+    shapes undimmed. Unrecorded; the canvas uses picture.EditModeDrawing, which caches the same drawing."""
+    cache = cache or PathCache()
+    draw_shape(canvas, edit_mode_outer(chain, overlay), cache)
+    draw_dim(canvas, colors)
+    container = live_container(chain[-1], overlay)
+    if isinstance(container, CompositeShape):
+        draw_composite_parts(canvas, container, zoom, colors)
+    else:
+        for child in container.children:
+            draw_shape(canvas, child, cache)
 
 
 def draw_overlays(

@@ -3,7 +3,7 @@ import math
 import pytest
 
 from presstoshape.editing import queries
-from presstoshape.editing.operations import composites, selection, shapes, transform
+from presstoshape.editing.operations import composites, edit_mode, selection, shapes, transform
 from presstoshape.geometry import affine, transforms
 from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import CursorType, Mods
@@ -247,7 +247,7 @@ def test_enter_key_enters_a_selected_composite():
 
 def test_escape_clears_selection_first_then_leaves():
     session, g, composite_id, bottom, top = _composite_tool_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {bottom})
     g.escape()
     assert session.state.selection == set() and session.state.edit_path == (composite_id,)
@@ -257,7 +257,7 @@ def test_escape_clears_selection_first_then_leaves():
 
 def test_dragging_a_part_moves_only_that_part():
     session, g, composite_id, bottom, top = _composite_tool_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     g.press((240, 240), NONE)
     g.move((260, 240), NONE)
     assert g.overlay.moving == {top}
@@ -268,7 +268,7 @@ def test_dragging_a_part_moves_only_that_part():
 
 def test_drawing_in_edit_mode_adds_a_part():
     session, g, composite_id, bottom, top = _composite_tool_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     composites.set_new_part_mode(session, "subtract")
     g.set_tool(Tool.RECTANGLE)
     drag(g, (110, 110), (130, 130))
@@ -278,7 +278,7 @@ def test_drawing_in_edit_mode_adds_a_part():
 
 def test_nested_double_click_enters_one_level_deeper():
     session, g, composite_id, bottom, top = _composite_tool_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session)
     (nested_id,) = session.state.selection

@@ -3,7 +3,7 @@ import re
 import pytest
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations import composites, documents, layers, paths, selection, shapes, style
+from presstoshape.editing.operations import composites, documents, edit_mode, layers, paths, selection, shapes, style
 from presstoshape.editing.session import Session
 from presstoshape.geometry import booleans, transforms
 from presstoshape.models.shapes import CompositeShape, PathShape
@@ -70,18 +70,18 @@ def test_moving_a_composite_moves_its_parts():
 def test_enter_and_leave_are_not_undo_steps():
     session, _, bottom, top, composite_id = _composite_session()
     depth = session.undo_count
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     assert session.state.edit_path == (composite_id,)
     assert session.state.selection == set()
     assert {shape.id for shape in queries.pickable_shapes(session.state)} == {bottom, top}
-    composites.leave(session)
+    edit_mode.leave(session)
     assert session.state.edit_path == () and session.state.selection == {composite_id}
     assert session.undo_count == depth
 
 
 def test_set_part_mode_skips_the_base():
     session, _, bottom, top, composite_id = _composite_session("add")
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {bottom, top})
     composites.set_part_mode(session, "intersect")
     composite = queries.find_shape(session.state, composite_id)
@@ -92,7 +92,7 @@ def test_set_part_mode_skips_the_base():
 
 def test_make_composite_inside_edit_mode_nests_and_takes_the_bottom_mode():
     session, _, bottom, top, composite_id = _composite_session("subtract")
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     extra = shapes.add_rectangle(session, (20, 20), (30, 30))
     composite = queries.find_shape(session.state, composite_id)
     assert composite.modes[-1] == "add"
@@ -125,7 +125,7 @@ def test_flatten_and_object_to_path_bake_the_result():
 
 def test_deleting_the_last_part_deletes_the_composite_and_leaves():
     session, keep, bottom, top, composite_id = _composite_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {bottom})
     selection.delete_selection(session)
     composite = queries.find_shape(session.state, composite_id)
@@ -140,7 +140,7 @@ def test_deleting_the_last_part_deletes_the_composite_and_leaves():
 
 def test_undo_past_creation_leaves_edit_mode():
     session, _, bottom, top, composite_id = _composite_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     session.undo()
     assert session.state.edit_path == ()
     assert queries.find_shape(session.state, composite_id) is None
@@ -148,7 +148,7 @@ def test_undo_past_creation_leaves_edit_mode():
 
 def test_layer_changes_leave_edit_mode():
     session, _, _, _, composite_id = _composite_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     layers.add_layer(session)
     layers.select_layer(session, 0)
     assert session.state.edit_path == ()
@@ -156,20 +156,20 @@ def test_layer_changes_leave_edit_mode():
 
 def test_nested_enter_and_leave_levels():
     session, _, bottom, top, composite_id = _composite_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     selection.set_selection(session, {bottom, top})
     composites.make_composite(session)
     (nested_id,) = session.state.selection
-    composites.enter(session, nested_id)
+    edit_mode.enter(session, nested_id)
     assert session.state.edit_path == (composite_id, nested_id)
     assert containers.edited_composite(session.state).id == nested_id
-    composites.leave(session, levels=2)
+    edit_mode.leave(session, levels=2)
     assert session.state.edit_path == () and session.state.selection == {composite_id}
 
 
 def test_new_part_mode_is_used_for_drawn_parts():
     session, _, _, _, composite_id = _composite_session()
-    composites.enter(session, composite_id)
+    edit_mode.enter(session, composite_id)
     composites.set_new_part_mode(session, "exclude")
     part = shapes.add_ellipse(session, (0, 0), (20, 20))
     composite = queries.find_shape(session.state, composite_id)

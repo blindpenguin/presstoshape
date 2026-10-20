@@ -23,6 +23,7 @@ from presstoshape.models.app_state import AppState, Document
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
+    GroupShape,
     PathShape,
     RectShape,
     Shape,
@@ -30,6 +31,7 @@ from presstoshape.models.shapes import (
     TextAnchor,
     TextShape,
 )
+from presstoshape.render.paths import PathCache
 from presstoshape.views.icon_engine import icon
 from presstoshape.views.style_editor import ALL_FIELDS, StyleEditor
 from presstoshape.views.unit_fields import LengthSpinBox, font_unit
@@ -47,6 +49,8 @@ _GEOMETRY: dict[type, tuple[tuple[str, str, float | None], ...]] = {
         ("ry", N_("Radius Y"), 0.1),
     ),
     TextShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("font_size", N_("Size"), 1.0)),
+    # The group's bounds, set through transform.set_bounds.
+    GroupShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("width", N_("W"), 0.1), ("height", N_("H"), 0.1)),
 }
 
 _TYPE_NAMES = {
@@ -55,6 +59,7 @@ _TYPE_NAMES = {
     PathShape: N_("Path"),
     TextShape: N_("Text"),
     CompositeShape: N_("Composite"),
+    GroupShape: N_("Group"),
 }
 
 _HINT = N_(
@@ -160,7 +165,13 @@ class SelectionOptions(QWidget):
         if not selected:
             self._heading.setText(_("Nothing selected"))
         elif single is not None:
-            self._heading.setText(_(_TYPE_NAMES[type(single)]))
+            if isinstance(single, GroupShape):
+                count = len(single.children)
+                self._heading.setText(
+                    ngettext("Group of {count} object", "Group of {count} objects", count).format(count=count)
+                )
+            else:
+                self._heading.setText(_(_TYPE_NAMES[type(single)]))
         else:
             count = len(selected)
             self._heading.setText(ngettext("{count} object", "{count} objects", count).format(count=count))
@@ -168,8 +179,8 @@ class SelectionOptions(QWidget):
         self._style.setVisible(bool(selected))
         document = state.document
         self._style.set_unit(document.unit, document.dpi)
-        fill_rule_matters = any(isinstance(shape, (PathShape, CompositeShape)) for shape in selected)
-        self._style.refresh(selected[0].style if selected else Style(), fill_rule_matters)
+        fill_rule_matters = any(_has_open_fill_rule(shape) for shape in selected)
+        self._style.refresh(style.display_style(selected[0]) if selected else Style(), fill_rule_matters)
 
         rows = _GEOMETRY.get(type(single), ())
         show_mode = self._refresh_mode(state, selected)
@@ -183,7 +194,7 @@ class SelectionOptions(QWidget):
             spin.set_unit(font_unit(document) if field == "font_size" else document.unit, document.dpi)
             self._form.setRowVisible(spin, field in fields)
             if field in fields:
-                spin.set_px(getattr(single, field))
+                spin.set_px(_field_value(single, field))
         self._refresh_rotation(single)
         is_text = isinstance(single, TextShape)
         self._form.setRowVisible(self._text, is_text)
@@ -262,7 +273,9 @@ class SelectionOptions(QWidget):
         transform.set_rotation(self._session, self._shape.id, value)
 
     def _on_spin(self, field: str, value: float) -> None:
-        if self._shape is not None:
+        if isinstance(self._shape, GroupShape):
+            transform.set_bounds(self._session, self._shape.id, field, value)
+        elif self._shape is not None:
             shapes.set_shape_field(self._session, self._shape.id, field, value)
 
     def _on_text_edited(self) -> None:
@@ -273,3 +286,18 @@ class SelectionOptions(QWidget):
                 current = queries.find_shape(self._session.state, self._shape.id)
                 if isinstance(current, TextShape):
                     self._text.setText(current.text)
+
+
+def _has_open_fill_rule(shape: Shape) -> bool:
+    """Whether the fill rule can change how `shape` looks: paths and Composites, also inside groups."""
+    if isinstance(shape, GroupShape):
+        return any(_has_open_fill_rule(child) for child in shape.children)
+    return isinstance(shape, (PathShape, CompositeShape))
+
+
+def _field_value(shape: Shape, field: str) -> float:
+    """A geometry field of `shape`; for a group, its bounds."""
+    if isinstance(shape, GroupShape):
+        box = PathCache().geometry_bounds(shape)
+        return {"x": box.left(), "y": box.top(), "width": box.width(), "height": box.height()}[field]
+    return getattr(shape, field)

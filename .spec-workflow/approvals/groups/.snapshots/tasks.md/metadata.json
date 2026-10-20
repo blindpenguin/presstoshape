@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/groups/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-20T16:25:24.364Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792513524358_cp31yfsnr",
+      "approvalTitle": "Tasks: Groups"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-20T16:25:35.226Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792513524358_cp31yfsnr",
+      "approvalTitle": "Tasks: Groups"
+    }
+  ]
+}

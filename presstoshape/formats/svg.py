@@ -20,6 +20,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -130,6 +131,11 @@ def _style_attributes(style: Style) -> dict[str, str]:
 
 
 def _untransformed_element(shape: Shape) -> ET.Element:
+    if isinstance(shape, GroupShape):
+        element = ET.Element(q("g"), {"opacity": _num(shape.opacity)} if shape.opacity != 1 else {})
+        for child in shape.children:
+            element.append(_shape_element(child))
+        return element
     style = _style_attributes(shape.style)
     match shape:
         case RectShape(x=x, y=y, width=w, height=h, rx=rx, ry=ry):

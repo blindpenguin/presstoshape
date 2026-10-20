@@ -9,6 +9,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -267,3 +268,30 @@ def test_composite_uses_the_area_of_evenodd_parts():
     square = RectShape(2, 20, 0, 10, 10, S)
     composite = CompositeShape(3, (_ring("evenodd"), square), ("add", "add"), S)
     assert booleans.area(transforms.outline(composite)) == pytest.approx(84 + 100)
+
+
+def _group():
+    inner = GroupShape(5, (EllipseShape(6, 30, 0, 5, 5, S),))
+    return GroupShape(1, (RectShape(2, 0, 0, 10, 10, S), TextShape(3, 0, 20, "a", 12, S), inner))
+
+
+def test_groups_have_no_single_outline():
+    assert transforms.outline(_group()) is None
+    assert transforms.area_outline(_group()) is None
+
+
+def test_translating_a_group_moves_everything_inside():
+    moved = transforms.translate(_group(), 5, 7)
+    rect, text, inner = moved.children
+    assert (rect.x, rect.y, text.x, text.y) == (5, 7, 5, 27)
+    assert (inner.children[0].cx, inner.children[0].cy) == (35, 7)
+    assert moved.transform == _group().transform
+
+
+def test_scaling_and_rotating_a_group_keeps_relative_positions():
+    scaled = transforms.transform_shape(_group(), affine.scaling(2, 2))
+    rect, text, inner = scaled.children
+    assert (rect.width, text.font_size, inner.children[0].cx) == (20, 24, 60)
+    turned = transforms.transform_shape(_group(), _rot(90, 0, 0))
+    assert bbox(transforms.outline(turned.children[0])) == pytest.approx((-10, 0, 0, 10))
+    assert turned.children[2].children[0].cy == pytest.approx(30)

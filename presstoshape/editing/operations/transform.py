@@ -5,8 +5,9 @@ from presstoshape.editing.operations._document import map_selected, replace_shap
 from presstoshape.editing.session import Session
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
-from presstoshape.i18n import _, ngettext
+from presstoshape.i18n import N_, _, ngettext
 from presstoshape.models.shapes import EllipseShape, RectShape, TextShape
+from presstoshape.render.paths import PathCache
 
 # Smallest width/height (doc units) a handle scale may leave; same floor as the panel's size fields.
 MIN_EXTENT = 0.1
@@ -35,3 +36,34 @@ def set_rotation(session: Session, shape_id: int, degrees: float) -> None:
         return
     with session.edit(_("Rotate"), merge_key=f"{shape_id}:rotation"):
         replace_shape(session.state, transforms.with_rotation(shape, degrees))
+
+
+_BOUNDS_LABELS = {"x": N_("Change X"), "y": N_("Change Y"), "width": N_("Change width"), "height": N_("Change height")}
+
+
+def set_bounds(session: Session, shape_id: int, field: str, value: float) -> None:
+    """Moves or scales any shape (used for groups) so one side of its geometry bounds takes `value`: x / y move
+    it, width / height scale it from its top-left corner. Consecutive edits of one field form one undo step."""
+    if field not in _BOUNDS_LABELS:
+        raise ValueError(f"unknown bounds field {field!r}")
+    shape = queries.find_shape(session.state, shape_id)
+    if shape is None:
+        return
+    box = PathCache().geometry_bounds(shape)
+    left, top, width, height = box.left(), box.top(), box.width(), box.height()
+    target = {"x": left, "y": top, "width": width, "height": height}
+    target[field] = max(MIN_EXTENT, value) if field in ("width", "height") else value
+    scale_x = target["width"] / width if width > 1e-9 else 1.0
+    scale_y = target["height"] / height if height > 1e-9 else 1.0
+    matrix = affine.compose(
+        affine.translation(target["x"], target["y"]),
+        affine.compose(affine.scaling(scale_x, scale_y), affine.translation(-left, -top)),
+    )
+    if affine.is_identity(matrix):
+        return
+    try:
+        updated = transforms.transform_shape(shape, matrix, MIN_EXTENT)
+    except ValueError:
+        return
+    with session.edit(_(_BOUNDS_LABELS[field]), merge_key=f"{shape_id}:{field}"):
+        replace_shape(session.state, updated)

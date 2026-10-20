@@ -6,6 +6,8 @@ from presstoshape.editing.operations import (  # noqa: F401
     clipboard,
     composites,
     documents,
+    edit_mode,
+    groups,
     history,
     layers,
     node_editing,

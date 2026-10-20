@@ -20,6 +20,7 @@ from presstoshape.models.shapes import (
     CubicTo,
     EllipseShape,
     FillRule,
+    GroupShape,
     LineCap,
     LineJoin,
     LineTo,
@@ -33,6 +34,7 @@ from presstoshape.models.shapes import (
     TextAnchor,
     TextShape,
     Transform,
+    children_of,
     sanitized,
 )
 
@@ -110,6 +112,16 @@ def _numbers(**values: float) -> dict[str, float]:
 
 
 def encode_shape(shape: Shape) -> dict[str, Any]:
+    if isinstance(shape, GroupShape):
+        # No style and no transform: a group has no paint of its own and its children carry the transforms.
+        fields: dict[str, Any] = {
+            "type": "group",
+            "id": shape.id,
+            "children": [encode_shape(child) for child in shape.children],
+        }
+        if shape.opacity != 1:
+            fields["opacity"] = _number(shape.opacity)
+        return fields
     match shape:
         case RectShape(x=x, y=y, width=width, height=height, rx=rx, ry=ry):
             fields = {"type": "rect", "id": shape.id, **_numbers(x=x, y=y, width=width, height=height)}
@@ -271,7 +283,7 @@ _SEGMENT_SIZES = {"M": 2, "L": 2, "C": 6, "Z": 0}
 def _decode_segment(value: Any, where: str) -> Segment:
     items = read_list(value, where)
     if not items or items[0] not in _SEGMENT_SIZES or len(items) != _SEGMENT_SIZES[items[0]] + 1:
-        raise _damaged(where, _("should be a path segment like [\"L\", x, y]"))
+        raise _damaged(where, _('should be a path segment like ["L", x, y]'))
     numbers = [read_number(item, f"{where}[{index}]") for index, item in enumerate(items[1:], start=1)]
     match items[0]:
         case "M":
@@ -288,6 +300,13 @@ def decode_shape(value: Any, where: str) -> Shape:
     fields = read_object(value, where)
     shape_type = _field(fields, "type", where)
     shape_id = read_int(_field(fields, "id", where), f"{where}.id", minimum=0)
+    if shape_type == "group":
+        child_values = read_list(_field(fields, "children", where), f"{where}.children")
+        if not child_values:
+            raise _damaged(f"{where}.children", _("should not be empty"))
+        children = tuple(decode_shape(child, f"{where}.children[{index}]") for index, child in enumerate(child_values))
+        opacity = _optional_number(fields, "opacity", where, 1.0, minimum=0.0, maximum=1.0)
+        return GroupShape(shape_id, children, opacity)
     style = decode_style(_field(fields, "style", where), f"{where}.style")
     transform = _decode_transform(fields, where)
     match shape_type:
@@ -346,8 +365,7 @@ def _all_ids(shapes: list[Shape]) -> list[int]:
     ids = []
     for shape in shapes:
         ids.append(shape.id)
-        if isinstance(shape, CompositeShape):
-            ids.extend(_all_ids(list(shape.parts)))
+        ids.extend(_all_ids(list(children_of(shape))))
     return ids
 
 

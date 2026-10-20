@@ -12,6 +12,7 @@ from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
     CompositeShape,
     EllipseShape,
+    GroupShape,
     PathShape,
     RectShape,
     Shape,
@@ -114,7 +115,7 @@ def selection_frame(shapes: Iterable[Shape], cache: PathCache) -> Frame | None:
     shapes = list(shapes)
     if not shapes:
         return None
-    if len(shapes) == 1 and not isinstance(shapes[0], (PathShape, CompositeShape)):
+    if len(shapes) == 1 and not isinstance(shapes[0], (PathShape, CompositeShape, GroupShape)):
         return Frame(local_bounds(shapes[0], cache), shapes[0].transform)
     boxes = [cache.geometry_bounds(s) for s in shapes]
     left, top = min(b.left() for b in boxes), min(b.top() for b in boxes)

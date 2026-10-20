@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterable, Iterator
 from dataclasses import replace
 
 import skia
@@ -10,10 +11,11 @@ from presstoshape.editing.operations import view
 from presstoshape.editing.session import Session
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
+from presstoshape.models.shapes import Shape, children_of
 from presstoshape.render.overlay import CanvasColors
 from presstoshape.render.paths import PathCache
-from presstoshape.render.picture import DocumentPicture
-from presstoshape.render.scene import draw_background, draw_edit_mode, draw_overlays, parse_color
+from presstoshape.render.picture import DocumentPicture, EditModeDrawing
+from presstoshape.render.scene import draw_background, draw_overlays, parse_color
 from presstoshape.render.viewport import Viewport, scene_rect
 from presstoshape.tools.base import CursorType, Mods, ToolContext
 from presstoshape.tools.registry import Toolbox
@@ -52,6 +54,7 @@ class CanvasView(QAbstractScrollArea):
         self._state: AppState | None = None
         self._cache = PathCache()
         self._picture = DocumentPicture(self._cache)
+        self._edit_mode = EditModeDrawing(self._cache)
         self._toolbox = Toolbox(ToolContext(session, self._cache, self._repaint, self._ask_text))
         self._vp = Viewport()
         self._residual = (0.0, 0.0)
@@ -112,7 +115,7 @@ class CanvasView(QAbstractScrollArea):
         self._toolbox.switch(state.active_tool)
         if state.zoom_percent != self._zoom:
             self._apply_zoom(state.zoom_percent)
-        self._cache.prune(shape.id for layer in doc.layers for shape in layer.shapes)
+        self._cache.prune(_nested_ids(shape for layer in doc.layers for shape in layer.shapes))
         self._sync_scrollbars()
         self._repaint()
         # Undo, selection or zoom can change what's under a pointer that hasn't moved.
@@ -183,7 +186,7 @@ class CanvasView(QAbstractScrollArea):
         self._picture.draw(canvas, state.document, overlay.moving, overlay.matrix, overlay.live, hidden)
         self._picture.draw_copies(canvas, overlay.copies, overlay.matrix)
         if chain:
-            draw_edit_mode(canvas, chain, overlay, self._vp.zoom, _COLORS)
+            self._edit_mode.draw(canvas, chain, overlay, self._vp.zoom, _COLORS)
         draw_overlays(canvas, queries.pickable_shapes(state), overlay, self._cache, self._vp.zoom, _COLORS)
 
     # --- view navigation ----------------------------------------------------
@@ -300,7 +303,6 @@ class CanvasView(QAbstractScrollArea):
             self._repaint()
             self._update_cursor()
 
-
     def mouseDoubleClickEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
             return
@@ -321,3 +323,11 @@ class CanvasView(QAbstractScrollArea):
     def _ask_text(self) -> str | None:
         text, ok = QInputDialog.getText(self, _("Add text"), _("Text:"))
         return text if ok else None
+
+
+def _nested_ids(shapes: Iterable[Shape]) -> Iterator[int]:
+    """Ids of the shapes and everything inside them (Composite parts, group children), whose cached geometry
+    hit-testing and drawing keep using."""
+    for shape in shapes:
+        yield shape.id
+        yield from _nested_ids(children_of(shape))

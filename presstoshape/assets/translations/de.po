@@ -234,19 +234,6 @@ msgid "Flattened the Composite"
 msgstr "Komposit reduziert"
 
 #: presstoshape/editing/operations/composites.py
-msgid "Editing a Composite: Esc or Done to leave"
-msgstr "Komposit wird bearbeitet: Esc oder Fertig zum Verlassen"
-
-#: presstoshape/editing/operations/composites.py
-msgid "Editing a Composite"
-msgstr "Komposit wird bearbeitet"
-
-#: presstoshape/editing/operations/composites.py
-#: presstoshape/models/app_state.py
-msgid "Ready"
-msgstr "Bereit"
-
-#: presstoshape/editing/operations/composites.py
 msgid "Change mode"
 msgstr "Modus ändern"
 
@@ -315,6 +302,54 @@ msgstr "Export fehlgeschlagen: {error}"
 #: presstoshape/editing/operations/documents.py
 msgid "Exported {name} ({width} × {height} px)"
 msgstr "{name} exportiert ({width} × {height} px)"
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a group"
+msgstr "Gruppe wird bearbeitet"
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a Composite"
+msgstr "Komposit wird bearbeitet"
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a group: Esc or Done to leave"
+msgstr "Gruppe wird bearbeitet: Esc oder Fertig zum Verlassen"
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a Composite: Esc or Done to leave"
+msgstr "Komposit wird bearbeitet: Esc oder Fertig zum Verlassen"
+
+#: presstoshape/editing/operations/edit_mode.py
+#: presstoshape/models/app_state.py
+msgid "Ready"
+msgstr "Bereit"
+
+#: presstoshape/editing/operations/groups.py
+msgid "&Group"
+msgstr "G&ruppieren"
+
+#: presstoshape/editing/operations/groups.py
+msgctxt "command"
+msgid "Group"
+msgstr "Gruppieren"
+
+#: presstoshape/editing/operations/groups.py
+msgid "Grouped {count} object"
+msgid_plural "Grouped {count} objects"
+msgstr[0] "{count} Objekt gruppiert"
+msgstr[1] "{count} Objekte gruppiert"
+
+#: presstoshape/editing/operations/groups.py
+msgid "&Ungroup"
+msgstr "Gruppierung a&ufheben"
+
+#: presstoshape/editing/operations/groups.py
+msgid "Ungroup"
+msgstr "Gruppierung aufheben"
+
+#: presstoshape/editing/operations/groups.py
+msgid "Ungrouped"
+msgstr "Gruppierung aufgehoben"
 
 #: presstoshape/editing/operations/history.py
 #: presstoshape/views/actions.py
@@ -451,18 +486,22 @@ msgstr[0] "{count} Objekt gelöscht"
 msgstr[1] "{count} Objekte gelöscht"
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change X"
 msgstr "X ändern"
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change Y"
 msgstr "Y ändern"
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change width"
 msgstr "Breite ändern"
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change height"
 msgstr "Höhe ändern"
 
@@ -705,6 +744,10 @@ msgstr "sollte 6 Zahlen enthalten"
 #: presstoshape/formats/p2s.py
 msgid "should be a path segment like [\"L\", x, y]"
 msgstr "sollte ein Pfadsegment wie [\"L\", x, y] sein"
+
+#: presstoshape/formats/p2s.py
+msgid "should not be empty"
+msgstr "sollte nicht leer sein"
 
 #: presstoshape/formats/p2s.py
 msgid "should have parts and one mode per part"
@@ -993,8 +1036,13 @@ msgid "Done"
 msgstr "Fertig"
 
 #: presstoshape/views/edit_bar_view.py
-msgid "Leave this Composite (Esc)"
-msgstr "Dieses Komposit verlassen (Esc)"
+msgid "Leave this level (Esc)"
+msgstr "Eine Stufe zurück (Esc)"
+
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Group"
+msgstr "Gruppe"
 
 #: presstoshape/views/edit_bar_view.py
 #: presstoshape/views/selection_view.py
@@ -1366,6 +1414,12 @@ msgstr "Rechts: Der Text endet an seiner Position"
 #: presstoshape/views/selection_view.py
 msgid "Nothing selected"
 msgstr "Nichts ausgewählt"
+
+#: presstoshape/views/selection_view.py
+msgid "Group of {count} object"
+msgid_plural "Group of {count} objects"
+msgstr[0] "Gruppe mit {count} Objekt"
+msgstr[1] "Gruppe mit {count} Objekten"
 
 #: presstoshape/views/selection_view.py
 msgid "{count} object"

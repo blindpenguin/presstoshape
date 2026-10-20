@@ -1,7 +1,7 @@
 """Adding, removing, selecting, hiding and renaming layers."""
 
 from presstoshape.editing.operations._document import prune_selection
-from presstoshape.editing.operations.composites import leave_all
+from presstoshape.editing.operations.edit_mode import leave_all
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _

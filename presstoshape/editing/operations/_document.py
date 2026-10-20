@@ -5,7 +5,7 @@ from dataclasses import replace
 
 from presstoshape.editing import containers, queries
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import CompositeShape, PartMode, Shape
+from presstoshape.models.shapes import CompositeShape, GroupShape, PartMode, Shape
 
 
 def new_id(state: AppState) -> int:
@@ -15,11 +15,14 @@ def new_id(state: AppState) -> int:
 
 
 def with_fresh_ids(state: AppState, shapes: Sequence[Shape]) -> list[Shape]:
-    """The same shapes with new ids from the document, Composite parts included (copies must never share ids)."""
+    """The same shapes with new ids from the document, Composite parts and group children included (copies must
+    never share ids)."""
 
     def renumbered(shape: Shape) -> Shape:
         if isinstance(shape, CompositeShape):
             return replace(shape, id=new_id(state), parts=tuple(renumbered(part) for part in shape.parts))
+        if isinstance(shape, GroupShape):
+            return replace(shape, id=new_id(state), children=tuple(renumbered(child) for child in shape.children))
         return replace(shape, id=new_id(state))
 
     return [renumbered(shape) for shape in shapes]
@@ -49,14 +52,10 @@ def insert_copies(state: AppState, copies: Mapping[int, Shape], modes: Mapping[i
 
 
 def delete_selected(state: AppState) -> None:
-    """Removes the selected shapes and clears the selection. When that empties the edited Composite, it goes too
-    and its edit mode closes."""
+    """Removes the selected shapes and clears the selection. A group or Composite left empty goes too and its
+    edit mode closes (see containers.change_container)."""
     remove_shapes(state, state.selection)
     state.selection = set()
-    composite = containers.edited_composite(state)
-    if composite is not None and not composite.parts:
-        state.edit_path = state.edit_path[:-1]
-        remove_shapes(state, {composite.id})
 
 
 def replace_shape(state: AppState, updated: Shape) -> None:

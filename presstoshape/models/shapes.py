@@ -158,4 +158,27 @@ class CompositeShape:
     transform: Transform = IDENTITY_TRANSFORM
 
 
-Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape
+@dataclass(frozen=True)
+class GroupShape:
+    """Shapes kept together as one object; each child keeps its own style. Drawn as its children, composited
+    together with `opacity` when that is below 1. Has no paint of its own."""
+
+    id: int
+    children: tuple["Shape", ...]
+    opacity: float = 1.0
+    # Stays identity: transforms are applied to the children.
+    transform: Transform = IDENTITY_TRANSFORM
+
+
+Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape | GroupShape
+# Shapes that can be entered to work on the shapes inside them.
+ContainerShape = CompositeShape | GroupShape
+
+
+def children_of(shape: "Shape") -> tuple["Shape", ...]:
+    """A Composite's parts or a group's children; () for other shapes."""
+    if isinstance(shape, CompositeShape):
+        return shape.parts
+    if isinstance(shape, GroupShape):
+        return shape.children
+    return ()

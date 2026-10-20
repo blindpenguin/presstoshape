@@ -18,7 +18,7 @@ Current:
 1. **Drawing tools**: select, node, bezier pen, pencil (freehand with smoothing), rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
 2. **Direct manipulation**: scale/rotate handles on the selection, path node and bezier handle editing, object to path, cursors that show the action.
 3. **Styling**: fill and stroke with their own opacity, stroke width, object opacity, fill rule, line ends, corners and dashes per shape or multi-selection; rounded rectangle corners, text alignment; per-tool default styles in a context-sensitive tool options panel.
-4. **Layers**: add, delete, rename, hide; Inkscape-compatible.
+4. **Layers and groups**: layers can be added, deleted, renamed and hidden (Inkscape-compatible); groups bundle shapes, can be entered to edit inside them and have their own opacity; SVG groups stay groups.
 5. **Boolean operations**: union, difference, intersection, exclude, divide.
 6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
 7. **Undo/redo** for every document edit.

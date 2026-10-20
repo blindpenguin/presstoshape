@@ -6,6 +6,7 @@ from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -17,6 +18,7 @@ from presstoshape.render.export import render_png
 from presstoshape.render.handles import Frame
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache
+from presstoshape.render.picture import EditModeDrawing
 from presstoshape.render.scene import (
     draw_background,
     draw_document,
@@ -211,13 +213,16 @@ def test_composite_export_matches_canvas():
     assert tuple(int(v) for v in rgba[50, 50]) == TRANSPARENT
 
 
-def _edit_surface(chain, overlay=Overlay()):
+def _edit_surface(chain, overlay=Overlay(), drawing=None):
     doc = Document(100, 100, [Layer("L", True, [RectShape(99, 0, 0, 100, 100, Style(fill="#0000ff", stroke=None))])])
     surface = skia.Surface(100, 100)
     canvas = surface.getCanvas()
     canvas.clear(skia.ColorTRANSPARENT)
     draw_document(canvas, doc, PathCache())
-    draw_edit_mode(canvas, chain, overlay, 1.0, COLORS)
+    if drawing is None:
+        draw_edit_mode(canvas, chain, overlay, 1.0, COLORS)
+    else:
+        drawing.draw(canvas, chain, overlay, 1.0, COLORS)
     return surface
 
 
@@ -314,3 +319,51 @@ def test_anchored_text_draws_where_its_outline_is():
     bounds = PathCache().geometry_bounds(shape)
     surface = _render(_doc(shape))
     assert _pixel(surface, round((bounds.fLeft + bounds.fRight) / 2), round(bounds.centerY()))[3] == 255
+
+
+RED = Style(fill="#ff0000", stroke=None)
+BLUE = Style(fill="#0000ff", stroke=None)
+
+
+def _overlapping_group(opacity: float = 1.0) -> GroupShape:
+    return GroupShape(1, (RectShape(2, 10, 10, 40, 40, RED), RectShape(3, 30, 30, 40, 40, BLUE)), opacity)
+
+
+def test_group_at_full_opacity_draws_like_its_shapes():
+    loose = _render(_doc(*_overlapping_group().children)).makeImageSnapshot().toarray()
+    grouped = _render(_doc(_overlapping_group())).makeImageSnapshot().toarray()
+    assert (loose == grouped).all()
+
+
+def test_group_opacity_flattens_the_shapes_first():
+    surface = _render(_doc(_overlapping_group(0.5)))
+    red, green, blue, alpha = _pixel(surface, 40, 40)
+    # Where blue covers red, only blue shows, at half opacity: the red one doesn't shine through.
+    assert red == 0 and blue > 0 and abs(alpha - 128) <= 1
+    assert abs(_pixel(surface, 20, 20)[3] - 128) <= 1
+
+
+def test_transparent_group_draws_nothing():
+    assert _pixel(_render(_doc(_overlapping_group(0.0))), 40, 40) == TRANSPARENT
+
+
+def test_entered_group_shows_its_shapes_undimmed_and_dragged_live():
+    group = _overlapping_group()
+    surface = _edit_surface([group])
+    assert _pixel(surface, 20, 20) == (255, 0, 0, 255)
+    assert _pixel(surface, 5, 5)[2] < 255
+    moved = _edit_surface([group], Overlay(moving=frozenset({3}), matrix=affine.translation(20, 0)))
+    assert _pixel(moved, 40, 40) == (255, 0, 0, 255)
+    assert _pixel(moved, 80, 50) == (0, 0, 255, 255)
+
+
+def test_recorded_edit_mode_drawing_matches_the_plain_one():
+    outer = GroupShape(5, (_overlapping_group(), RectShape(6, 70, 70, 20, 20, RED)))
+    chain = [outer, outer.children[0]]
+    overlay = Overlay(moving=frozenset({3}), matrix=affine.translation(5, 5))
+    plain = _edit_surface(chain, overlay).makeImageSnapshot().toarray()
+    drawing = EditModeDrawing(PathCache())
+    # Second frame replays the recorded pictures.
+    for _frame in range(2):
+        recorded = _edit_surface(chain, overlay, drawing).makeImageSnapshot().toarray()
+        assert (recorded == plain).all()

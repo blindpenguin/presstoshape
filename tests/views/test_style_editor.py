@@ -153,3 +153,24 @@ def test_fill_rule_only_for_paths_and_composites():
     assert not panel._style.form.isRowVisible(panel._style._fill_rule)
     selection.set_selection(session, {rect, path})
     assert panel._style.form.isRowVisible(panel._style._fill_rule)
+
+
+def test_selected_group_shows_heading_bounds_and_its_opacity():
+    from presstoshape.editing.operations import groups
+
+    session, panel = _panel()
+    first = shapes.add_rectangle(session, (0, 0), (10, 10))
+    second = shapes.add_rectangle(session, (20, 0), (30, 10))
+    selection.set_selection(session, {first, second})
+    groups.group(session)
+    assert panel._heading.text() == "Group of 2 objects"
+    assert panel._form.isRowVisible(panel._spins["width"])
+    assert panel._spins["width"].px() == pytest.approx(30)
+    panel._spins["width"].set_px(1)
+    panel._spins["width"].setValue(60)
+    (group,) = all_shapes(session)
+    assert group.children[1].x + group.children[1].width == pytest.approx(60)
+    panel._style._opacity.box.setValue(40)
+    (group,) = all_shapes(session)
+    assert group.opacity == pytest.approx(0.4) and group.children[0].style.opacity == 1
+    assert panel._style._opacity.slider.value() == 40

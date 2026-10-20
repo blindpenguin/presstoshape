@@ -233,19 +233,6 @@ msgid "Flattened the Composite"
 msgstr ""
 
 #: presstoshape/editing/operations/composites.py
-msgid "Editing a Composite: Esc or Done to leave"
-msgstr ""
-
-#: presstoshape/editing/operations/composites.py
-msgid "Editing a Composite"
-msgstr ""
-
-#: presstoshape/editing/operations/composites.py
-#: presstoshape/models/app_state.py
-msgid "Ready"
-msgstr ""
-
-#: presstoshape/editing/operations/composites.py
 msgid "Change mode"
 msgstr ""
 
@@ -313,6 +300,54 @@ msgstr ""
 
 #: presstoshape/editing/operations/documents.py
 msgid "Exported {name} ({width} × {height} px)"
+msgstr ""
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a group"
+msgstr ""
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a Composite"
+msgstr ""
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a group: Esc or Done to leave"
+msgstr ""
+
+#: presstoshape/editing/operations/edit_mode.py
+msgid "Editing a Composite: Esc or Done to leave"
+msgstr ""
+
+#: presstoshape/editing/operations/edit_mode.py
+#: presstoshape/models/app_state.py
+msgid "Ready"
+msgstr ""
+
+#: presstoshape/editing/operations/groups.py
+msgid "&Group"
+msgstr ""
+
+#: presstoshape/editing/operations/groups.py
+msgctxt "command"
+msgid "Group"
+msgstr ""
+
+#: presstoshape/editing/operations/groups.py
+msgid "Grouped {count} object"
+msgid_plural "Grouped {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/groups.py
+msgid "&Ungroup"
+msgstr ""
+
+#: presstoshape/editing/operations/groups.py
+msgid "Ungroup"
+msgstr ""
+
+#: presstoshape/editing/operations/groups.py
+msgid "Ungrouped"
 msgstr ""
 
 #: presstoshape/editing/operations/history.py
@@ -450,18 +485,22 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change X"
 msgstr ""
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change Y"
 msgstr ""
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change width"
 msgstr ""
 
 #: presstoshape/editing/operations/shapes.py
+#: presstoshape/editing/operations/transform.py
 msgid "Change height"
 msgstr ""
 
@@ -703,6 +742,10 @@ msgstr ""
 
 #: presstoshape/formats/p2s.py
 msgid "should be a path segment like [\"L\", x, y]"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should not be empty"
 msgstr ""
 
 #: presstoshape/formats/p2s.py
@@ -992,7 +1035,12 @@ msgid "Done"
 msgstr ""
 
 #: presstoshape/views/edit_bar_view.py
-msgid "Leave this Composite (Esc)"
+msgid "Leave this level (Esc)"
+msgstr ""
+
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Group"
 msgstr ""
 
 #: presstoshape/views/edit_bar_view.py
@@ -1365,6 +1413,12 @@ msgstr ""
 #: presstoshape/views/selection_view.py
 msgid "Nothing selected"
 msgstr ""
+
+#: presstoshape/views/selection_view.py
+msgid "Group of {count} object"
+msgid_plural "Group of {count} objects"
+msgstr[0] ""
+msgstr[1] ""
 
 #: presstoshape/views/selection_view.py
 msgid "{count} object"

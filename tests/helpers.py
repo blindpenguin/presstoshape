@@ -60,3 +60,13 @@ def drag(driver, start, end, shift=False, ctrl=False, alt=False) -> None:
     driver.press(start, mods)
     driver.move(end, mods)
     driver.release(end, mods)
+
+
+def leaves(shapes):
+    """`shapes` with every group replaced by the shapes inside it (recursively), in order."""
+    from presstoshape.models.shapes import GroupShape
+
+    result = []
+    for shape in shapes:
+        result.extend(leaves(shape.children) if isinstance(shape, GroupShape) else [shape])
+    return result

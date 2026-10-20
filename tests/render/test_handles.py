@@ -1,7 +1,16 @@
 import pytest
 
 from presstoshape.geometry import transforms
-from presstoshape.models.shapes import CompositeShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.models.shapes import (
+    CompositeShape,
+    GroupShape,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
 from presstoshape.render.handles import (
     HANDLE_PX,
     Frame,
@@ -115,3 +124,9 @@ def test_single_composite_frame_is_axis_aligned_result_bounds():
     frame = selection_frame([composite], PathCache())
     assert frame.transform == (1, 0, 0, 1, 0, 0)
     assert frame.rect == pytest.approx((5, -5, 100, 110))
+
+
+def test_a_group_gets_an_axis_aligned_frame():
+    group = GroupShape(1, (RectShape(2, 0, 0, 10, 10, Style()), RectShape(3, 20, 30, 10, 10, Style())))
+    frame = selection_frame([group], PathCache())
+    assert frame.rect == (0, 0, 30, 40)

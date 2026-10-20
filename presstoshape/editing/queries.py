@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from presstoshape.editing import containers
 from presstoshape.geometry import transforms
 from presstoshape.models.app_state import AppState, Layer
-from presstoshape.models.shapes import CompositeShape, EllipseShape, RectShape, Shape, TextShape
+from presstoshape.models.shapes import CompositeShape, EllipseShape, RectShape, Shape, TextShape, children_of
 
 
 def active_layer(state: AppState) -> Layer:
@@ -30,14 +30,13 @@ def selected_shapes(state: AppState) -> list[Shape]:
 
 
 def find_shape(state: AppState, shape_id: int) -> Shape | None:
-    """Any shape by id, including parts nested in Composites."""
+    """Any shape by id, including parts of Composites and children of groups."""
     pending = [shape for layer in state.document.layers for shape in layer.shapes]
     while pending:
         shape = pending.pop()
         if shape.id == shape_id:
             return shape
-        if isinstance(shape, CompositeShape):
-            pending.extend(shape.parts)
+        pending.extend(children_of(shape))
     return None
 
 

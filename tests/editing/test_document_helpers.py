@@ -1,7 +1,8 @@
+from presstoshape.editing import queries
 from presstoshape.editing.operations._document import add_on_top, delete_selected, insert_copies, with_fresh_ids
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import Layer
-from presstoshape.models.shapes import CompositeShape, RectShape, Style
+from presstoshape.models.shapes import CompositeShape, GroupShape, RectShape, Style
 
 S = Style()
 
@@ -84,3 +85,21 @@ def test_deleting_the_last_parts_removes_the_composite_and_leaves_edit_mode():
     assert _ids(session.state.document.layers[0].shapes) == [1]
     assert session.state.edit_path == ()
     assert session.state.selection == set()
+
+
+def test_fresh_ids_reach_group_children():
+    session = Session()
+    session.state.document.next_id = 50
+    group = GroupShape(1, (_rect(2), GroupShape(3, (_rect(4),), opacity=0.5)), opacity=0.25)
+    (copy,) = with_fresh_ids(session.state, [group])
+    assert (copy.id, _ids(copy.children), _ids(copy.children[1].children)) == (50, [51, 52], [53])
+    assert (copy.opacity, copy.children[1].opacity) == (0.25, 0.5)
+
+
+def test_groups_are_found_inside_and_left_out_of_booleans():
+    session = Session()
+    group = GroupShape(1, (_rect(2), _rect(3)))
+    session.state.document.layers[0].shapes = [group, _rect(4)]
+    assert queries.find_shape(session.state, 3) == _rect(3)
+    session.state.selection = {1, 4}
+    assert not queries.can_combine(session.state)
