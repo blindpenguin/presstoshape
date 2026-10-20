@@ -327,3 +327,48 @@ def test_alt_drag_copies_the_whole_selection():
     current = all_shapes(session)
     assert [shape.id for shape in current[:2]] == [a, b]
     assert [(shape.x, shape.y) for shape in current[2:]] == [(0, 100), (100, 100)]
+
+
+def _flag_top(session, shape_id, **flags):
+    from dataclasses import replace
+
+    layer = session.state.document.layers[0]
+    layer.shapes = [replace(shape, **flags) if shape.id == shape_id else shape for shape in layer.shapes]
+
+
+@pytest.mark.parametrize("flag", ["hidden", "locked"])
+def test_click_and_rubber_band_skip_hidden_and_locked_shapes(flag):
+    session, g = setup_tools()
+    below = shapes.add_rectangle(session, (0, 0), (100, 100))
+    above = shapes.add_rectangle(session, (20, 20), (80, 80))
+    _flag_top(session, above, **{flag: True})
+    selection.set_selection(session, set())
+    drag(g, (50, 50), (50, 50))
+    assert session.state.selection == {below}
+    drag(g, (300, 300), (300, 300))
+    drag(g, (10, 10), (90, 90))
+    assert session.state.selection == {below}
+
+
+def test_click_on_a_locked_shape_alone_clears_the_selection():
+    session, g = setup_tools()
+    locked = shapes.add_rectangle(session, (0, 0), (100, 100))
+    other = shapes.add_rectangle(session, (200, 0), (250, 50))
+    _flag_top(session, locked, locked=True)
+    selection.set_selection(session, {other})
+    drag(g, (50, 50), (50, 50))
+    assert session.state.selection == set()
+
+
+def test_select_all_skips_hidden_locked_and_locked_layers():
+    session, g = setup_tools()
+    plain = shapes.add_rectangle(session, (0, 0), (10, 10))
+    hidden = shapes.add_rectangle(session, (0, 0), (10, 10))
+    locked = shapes.add_rectangle(session, (0, 0), (10, 10))
+    _flag_top(session, hidden, hidden=True)
+    _flag_top(session, locked, locked=True)
+    selection.select_all(session)
+    assert session.state.selection == {plain}
+    session.state.document.layers[0].locked = True
+    selection.select_all(session)
+    assert session.state.selection == set()

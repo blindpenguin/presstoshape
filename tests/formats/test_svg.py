@@ -11,6 +11,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GroupShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -117,9 +118,10 @@ def test_path_arcs_and_quads_become_cubics():
     assert segment_types == {MoveTo, CubicTo, Close}
 
 
-def test_display_none_element_skipped_and_unsupported_skipped():
+def test_defs_are_skipped_and_display_none_elements_are_kept_hidden():
     doc = read_svg(_svg('<defs><rect width="5" height="5"/></defs><rect width="5" height="5" display="none"/>'))
-    assert doc.layers[0].shapes == []
+    (shape,) = doc.layers[0].shapes
+    assert isinstance(shape, RectShape) and shape.hidden and not shape.locked
 
 
 def test_ids_are_unique_and_next_id_follows():
@@ -417,3 +419,84 @@ def test_rect_radii_and_text_anchor_are_written():
     text = _written(TextShape(1, 0, 0, "Hi", 12, Style(), anchor="end"))
     assert text.get("text-anchor") == "end"
     assert _written(TextShape(1, 0, 0, "Hi", 12, Style())).get("text-anchor") is None
+
+
+# --- hidden and locked ------------------------------------------------------------------------
+
+SODIPODI = 'xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="100" height="50"'
+
+
+def test_hidden_and_locked_flags_round_trip_everywhere():
+    red = Style(fill="#ff0000", stroke=None)
+    composite = CompositeShape(
+        5,
+        (RectShape(6, 0, 0, 40, 40, red), RectShape(7, 20, 0, 40, 40, red, hidden=True, locked=True)),
+        ("add", "subtract"),
+        red,
+        hidden=True,
+    )
+    group = GroupShape(2, (RectShape(3, 0, 0, 5, 5, red, hidden=True), RectShape(4, 9, 0, 5, 5, red)), locked=True)
+    layers = [
+        Layer("Sketch", True, [RectShape(1, 0, 0, 5, 5, red, hidden=True, locked=True), group], locked=True),
+        Layer("Top", True, [composite]),
+    ]
+    doc = read_svg(write_svg(Document(100, 100, layers)))
+    sketch, top = doc.layers
+    assert sketch.locked and not top.locked
+    rect, read_group = sketch.shapes
+    assert (rect.hidden, rect.locked) == (True, True)
+    assert read_group.locked and not read_group.hidden
+    assert [(child.hidden, child.locked) for child in read_group.children] == [(True, False), (False, False)]
+    (read_composite,) = top.shapes
+    assert isinstance(read_composite, CompositeShape) and read_composite.hidden
+    assert [(part.hidden, part.locked) for part in read_composite.parts] == [(False, False), (True, True)]
+
+
+def test_inkscape_style_hidden_and_locked_objects_and_layers():
+    body = (
+        '<g inkscape:groupmode="layer" inkscape:label="Ref" sodipodi:insensitive="true">'
+        '<rect width="5" height="5" style="display:none"/>'
+        '<g style="display:none"><rect width="5" height="5"/><circle r="2" style="display:none"/></g>'
+        '<path d="M 0 0 L 5 5" sodipodi:insensitive="true"/>'
+        "</g>"
+    )
+    doc = read_svg(_svg(body, SODIPODI))
+    (layer,) = doc.layers
+    assert layer.locked and layer.visible
+    rect, group, path = layer.shapes
+    assert rect.hidden and not rect.locked
+    assert isinstance(group, GroupShape) and group.hidden
+    assert [child.hidden for child in group.children] == [False, True]
+    assert path.locked and not path.hidden
+
+
+def test_odd_insensitive_values_are_ignored():
+    for value in ("1", "yes", "false", ""):
+        doc = read_svg(_svg(f'<rect width="5" height="5" sodipodi:insensitive="{value}"/>', SODIPODI))
+        assert not doc.layers[0].shapes[0].locked
+
+
+def test_display_none_multi_line_text_hides_every_line():
+    body = '<text style="display:none"><tspan x="0" y="10">One</tspan><tspan x="0" y="30">Two</tspan></text>'
+    shapes = read_svg(_svg(body)).layers[0].shapes
+    assert [shape.text for shape in shapes] == ["One", "Two"]
+    assert all(shape.hidden for shape in shapes)
+
+
+def test_display_none_in_symbols_and_use_targets_is_still_skipped():
+    body = (
+        '<defs><symbol id="s"><rect width="5" height="5" style="display:none"/></symbol></defs>'
+        '<rect id="r" x="20" width="5" height="5" style="display:none"/>'
+        '<use href="#s"/><use href="#r" x="10"/>'
+    )
+    shapes = read_svg(_svg(body)).layers[0].shapes
+    # Only the hidden <rect id="r"> itself; neither copy draws anything in SVG.
+    assert [(type(shape).__name__, shape.hidden) for shape in shapes] == [("RectShape", True)]
+
+
+def test_clipboard_svg_keeps_nested_flags():
+    children = (RectShape(2, 0, 0, 5, 5, Style(), hidden=True), RectShape(3, 0, 0, 5, 5, Style(), locked=True))
+    group = GroupShape(1, children)
+    shapes, _notes = read_shapes_svg(write_shapes_svg([group], (0, 0, 10, 10)))
+    (read_group,) = shapes
+    assert [(child.hidden, child.locked) for child in read_group.children] == [(True, False), (False, True)]

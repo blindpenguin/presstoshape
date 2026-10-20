@@ -1,6 +1,6 @@
-"""Adding, removing, selecting, hiding and renaming layers."""
+"""Adding, removing, selecting, hiding, locking and renaming layers."""
 
-from presstoshape.editing.operations._document import prune_selection
+from presstoshape.editing.operations._document import drop_unpickable, prune_selection
 from presstoshape.editing.operations.edit_mode import leave_all
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
@@ -57,6 +57,16 @@ def set_layer_visible(session: Session, index: int, visible: bool) -> None:
         leave_all(state)
         layer.visible = visible
         prune_selection(state)
+
+
+def set_layer_locked(session: Session, index: int, locked: bool) -> None:
+    state = session.state
+    layer = state.document.layers[index]
+    if layer.locked == locked:
+        return
+    with session.edit(_("Lock layer") if locked else _("Unlock layer")):
+        layer.locked = locked
+        drop_unpickable(state)
 
 
 def rename_layer(session: Session, index: int, name: str) -> None:

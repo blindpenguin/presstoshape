@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from presstoshape.editing import containers, queries
+from presstoshape.editing import containers
 from presstoshape.editing.operations import edit_mode, selection, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
@@ -87,7 +87,8 @@ class ToolContext:
 
     def shape_at(self, point: Point) -> int | None:
         """Top-most shape under `point`, with a few screen px of tolerance for thin strokes."""
-        shapes = queries.pickable_shapes(self.state)
+        # Asked on every hover; hit_test passes over hidden and locked shapes itself.
+        shapes = containers.active_shapes(self.state)
         return hit_test.shape_at(shapes, self.cache, point, HIT_TOLERANCE_PX * self.pixel_size)
 
 

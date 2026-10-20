@@ -197,6 +197,20 @@ def test_nested_composite_outline_uses_inner_result():
     assert bbox(transforms.outline(outer)) == pytest.approx((2, 0, 5, 10))
 
 
+def test_composite_outline_leaves_hidden_parts_out():
+    base = RectShape(1, 0, 0, 10, 10, S, hidden=True)
+    cut = RectShape(2, 0, 0, 5, 10, S)
+    top = RectShape(3, 20, 0, 5, 10, S)
+    composite = _composite(base, cut, top, modes=("add", "subtract", "add"))
+    # With the base hidden, the subtract part above it becomes the base, as if the base were deleted.
+    assert _area(transforms.outline(composite)) == pytest.approx(100)
+
+
+def test_composite_with_every_part_hidden_has_no_outline():
+    composite = _composite(RectShape(1, 0, 0, 10, 10, S, hidden=True), RectShape(2, 5, 5, 10, 10, S, hidden=True))
+    assert transforms.outline(composite) == ()
+
+
 def test_empty_composite_result():
     composite = _composite(RectShape(1, 0, 0, 10, 10, S), RectShape(2, 0, 0, 10, 10, S), modes=("add", "subtract"))
     assert transforms.outline(composite) == ()

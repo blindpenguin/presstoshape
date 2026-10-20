@@ -6,7 +6,7 @@ container, every container around it and finally the top-level one in its layer;
 one place.
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
 
 from presstoshape.models.app_state import AppState
@@ -14,22 +14,28 @@ from presstoshape.models.shapes import CompositeShape, ContainerShape, GroupShap
 
 
 def edit_chain(state: AppState) -> list[ContainerShape]:
-    """The entered Composites and groups, outer to inner, as far as `edit_path` still leads to existing ones."""
+    """The entered Composites and groups, outer to inner, as far as `edit_path` still leads to existing ones that
+    could be picked: a container that got hidden or locked, or whose layer did, ends the chain."""
     chain: list[ContainerShape] = []
-    candidates = [shape for layer in state.document.layers if layer.visible for shape in layer.shapes]
+    candidates: Iterable[Shape] = (
+        shape for layer in state.document.layers if layer.visible and not layer.locked for shape in layer.shapes
+    )
     for container_id in state.edit_path:
         found = next(
             (
                 shape
                 for shape in candidates
-                if shape.id == container_id and isinstance(shape, (CompositeShape, GroupShape))
+                if shape.id == container_id
+                and isinstance(shape, (CompositeShape, GroupShape))
+                and not shape.hidden
+                and not shape.locked
             ),
             None,
         )
         if found is None:
             break
         chain.append(found)
-        candidates = list(children_of(found))
+        candidates = children_of(found)
     return chain
 
 
@@ -69,12 +75,54 @@ def container_lists(state: AppState) -> list[list[Shape]]:
     return [list(layer.shapes) for layer in state.document.layers]
 
 
-def pickable_shapes(state: AppState) -> list[Shape]:
-    """What the user can select right now, bottom to top: visible layer shapes, or the entered shapes."""
+def shown_shapes(state: AppState) -> list[Shape]:
+    """Drawn shapes of the active container, bottom to top: visible layers' shapes or the entered shapes, without
+    hidden ones; locked ones included (they stay snap targets)."""
     container = edited_container(state)
     if container is not None:
-        return list(children_of(container))
-    return [shape for layer in state.document.layers if layer.visible for shape in layer.shapes]
+        return [shape for shape in children_of(container) if not shape.hidden]
+    return [shape for layer in state.document.layers if layer.visible for shape in layer.shapes if not shape.hidden]
+
+
+def pickable_shapes(state: AppState) -> list[Shape]:
+    """What the user can select right now, bottom to top: `shown_shapes` without locked ones and without the
+    shapes of locked layers."""
+    return [shape for shape in active_shapes(state) if not shape.hidden and not shape.locked]
+
+
+def active_shapes(state: AppState) -> Sequence[Shape]:
+    """The entered shapes, or the shapes of visible, unlocked layers, hidden and locked ones included. For hot
+    paths that check the flags of only the few shapes they keep (see queries.selected_shapes)."""
+    container = edited_container(state)
+    if container is not None:
+        return children_of(container)
+    return [shape for layer in state.document.layers if layer.visible and not layer.locked for shape in layer.shapes]
+
+
+def map_shapes(state: AppState, change: Callable[[Shape], Shape]) -> list[Shape]:
+    """Applies `change` to every shape in the document, containers' insides included (a container before its
+    children), rebuilding only the containers whose contents changed, so unchanged shapes keep their identity.
+    Returns the shapes `change` replaced, in their final versions."""
+    replaced: list[Shape] = []
+    for layer in state.document.layers:
+        mapped = [_mapped(shape, change, replaced) for shape in layer.shapes]
+        if any(new is not old for new, old in zip(mapped, layer.shapes)):
+            layer.shapes = mapped
+    return replaced
+
+
+def _mapped(shape: Shape, change: Callable[[Shape], Shape], replaced: list[Shape]) -> Shape:
+    changed = change(shape)
+    result = changed
+    children = children_of(changed)
+    if children:
+        mapped = [_mapped(child, change, replaced) for child in children]
+        if any(new is not old for new, old in zip(mapped, children)):
+            # Every part keeps its id, so the mode fallback is never used.
+            result = with_children(changed, mapped, "add")
+    if changed is not shape:
+        replaced.append(result)
+    return result
 
 
 def change_container(

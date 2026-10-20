@@ -8,18 +8,22 @@ from presstoshape.views import theme
 
 
 class SvgIconEngine(QIconEngine):
-    """Renders the SVG at whatever size/DPR Qt asks for, recoloring Tabler's currentColor per mode/state."""
+    """Renders the SVG at whatever size/DPR Qt asks for, recoloring Tabler's currentColor per mode/state.
+    A dimmed icon uses the disabled colour in every mode; one that isn't `checkable` ignores the On state, which
+    item views also set for expanded rows."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, dimmed: bool = False, checkable: bool = True) -> None:
         super().__init__()
         self._path = path
+        self._dimmed = dimmed
+        self._checkable = checkable
         self._source = path.read_text()
         self._renderers: dict[str, QSvgRenderer] = {}
 
     def _renderer(self, mode: QIcon.Mode, state: QIcon.State) -> QSvgRenderer:
-        if mode == QIcon.Mode.Disabled:
+        if mode == QIcon.Mode.Disabled or self._dimmed:
             color = theme.ICON_DISABLED
-        elif state == QIcon.State.On:
+        elif state == QIcon.State.On and self._checkable:
             color = theme.ICON_ACTIVE
         else:
             color = theme.ICON_NORMAL
@@ -45,8 +49,8 @@ class SvgIconEngine(QIconEngine):
         return pixmap
 
     def clone(self):
-        return SvgIconEngine(self._path)
+        return SvgIconEngine(self._path, self._dimmed, self._checkable)
 
 
-def icon(path: Path) -> QIcon:
-    return QIcon(SvgIconEngine(path))
+def icon(path: Path, dimmed: bool = False, checkable: bool = True) -> QIcon:
+    return QIcon(SvgIconEngine(path, dimmed, checkable))

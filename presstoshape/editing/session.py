@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 
 from presstoshape.editing import containers
 from presstoshape.i18n import _
-from presstoshape.models.app_state import AppState, Document, Layer
+from presstoshape.models.app_state import AppState, Document
 
 _UNDO_LIMIT = 200
 
@@ -25,7 +25,7 @@ class _Step:
 
 def _copy_document(doc: Document) -> Document:
     # Shapes are frozen, so copying the layer lists is enough to isolate a snapshot.
-    layers = [Layer(layer.name, layer.visible, list(layer.shapes)) for layer in doc.layers]
+    layers = [replace(layer, shapes=list(layer.shapes)) for layer in doc.layers]
     return replace(doc, layers=layers)
 
 

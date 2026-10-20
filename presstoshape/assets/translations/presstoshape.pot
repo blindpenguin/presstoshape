@@ -6,6 +6,38 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Text"
+msgstr ""
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Rectangle"
+msgstr ""
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Ellipse"
+msgstr ""
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Path"
+msgstr ""
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Group"
+msgstr ""
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Composite"
+msgstr ""
+
 #: presstoshape/editing/operations/align.py
 msgid "&Left"
 msgstr ""
@@ -213,6 +245,10 @@ msgid "layer '{name}' is hidden"
 msgstr ""
 
 #: presstoshape/editing/operations/clipboard.py
+msgid "layer '{name}' is locked"
+msgstr ""
+
+#: presstoshape/editing/operations/clipboard.py
 msgid "Paste"
 msgstr ""
 
@@ -391,16 +427,16 @@ msgid "Editing a Composite"
 msgstr ""
 
 #: presstoshape/editing/operations/edit_mode.py
+#: presstoshape/models/app_state.py
+msgid "Ready"
+msgstr ""
+
+#: presstoshape/editing/operations/edit_mode.py
 msgid "Editing a group: Esc or Done to leave"
 msgstr ""
 
 #: presstoshape/editing/operations/edit_mode.py
 msgid "Editing a Composite: Esc or Done to leave"
-msgstr ""
-
-#: presstoshape/editing/operations/edit_mode.py
-#: presstoshape/models/app_state.py
-msgid "Ready"
 msgstr ""
 
 #: presstoshape/editing/operations/groups.py
@@ -492,6 +528,14 @@ msgstr ""
 
 #: presstoshape/editing/operations/layers.py
 msgid "Hide layer"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+msgid "Lock layer"
+msgstr ""
+
+#: presstoshape/editing/operations/layers.py
+msgid "Unlock layer"
 msgstr ""
 
 #: presstoshape/editing/operations/layers.py
@@ -648,6 +692,10 @@ msgstr ""
 
 #: presstoshape/editing/operations/shapes.py
 msgid "Layer '{name}' is hidden"
+msgstr ""
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Layer '{name}' is locked"
 msgstr ""
 
 #: presstoshape/editing/operations/shapes.py
@@ -926,6 +974,82 @@ msgstr ""
 
 #: presstoshape/editing/operations/view.py
 msgid "&Nodes"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "H&ide Selection"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Hide"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object hidden. Object → Show All brings it back"
+msgid_plural "{count} objects hidden. Object → Show All brings them back"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "&Show All"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Nothing to show"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Show all"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object shown"
+msgid_plural "{count} objects shown"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "L&ock Selection"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Lock"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object locked. Object → Unlock All unlocks it"
+msgid_plural "{count} objects locked. Object → Unlock All unlocks them"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "U&nlock All"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Nothing to unlock"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Unlock all"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object unlocked"
+msgid_plural "{count} objects unlocked"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Show"
+msgstr ""
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Unlock"
 msgstr ""
 
 #: presstoshape/editing/session.py
@@ -1337,16 +1461,6 @@ msgstr ""
 msgid "Leave this level (Esc)"
 msgstr ""
 
-#: presstoshape/views/edit_bar_view.py
-#: presstoshape/views/selection_view.py
-msgid "Group"
-msgstr ""
-
-#: presstoshape/views/edit_bar_view.py
-#: presstoshape/views/selection_view.py
-msgid "Composite"
-msgstr ""
-
 #: presstoshape/views/export_dialog.py
 #: presstoshape/views/main_window.py
 msgid "Export PNG"
@@ -1709,22 +1823,6 @@ msgstr ""
 
 #: presstoshape/views/selection_view.py
 msgid "Radius Y"
-msgstr ""
-
-#: presstoshape/views/selection_view.py
-msgid "Rectangle"
-msgstr ""
-
-#: presstoshape/views/selection_view.py
-msgid "Ellipse"
-msgstr ""
-
-#: presstoshape/views/selection_view.py
-msgid "Path"
-msgstr ""
-
-#: presstoshape/views/selection_view.py
-msgid "Text"
 msgstr ""
 
 #: presstoshape/views/selection_view.py

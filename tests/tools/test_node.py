@@ -144,3 +144,14 @@ def test_arrow_keys_with_alt_move_one_screen_pixel_and_report_nothing_to_move():
     assert queries.find_shape(session.state, sid).segments[0].x == -0.25
     selection.set_selection(session, set())
     assert not g.nudge(1, 0, NONE)
+
+
+def test_node_tool_cant_pick_a_locked_path():
+    from dataclasses import replace
+
+    session, g, sid = _node_setup()
+    selection.set_selection(session, set())
+    layer = session.state.document.layers[0]
+    layer.shapes = [replace(shape, locked=True) for shape in layer.shapes]
+    drag(g, (100, 0), (100, 0))
+    assert session.state.selection == set() and session.state.node_selection == set()

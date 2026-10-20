@@ -95,3 +95,13 @@ def test_undo_keeps_the_documents_unit_and_dpi():
     shapes.add_rectangle(session, (0, 0), (10, 10))
     session.undo()
     assert (session.state.document.unit, session.state.document.dpi) == ("mm", 300)
+
+
+def test_undo_keeps_layer_lock(session):
+    with session.edit("Lock layer") as state:
+        state.document.layers[0].locked = True
+    _add_rect(session, 1)
+    session.undo()
+    assert session.state.document.layers[0].locked
+    session.undo()
+    assert not session.state.document.layers[0].locked

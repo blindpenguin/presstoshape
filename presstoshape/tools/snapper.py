@@ -22,9 +22,9 @@ _MARGIN = 0.1
 
 def shape_points(shape: Shape) -> list[Point]:
     """Points of a shape's outline that snap: path nodes, rectangle corners, ellipse extremes; a group's from
-    its children. Text has none."""
+    its shown children. Text has none."""
     if isinstance(shape, GroupShape):
-        return [point for child in shape.children for point in shape_points(child)]
+        return [point for child in shape.children if not child.hidden for point in shape_points(child)]
     segments = transforms.outline(shape)
     if not segments:
         return []
@@ -90,7 +90,7 @@ class Snapper:
             area = (visible[0] - margin_x, visible[1] - margin_y, visible[2] + 2 * margin_x, visible[3] + 2 * margin_y)
         excluded = set(exclude)
         if settings.objects or settings.nodes:
-            for shape in queries.pickable_shapes(state):
+            for shape in queries.shown_shapes(state):
                 if shape.id in excluded:
                     continue
                 box = _box(cache, shape)

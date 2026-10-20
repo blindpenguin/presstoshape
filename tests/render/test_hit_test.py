@@ -185,3 +185,27 @@ def test_group_bounds_are_its_shapes():
     group = _group_doc().layers[0].shapes[0]
     bounds = PathCache().geometry_bounds(group)
     assert (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()) == (0, 0, 60, 60)
+
+
+def test_a_hidden_group_child_is_not_hit_and_not_framed():
+    group = GroupShape(1, (RectShape(2, 0, 0, 10, 10, FILLED), RectShape(3, 50, 50, 10, 10, FILLED, hidden=True)))
+    doc, cache = _doc([group]), PathCache()
+    assert shape_at(_pickable(doc), cache, (55, 55), 0) is None
+    assert shape_at(_pickable(doc), cache, (5, 5), 0) == 1
+    assert shapes_in_rect(_pickable(doc), cache, (45, 45, 20, 20)) == set()
+    bounds = cache.geometry_bounds(group)
+    assert (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()) == (0, 0, 10, 10)
+    assert (cache.bounds(group).right(), cache.bounds(group).bottom()) == (10, 10)
+
+
+def test_a_group_with_every_child_hidden_keeps_its_full_bounds():
+    children = (RectShape(2, 0, 0, 10, 10, FILLED, hidden=True), RectShape(3, 50, 50, 10, 10, FILLED, hidden=True))
+    bounds = PathCache().geometry_bounds(GroupShape(1, children))
+    assert (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()) == (0, 0, 60, 60)
+
+
+def test_hidden_and_locked_shapes_are_passed_over_by_point_hits():
+    below = RectShape(1, 0, 0, 100, 100, FILLED)
+    hidden = RectShape(2, 0, 0, 100, 100, FILLED, hidden=True)
+    locked = RectShape(3, 0, 0, 100, 100, FILLED, locked=True)
+    assert shape_at([below, hidden, locked], PathCache(), (50, 50), 0) == 1

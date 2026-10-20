@@ -55,6 +55,16 @@ ICONS = {
     "distribute_centers_x": "layout-distribute-vertical",
     "distribute_centers_y": "layout-distribute-horizontal",
     "snapping": "magnet",
+    "visible": "eye",
+    "hidden": "eye-off",
+    "locked": "lock",
+    "unlocked": "lock-open",
+    "object_rect": "square",
+    "object_ellipse": "circle",
+    "object_path": "vector-bezier",
+    "object_text": "typography",
+    "object_group": "box-multiple",
+    "object_composite": "layers-union",
 }
 
 

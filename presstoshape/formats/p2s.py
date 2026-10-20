@@ -5,7 +5,7 @@ import io
 import json
 import math
 import zipfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, get_args
 
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, upgrade
@@ -117,6 +117,15 @@ def _numbers(**values: float) -> dict[str, float]:
 
 
 def encode_shape(shape: Shape) -> dict[str, Any]:
+    fields = _encode_shape(shape)
+    if shape.hidden:
+        fields["hidden"] = True
+    if shape.locked:
+        fields["locked"] = True
+    return fields
+
+
+def _encode_shape(shape: Shape) -> dict[str, Any]:
     if isinstance(shape, GroupShape):
         # No style and no transform: a group has no paint of its own and its children carry the transforms.
         fields: dict[str, Any] = {
@@ -154,16 +163,21 @@ def encode_shape(shape: Shape) -> dict[str, Any]:
     return fields
 
 
+def _encode_layer(layer: Layer) -> dict[str, Any]:
+    fields: dict[str, Any] = {"name": layer.name, "visible": layer.visible}
+    if layer.locked:
+        fields["locked"] = True
+    fields["shapes"] = [encode_shape(shape) for shape in layer.shapes]
+    return fields
+
+
 def encode_document(document: Document) -> dict[str, Any]:
     fields: dict[str, Any] = {
         **_numbers(width=document.width, height=document.height),
         "unit": document.unit,
         "dpi": _number(document.dpi),
         "next_id": document.next_id,
-        "layers": [
-            {"name": layer.name, "visible": layer.visible, "shapes": [encode_shape(shape) for shape in layer.shapes]}
-            for layer in document.layers
-        ],
+        "layers": [_encode_layer(layer) for layer in document.layers],
     }
     if document.guides:
         fields["guides"] = [
@@ -311,6 +325,15 @@ def _decode_segment(value: Any, where: str) -> Segment:
 
 def decode_shape(value: Any, where: str) -> Shape:
     fields = read_object(value, where)
+    shape = _decode_shape(fields, where)
+    hidden = _optional_bool(fields, "hidden", where)
+    locked = _optional_bool(fields, "locked", where)
+    if hidden or locked:
+        shape = replace(shape, hidden=bool(hidden), locked=bool(locked))
+    return shape
+
+
+def _decode_shape(fields: dict[str, Any], where: str) -> Shape:
     shape_type = _field(fields, "type", where)
     shape_id = read_int(_field(fields, "id", where), f"{where}.id", minimum=0)
     if shape_type == "group":
@@ -395,7 +418,8 @@ def decode_document(value: Any, where: str = "document") -> Document:
         shape_values = read_list(_field(layer_fields, "shapes", layer_where), f"{layer_where}.shapes")
         shapes = [decode_shape(item, f"{layer_where}.shapes[{number}]") for number, item in enumerate(shape_values)]
         name = read_string(_field(layer_fields, "name", layer_where), f"{layer_where}.name")
-        layers.append(Layer(name, visible, shapes))
+        locked = bool(_optional_bool(layer_fields, "locked", layer_where))
+        layers.append(Layer(name, visible, shapes, locked))
     if not layers:
         raise _damaged(f"{where}.layers", _("should have at least one layer"))
     guides = _decode_guides(fields.get("guides", []), f"{where}.guides")

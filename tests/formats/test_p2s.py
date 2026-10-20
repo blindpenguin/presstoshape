@@ -151,6 +151,9 @@ def _broken(change) -> str:
         (lambda doc: doc["layers"][3]["shapes"][0]["style"].update(dashes="4 2"), "style.dashes"),
         (lambda doc: doc["layers"][3]["shapes"][0].update(rx=-1), "shapes[0].rx"),
         (lambda doc: doc["layers"][3]["shapes"][1].update(anchor="left"), "shapes[1].anchor"),
+        (lambda doc: doc["layers"][3]["shapes"][0].update(hidden="yes"), "shapes[0].hidden"),
+        (lambda doc: doc["layers"][3]["shapes"][2]["parts"][0].update(locked=1), "parts[0].locked"),
+        (lambda doc: doc["layers"][3].update(locked="no"), "document.layers[3].locked"),
     ],
 )
 def test_damaged_documents_name_the_broken_place(change, where):
@@ -420,3 +423,35 @@ def test_saved_view_state_is_applied_on_open(tmp_path):
     session = Session()
     documents.open_file(session, str(target))
     assert session.state.view.show_grid and session.state.view.lock_guides and session.state.view.show_guides
+
+
+def _flagged_document() -> Document:
+    composite = CompositeShape(
+        5, (RectShape(6, 0, 0, 9, 9, RED, hidden=True), RectShape(7, 0, 0, 5, 5, RED)), ("add", "subtract"), RED
+    )
+    group = GroupShape(2, (RectShape(3, 0, 0, 5, 5, RED, hidden=True), RectShape(4, 0, 0, 5, 5, RED)), locked=True)
+    return Document(
+        width=100.0,
+        height=100.0,
+        layers=[
+            Layer("Sketch", True, [RectShape(1, 0, 0, 5, 5, RED, hidden=True, locked=True), group], locked=True),
+            Layer("Top", True, [composite, EllipseShape(8, 5, 5, 2, 2, RED)]),
+        ],
+        next_id=9,
+    )
+
+
+def test_hidden_and_locked_flags_round_trip_everywhere():
+    original = _flagged_document()
+    assert _round_trip(original) == original
+
+
+def test_flags_are_written_only_when_set():
+    encoded = encode_document(_flagged_document())
+    sketch, top = encoded["layers"]
+    assert sketch["locked"] is True and "locked" not in top
+    assert (sketch["shapes"][0]["hidden"], sketch["shapes"][0]["locked"]) == (True, True)
+    assert "hidden" not in sketch["shapes"][1] and sketch["shapes"][1]["locked"] is True
+    assert "hidden" not in top["shapes"][1] and "locked" not in top["shapes"][1]
+    assert top["shapes"][0]["parts"][0]["hidden"] is True
+    assert json.dumps(encode_document(_round_trip(_flagged_document()))) == json.dumps(encoded)

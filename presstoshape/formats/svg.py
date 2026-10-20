@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 
 from presstoshape.formats.svg_namedview import namedview_element
-from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, LABEL, MODE, q
+from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, q
 from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
 from presstoshape.formats.svg_reader import read_shapes_svg, read_svg, read_svg_with_notes
@@ -77,6 +77,8 @@ def write_svg(doc: Document) -> str:
         attrs = {"id": f"layer{i}", GROUPMODE: "layer", LABEL: layer.name}
         if not layer.visible:
             attrs["style"] = "display:none"
+        if layer.locked:
+            attrs[INSENSITIVE] = "true"
         group = ET.SubElement(root, q("g"), attrs)
         for shape in layer.shapes:
             group.append(_shape_element(shape))
@@ -103,6 +105,10 @@ def _shape_element(shape: Shape) -> ET.Element:
     transform = transform_attr(shape.transform)
     if transform is not None:
         element.set("transform", transform)
+    if shape.hidden:
+        element.set("style", "display:none")
+    if shape.locked:
+        element.set(INSENSITIVE, "true")
     return element
 
 

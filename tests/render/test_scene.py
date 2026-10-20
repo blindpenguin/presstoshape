@@ -421,3 +421,23 @@ def test_snap_feedback_draws_a_line_and_a_label():
 def test_png_export_has_no_guides_or_grid():
     doc = Document(100, 100, [Layer("L", True, [])], guides=(Guide(1, "vertical", 50.0),))
     assert render_png(doc, 1.0) == render_png(Document(100, 100, [Layer("L", True, [])]), 1.0)
+
+
+def test_hidden_shape_is_not_drawn():
+    red = Style(fill="#ff0000", stroke=None)
+    surface = _render(_doc(RectShape(1, 10, 10, 50, 50, red, hidden=True)))
+    assert _pixel(surface, 30, 30) == TRANSPARENT
+
+
+def test_hidden_group_child_is_not_drawn():
+    red, green = Style(fill="#ff0000", stroke=None), Style(fill="#00ff00", stroke=None)
+    group = GroupShape(1, (RectShape(2, 0, 0, 40, 40, red), RectShape(3, 50, 50, 40, 40, green, hidden=True)))
+    surface = _render(_doc(group))
+    assert _pixel(surface, 20, 20) == (255, 0, 0, 255)
+    assert _pixel(surface, 70, 70) == TRANSPARENT
+
+
+def test_hidden_shape_is_not_exported():
+    shape = RectShape(1, 0, 0, 100, 100, Style(fill="#ff0000", stroke=None), hidden=True)
+    image = skia.Image.MakeFromEncoded(render_png(_doc(shape), 1.0))
+    assert tuple(int(v) for v in image.toarray(colorType=skia.kRGBA_8888_ColorType)[50, 50]) == TRANSPARENT

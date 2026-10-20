@@ -22,6 +22,7 @@ class Layer:
     name: str
     visible: bool = True
     shapes: list[Shape] = field(default_factory=list)
+    locked: bool = False
 
 
 # Units lengths are shown and entered in. Coordinates are always document pixels (1/dpi inch).

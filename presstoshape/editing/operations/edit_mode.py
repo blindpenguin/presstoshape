@@ -19,15 +19,23 @@ def enter(session: Session, shape_id: int) -> None:
     target = next((shape for shape in queries.pickable_shapes(state) if shape.id == shape_id), None)
     if not isinstance(target, (CompositeShape, GroupShape)):
         return
-    state.edit_path = (*containers.valid_edit_path(state), shape_id)
+    enter_path(state, (*containers.valid_edit_path(state), shape_id))
+    session.end_merge()
+    session.notify()
+
+
+def enter_path(state: AppState, path: tuple[int, ...]) -> None:
+    """Enters the containers on `path` (outer to inner, each pickable at its level) with nothing selected."""
+    state.edit_path = path
     state.selection = set()
     state.node_selection = frozenset()
-    if isinstance(target, GroupShape):
+    container = containers.edited_container(state)
+    if container is None:
+        state.status_message = _("Ready")
+    elif isinstance(container, GroupShape):
         state.status_message = _("Editing a group: Esc or Done to leave")
     else:
         state.status_message = _("Editing a Composite: Esc or Done to leave")
-    session.end_merge()
-    session.notify()
 
 
 def leave(session: Session, levels: int = 1) -> None:

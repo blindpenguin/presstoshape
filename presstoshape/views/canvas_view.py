@@ -7,7 +7,7 @@ from PySide6.QtCore import QEvent, QPoint, QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractScrollArea, QDialog, QInputDialog, QWidget
 
-from presstoshape.editing import containers, queries
+from presstoshape.editing import containers
 from presstoshape.editing.operations import guides, view
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
@@ -227,7 +227,8 @@ class CanvasView(QAbstractScrollArea):
         if view.show_guides or overlay.guide_preview is not None:
             shown = state.document.guides if view.show_guides else ()
             draw_guides(canvas, shown, visible, parse_color(theme.GUIDE), overlay.guide_preview)
-        draw_overlays(canvas, queries.pickable_shapes(state), overlay, self._cache, self._vp.zoom, _COLORS)
+        # Only selected shapes get a box, and selected shapes are always pickable: no need to filter every frame.
+        draw_overlays(canvas, containers.active_shapes(state), overlay, self._cache, self._vp.zoom, _COLORS)
 
     # --- rulers and new guides -------------------------------------------------
 

@@ -1,7 +1,7 @@
 """Model shapes as cached Skia paths, rebuilt only when the frozen shape changes."""
 
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
 import skia
 
@@ -110,6 +110,13 @@ def _bounds(shape: Shape, path: skia.Path) -> skia.Rect:
     return rect
 
 
+def _framed(children: Sequence[Shape]) -> Sequence[Shape]:
+    """The children a container's bounds cover: the shown ones, or all when every one is hidden, so a
+    container never collapses to an empty box."""
+    shown = [child for child in children if not child.hidden]
+    return shown or children
+
+
 class PathCache:
     """Keyed by shape id; an entry is valid while its stored shape equals the current one."""
 
@@ -123,13 +130,13 @@ class PathCache:
         if entry is None or (entry[0] is not shape and entry[0] != shape):
             if isinstance(shape, GroupShape):
                 # Never drawn as one path; picked and framed through its children.
-                entry = (shape, skia.Path(), self._union(self.bounds(child) for child in shape.children))
+                entry = (shape, skia.Path(), self._union(self.bounds(child) for child in _framed(shape.children)))
                 self._paths[shape.id] = entry
                 return entry
             path = _build(shape)
             bounds = _bounds(shape, path)
             if isinstance(shape, CompositeShape) and path.isEmpty():
-                bounds = self._union(self.bounds(part) for part in shape.parts)
+                bounds = self._union(self.bounds(part) for part in _framed(shape.parts))
             entry = (shape, path, bounds)
             self._paths[shape.id] = entry
         return entry
@@ -163,10 +170,10 @@ class PathCache:
         """Tight bounds of the transformed geometry, without stroke. An empty Composite uses its parts' bounds,
         so it can still be found, selected and framed; a group its children's."""
         if isinstance(shape, GroupShape):
-            return self._union(self.geometry_bounds(child) for child in shape.children)
+            return self._union(self.geometry_bounds(child) for child in _framed(shape.children))
         path = self.get(shape)
         if isinstance(shape, CompositeShape) and path.isEmpty():
-            return self._union(self.geometry_bounds(part) for part in shape.parts)
+            return self._union(self.geometry_bounds(part) for part in _framed(shape.parts))
         return path.computeTightBounds()
 
     def prune(self, live_ids: Iterable[int]) -> None:

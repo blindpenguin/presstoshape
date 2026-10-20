@@ -1,7 +1,7 @@
 """Composites: make, release and flatten them, enter and leave their edit mode, and set part modes."""
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations._document import map_selected, new_id, replace_with
+from presstoshape.editing.operations._document import map_selected, new_id, prune_selection, replace_with
 from presstoshape.editing.registry import operation, register
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
@@ -94,6 +94,7 @@ def release_composite(session: Session) -> None:
 
         containers.change_container(state, unpack, modes if containers.edited_composite(state) else None)
         state.selection = {part.id for composite in composites for part in composite.parts}
+        prune_selection(state)
         state.status_message = _("Released the Composite")
 
 

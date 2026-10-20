@@ -19,6 +19,8 @@ MODE = f"{{{PRESSTOSHAPE_NS}}}mode"
 PART_MODES = ("add", "subtract", "intersect", "exclude")
 GROUPMODE = f"{{{INKSCAPE_NS}}}groupmode"
 LABEL = f"{{{INKSCAPE_NS}}}label"
+# Inkscape marks locked objects and layers with sodipodi:insensitive="true".
+INSENSITIVE = f"{{{SODIPODI_NS}}}insensitive"
 XLINK_HREF = f"{{{XLINK_NS}}}href"
 SVG_PREFIX = f"{{{SVG_NS}}}"
 

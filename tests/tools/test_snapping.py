@@ -176,3 +176,18 @@ def test_targets_build_quickly_for_a_large_drawing():
     assert elapsed < 0.2
     session.state.snapping = replace(session.state.snapping, enabled=False)
     assert context.snapper().point((401, 0)) == (401, 0)
+
+
+def test_a_locked_shape_is_a_snap_target_but_a_hidden_one_is_not():
+    from dataclasses import replace as replace_shape
+
+    for flag, snaps in (("locked", True), ("hidden", False)):
+        session, g, rect = _select_setup()
+        other = shapes.add_rectangle(session, (500, 20), (540, 60))
+        layer = session.state.document.layers[0]
+        layer.shapes = [replace_shape(shape, **{flag: True}) if shape.id == other else shape for shape in layer.shapes]
+        selection.set_selection(session, {rect})
+        g.press((210, 210), NONE)
+        g.move((518, 210), NONE)
+        assert any(hit.axis == "x" and hit.target == "centre" for hit in g.overlay.snap) == snaps
+        g.release((518, 210), NONE)

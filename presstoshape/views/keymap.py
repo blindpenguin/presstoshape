@@ -93,6 +93,10 @@ KEYMAP: dict[str, Binding] = {
     "path.make_composite": Binding("Ctrl+Alt+C"),
     "object.group": Binding("Ctrl+G"),
     "object.ungroup": Binding("Ctrl+Shift+G"),
+    "object.hide": Binding("Ctrl+3", icons.HIDDEN),
+    "object.show_all": Binding("Ctrl+Alt+3"),
+    "object.lock": Binding("Ctrl+2", icons.LOCKED),
+    "object.unlock_all": Binding("Ctrl+Alt+2"),
     # Figma's bindings; Inkscape's plain H / V would clash with the Select tool's V.
     "object.flip_horizontal": Binding("Shift+H"),
     "object.flip_vertical": Binding("Shift+V"),
@@ -159,6 +163,7 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
         N_("&Object"),
         [
             "object.group", "object.ungroup", None,
+            "object.hide", "object.show_all", "object.lock", "object.unlock_all", None,
             "object.flip_horizontal", "object.flip_vertical", None,
             (N_("&Align"), ALIGN_IDS), (N_("&Distribute"), DISTRIBUTE_IDS), None,
             *ARRANGE_IDS,

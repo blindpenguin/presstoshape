@@ -11,6 +11,7 @@ approximated and counted as a note (formats/svg_notes.py). svgelements' own docu
 
 import math
 import xml.etree.ElementTree as ET
+from dataclasses import replace
 
 import svgelements as se
 
@@ -19,6 +20,7 @@ from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_names import (
     COMPOSITE,
     GROUPMODE,
+    INSENSITIVE,
     LABEL,
     MODE,
     PART_MODES,
@@ -167,7 +169,7 @@ def _read_layers(root: ET.Element, base_matrix: Affine, page: Page | None = None
             # Hidden layers still hold content, so read their children despite display:none.
             visible = style.pop("display", None) != "none"
             name = child.get(LABEL) or child.get("id") or layer_name(len(layers) + 1)
-            layer = Layer(name, visible)
+            layer = Layer(name, visible, locked=_locked(child))
             matrix = compose(base_matrix, parse_transform(child.get("transform")))
             reader.visit_group(child, style, matrix, layer.shapes, base_opacity)
             layers.append(layer)
@@ -185,6 +187,10 @@ def _read_layers(root: ET.Element, base_matrix: Affine, page: Page | None = None
     guides, grid = read_namedview(root, page, reader.new_id, reader.notes) if page is not None else ((), None)
     document = Document(layers=layers or [Layer(layer_name(1))], next_id=reader.next_id, guides=guides, grid=grid)
     return document, reader.notes.messages()
+
+
+def _locked(element: ET.Element) -> bool:
+    return (element.get(INSENSITIVE) or "").strip() == "true"
 
 
 def _local_name(element: ET.Element) -> str | None:
@@ -254,8 +260,26 @@ class _Reader:
         if tag is None or tag in _NOT_RENDERED:
             return
         style = self.style(inherited, element)
-        if style.get("display") == "none":
+        hidden = style.get("display") == "none"
+        # What a <use> copies is drawn only where SVG renders it; elsewhere display:none is kept as hidden.
+        if hidden and uses:
             return
+        before = len(out)
+        self._visit_shown(tag, element, style, matrix, out, opacity, uses)
+        locked = _locked(element)
+        if hidden or locked:
+            out[before:] = [replace(shape, hidden=hidden, locked=locked) for shape in out[before:]]
+
+    def _visit_shown(
+        self,
+        tag: str,
+        element: ET.Element,
+        style: dict[str, str],
+        matrix: Affine,
+        out: list[Shape],
+        opacity: float,
+        uses: tuple[str, ...],
+    ) -> None:
         if tag == "svg":
             self.notes.add(Note.NESTED_SVG)
             return
@@ -391,6 +415,8 @@ class _Reader:
                 )
                 if part is None:
                     raise ValueError("unreadable composite part")
+                if child_style.get("display") == "none" or _locked(child):
+                    part = replace(part, hidden=child_style.get("display") == "none", locked=_locked(child))
                 mode = child.get(MODE, "add")
                 parts.append(part)
                 modes.append(mode if mode in PART_MODES else "add")

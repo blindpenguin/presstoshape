@@ -2,7 +2,7 @@
 
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from presstoshape.editing import containers, queries
 from presstoshape.editing.operations._document import add_on_top, delete_selected, insert_copies, with_fresh_ids
@@ -112,8 +112,11 @@ def paste(session: Session, native: bytes | None, svg: str | None, center: Point
     layer = queries.active_layer(state)
     if not inside and not layer.visible:
         notes = [*notes, _("layer '{name}' is hidden").format(name=layer.name)]
+    if not inside and layer.locked:
+        notes = [*notes, _("layer '{name}' is locked").format(name=layer.name)]
     with session.edit(_("Paste") if center is not None else _("Paste in Place")):
-        pasted = with_fresh_ids(state, shapes)
+        # Copied shapes were selected, so neither hidden nor locked; a foreign SVG may say otherwise.
+        pasted = [replace(shape, hidden=False, locked=False) for shape in with_fresh_ids(state, shapes)]
         add_on_top(state, pasted)
         state.selection = {shape.id for shape in pasted}
         state.node_selection = frozenset()

@@ -3,7 +3,7 @@
 from dataclasses import replace
 
 from presstoshape.editing import containers, queries
-from presstoshape.editing.operations._document import new_id
+from presstoshape.editing.operations._document import new_id, prune_selection
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _, ngettext, pgettext
@@ -71,6 +71,7 @@ def ungroup(session: Session) -> None:
 
         containers.change_container(state, unpack)
         state.selection = {child.id for children in released.values() for child in children}
+        prune_selection(state)
         state.status_message = _("Ungrouped")
 
 

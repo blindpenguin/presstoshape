@@ -107,6 +107,8 @@ class RectShape:
     # Corner radii, clamped to half the width / height when drawn (as SVG does).
     rx: float = 0.0
     ry: float = 0.0
+    hidden: bool = False
+    locked: bool = False
 
 
 @dataclass(frozen=True)
@@ -118,6 +120,8 @@ class EllipseShape:
     ry: float
     style: Style
     transform: Transform = IDENTITY_TRANSFORM
+    hidden: bool = False
+    locked: bool = False
 
 
 @dataclass(frozen=True)
@@ -126,6 +130,8 @@ class PathShape:
     segments: tuple[Segment, ...]
     style: Style
     transform: Transform = IDENTITY_TRANSFORM
+    hidden: bool = False
+    locked: bool = False
 
 
 @dataclass(frozen=True)
@@ -139,6 +145,8 @@ class TextShape:
     transform: Transform = IDENTITY_TRANSFORM
     # Which point of the line sits at (x, y), as SVG text-anchor.
     anchor: TextAnchor = "start"
+    hidden: bool = False
+    locked: bool = False
 
 
 # How a Composite part combines with everything below it. The bottom part is the base whatever its mode.
@@ -156,6 +164,8 @@ class CompositeShape:
     style: Style
     # Stays identity: transforms are applied to the parts.
     transform: Transform = IDENTITY_TRANSFORM
+    hidden: bool = False
+    locked: bool = False
 
 
 @dataclass(frozen=True)
@@ -168,6 +178,8 @@ class GroupShape:
     opacity: float = 1.0
     # Stays identity: transforms are applied to the children.
     transform: Transform = IDENTITY_TRANSFORM
+    hidden: bool = False
+    locked: bool = False
 
 
 Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape | GroupShape

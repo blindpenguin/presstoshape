@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/object-visibility/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-20T20:30:24.584Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792528224570_8wykfflxz",
+      "approvalTitle": "Requirements: hide and lock objects, lock layers, object tree"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-20T20:31:12.893Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792528224570_8wykfflxz",
+      "approvalTitle": "Requirements: hide and lock objects, lock layers, object tree"
+    }
+  ]
+}

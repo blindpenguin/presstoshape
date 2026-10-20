@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **6**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **7**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -48,7 +48,7 @@ All numbers are JSON numbers (written as floats where the model holds floats). `
 | `next_id` | integer | The next free shape id. Readers raise it above the highest id in the file. |
 | `layers` | list, at least one | Bottom to top, like SVG document order. |
 
-Each layer: `{"name": string, "visible": bool, "shapes": [shape, …]}`, shapes bottom to top.
+Each layer: `{"name": string, "visible": bool, "shapes": [shape, …]}`, shapes bottom to top, plus an optional `"locked": true` when nothing in the layer can be selected.
 
 Optional precision aids on the document:
 
@@ -67,6 +67,8 @@ Every shape has:
 | `id` | integer ≥ 0 | Unique in the whole document, Composite parts included. |
 | `style` | object | `{"fill": color or null, "stroke": color or null, "stroke_width": number ≥ 0}`, plus the optional fields below. Groups have none. |
 | `transform` | list of 6 numbers | Optional. Affine `[a, b, c, d, e, f]` as in SVG's `matrix()`, applied on top of the geometry. Left out when it's the identity. |
+| `hidden` | bool | Optional, written only as `true`. The shape isn't drawn or exported; inside a group or Composite it hides just that child or part (a hidden part is left out of the Composite's result). |
+| `locked` | bool | Optional, written only as `true`. The shape is drawn but can't be selected; a locked group or Composite can't be entered. |
 
 Optional style fields, written only when they differ from the default (which is SVG's default):
 
@@ -151,6 +153,7 @@ Undo history and the active tool are not stored.
 | 4 | nightlies from October 2026 | Optional style fields `opacity`, `fill_opacity`, `stroke_opacity`, `fill_rule`, `cap`, `join`, `miter_limit`, `dashes`, `dash_offset`; rect `rx`/`ry`; text `anchor`. Version 3 files need no change. |
 | 5 | nightlies from October 2026 | Shape type `group`. `state.edit_path` may now name groups too. Version 4 files need no change. |
 | 6 | nightlies from October 2026 | Optional `document.guides` and `document.grid`, and their view state in `state.view`. Version 5 files need no change. |
+| 7 | nightlies from October 2026 | Optional `hidden` and `locked` on shapes, optional `locked` on layers. Version 6 files need no change (everything shown and unlocked). |
 
 Rules for changing the format:
 

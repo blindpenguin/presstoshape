@@ -80,6 +80,14 @@ def prune_selection(state: AppState) -> None:
     state.selection = {shape.id for shape in queries.pickable_shapes(state)} & state.selection
 
 
+def drop_unpickable(state: AppState) -> None:
+    """After hiding or locking: leaves entered containers that can't be picked any more, and drops selected
+    shapes and nodes that can't either."""
+    state.edit_path = containers.valid_edit_path(state)
+    prune_selection(state)
+    state.node_selection = frozenset(ref for ref in state.node_selection if ref[0] in state.selection)
+
+
 def replace_with(
     state: AppState,
     targets: Sequence[Shape],

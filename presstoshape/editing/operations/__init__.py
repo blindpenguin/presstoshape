@@ -19,4 +19,5 @@ from presstoshape.editing.operations import (  # noqa: F401
     style,
     transform,
     view,
+    visibility,
 )

@@ -12,7 +12,7 @@ from presstoshape.render.paths import PathCache
 def _regions(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.Path]:
     """Pickable regions of a shape; a group's are its children's."""
     if isinstance(shape, GroupShape):
-        return [region for child in shape.children for region in _regions(child, cache, tolerance)]
+        return [region for child in shape.children if not child.hidden for region in _regions(child, cache, tolerance)]
     return _area(shape, cache, tolerance)
 
 
@@ -21,7 +21,7 @@ def _contains(shape: Shape, cache: PathCache, x: float, y: float, tolerance: flo
     if not (b.fLeft - tolerance <= x <= b.fRight + tolerance and b.fTop - tolerance <= y <= b.fBottom + tolerance):
         return False
     if isinstance(shape, GroupShape):
-        return any(_contains(child, cache, x, y, tolerance) for child in shape.children)
+        return any(_contains(child, cache, x, y, tolerance) for child in shape.children if not child.hidden)
     return any(region.contains(x, y) for region in _area(shape, cache, tolerance))
 
 
@@ -45,10 +45,11 @@ def _area(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.P
 
 
 def shape_at(shapes: Sequence[Shape], cache: PathCache, point: tuple[float, float], tolerance: float) -> int | None:
-    """Top-most of `shapes` (given bottom to top) under `point`; `tolerance` (doc units) widens thin strokes."""
+    """Top-most of `shapes` (given bottom to top) under `point`; `tolerance` (doc units) widens thin strokes.
+    Hidden and locked shapes are passed over."""
     x, y = point
     for shape in reversed(shapes):
-        if _contains(shape, cache, x, y, tolerance):
+        if not shape.hidden and not shape.locked and _contains(shape, cache, x, y, tolerance):
             return shape.id
     return None
 

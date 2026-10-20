@@ -7,6 +7,38 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Text"
+msgstr "Text"
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Rectangle"
+msgstr "Rechteck"
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Ellipse"
+msgstr "Ellipse"
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Path"
+msgstr "Pfad"
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Group"
+msgstr "Gruppe"
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/edit_bar_view.py
+#: presstoshape/views/selection_view.py
+msgid "Composite"
+msgstr "Komposit"
+
 #: presstoshape/editing/operations/align.py
 msgid "&Left"
 msgstr "&Links"
@@ -214,6 +246,10 @@ msgid "layer '{name}' is hidden"
 msgstr "Ebene „{name}“ ist ausgeblendet"
 
 #: presstoshape/editing/operations/clipboard.py
+msgid "layer '{name}' is locked"
+msgstr "Ebene „{name}“ ist gesperrt"
+
+#: presstoshape/editing/operations/clipboard.py
 msgid "Paste"
 msgstr "Einfügen"
 
@@ -392,17 +428,17 @@ msgid "Editing a Composite"
 msgstr "Komposit wird bearbeitet"
 
 #: presstoshape/editing/operations/edit_mode.py
+#: presstoshape/models/app_state.py
+msgid "Ready"
+msgstr "Bereit"
+
+#: presstoshape/editing/operations/edit_mode.py
 msgid "Editing a group: Esc or Done to leave"
 msgstr "Gruppe wird bearbeitet: Esc oder Fertig zum Verlassen"
 
 #: presstoshape/editing/operations/edit_mode.py
 msgid "Editing a Composite: Esc or Done to leave"
 msgstr "Komposit wird bearbeitet: Esc oder Fertig zum Verlassen"
-
-#: presstoshape/editing/operations/edit_mode.py
-#: presstoshape/models/app_state.py
-msgid "Ready"
-msgstr "Bereit"
 
 #: presstoshape/editing/operations/groups.py
 msgid "&Group"
@@ -494,6 +530,14 @@ msgstr "Ebene einblenden"
 #: presstoshape/editing/operations/layers.py
 msgid "Hide layer"
 msgstr "Ebene ausblenden"
+
+#: presstoshape/editing/operations/layers.py
+msgid "Lock layer"
+msgstr "Ebene sperren"
+
+#: presstoshape/editing/operations/layers.py
+msgid "Unlock layer"
+msgstr "Ebene entsperren"
 
 #: presstoshape/editing/operations/layers.py
 msgid "Rename layer"
@@ -650,6 +694,10 @@ msgstr "Text ändern"
 #: presstoshape/editing/operations/shapes.py
 msgid "Layer '{name}' is hidden"
 msgstr "Ebene „{name}“ ist ausgeblendet"
+
+#: presstoshape/editing/operations/shapes.py
+msgid "Layer '{name}' is locked"
+msgstr "Ebene „{name}“ ist gesperrt"
 
 #: presstoshape/editing/operations/shapes.py
 msgid "Add rectangle"
@@ -928,6 +976,82 @@ msgstr "&Objekte"
 #: presstoshape/editing/operations/view.py
 msgid "&Nodes"
 msgstr "&Knoten"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "H&ide Selection"
+msgstr "Auswahl ausb&lenden"
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Hide"
+msgstr "Ausblenden"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object hidden. Object → Show All brings it back"
+msgid_plural "{count} objects hidden. Object → Show All brings them back"
+msgstr[0] "{count} Objekt ausgeblendet. Objekt → Alles einblenden holt es zurück"
+msgstr[1] "{count} Objekte ausgeblendet. Objekt → Alles einblenden holt sie zurück"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "&Show All"
+msgstr "Alles &einblenden"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Nothing to show"
+msgstr "Nichts einzublenden"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Show all"
+msgstr "Alles einblenden"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object shown"
+msgid_plural "{count} objects shown"
+msgstr[0] "{count} Objekt eingeblendet"
+msgstr[1] "{count} Objekte eingeblendet"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "L&ock Selection"
+msgstr "Auswahl s&perren"
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Lock"
+msgstr "Sperren"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object locked. Object → Unlock All unlocks it"
+msgid_plural "{count} objects locked. Object → Unlock All unlocks them"
+msgstr[0] "{count} Objekt gesperrt. Objekt → Alles entsperren entsperrt es"
+msgstr[1] "{count} Objekte gesperrt. Objekt → Alles entsperren entsperrt sie"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "U&nlock All"
+msgstr "Alles e&ntsperren"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Nothing to unlock"
+msgstr "Nichts zu entsperren"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "Unlock all"
+msgstr "Alles entsperren"
+
+#: presstoshape/editing/operations/visibility.py
+msgid "{count} object unlocked"
+msgid_plural "{count} objects unlocked"
+msgstr[0] "{count} Objekt entsperrt"
+msgstr[1] "{count} Objekte entsperrt"
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Show"
+msgstr "Einblenden"
+
+#: presstoshape/editing/operations/visibility.py
+#: presstoshape/views/object_tree_model.py
+msgid "Unlock"
+msgstr "Entsperren"
 
 #: presstoshape/editing/session.py
 msgid "Undo"
@@ -1338,16 +1462,6 @@ msgstr "Fertig"
 msgid "Leave this level (Esc)"
 msgstr "Eine Stufe zurück (Esc)"
 
-#: presstoshape/views/edit_bar_view.py
-#: presstoshape/views/selection_view.py
-msgid "Group"
-msgstr "Gruppe"
-
-#: presstoshape/views/edit_bar_view.py
-#: presstoshape/views/selection_view.py
-msgid "Composite"
-msgstr "Komposit"
-
 #: presstoshape/views/export_dialog.py
 #: presstoshape/views/main_window.py
 msgid "Export PNG"
@@ -1711,22 +1825,6 @@ msgstr "Radius X"
 #: presstoshape/views/selection_view.py
 msgid "Radius Y"
 msgstr "Radius Y"
-
-#: presstoshape/views/selection_view.py
-msgid "Rectangle"
-msgstr "Rechteck"
-
-#: presstoshape/views/selection_view.py
-msgid "Ellipse"
-msgstr "Ellipse"
-
-#: presstoshape/views/selection_view.py
-msgid "Path"
-msgstr "Pfad"
-
-#: presstoshape/views/selection_view.py
-msgid "Text"
-msgstr "Text"
 
 #: presstoshape/views/selection_view.py
 msgid "Click to select, Ctrl+click to add or remove, drag on empty canvas for box select. Drag handles to scale (Shift keeps proportions, Alt scales from the centre); drag just outside a corner to rotate (Shift snaps to 15°)."

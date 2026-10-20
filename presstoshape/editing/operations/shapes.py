@@ -48,6 +48,10 @@ def _add(session: Session, make: Callable[[int], Shape], label: str, message: st
         state.status_message = _("Layer '{name}' is hidden").format(name=layer.name)
         session.notify()
         return None
+    if not inside and layer.locked:
+        state.status_message = _("Layer '{name}' is locked").format(name=layer.name)
+        session.notify()
+        return None
     with session.edit(label):
         shape = make(new_id(state))
         if inside:

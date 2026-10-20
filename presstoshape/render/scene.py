@@ -96,6 +96,8 @@ def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
 
 
 def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
+    if shape.hidden:
+        return
     if isinstance(shape, GroupShape):
         _draw_group(canvas, shape, cache)
         return
@@ -304,6 +306,8 @@ def draw_composite_parts(canvas: skia.Canvas, composite: CompositeShape, zoom: f
     _draw_path(canvas, to_skia_path(transforms.outline(composite) or ()), composite.style)
     selection_color = parse_color(colors.selection)
     for index, (part, mode) in enumerate(zip(composite.parts, composite.modes)):
+        if part.hidden:
+            continue
         part_outline = transforms.outline(part)
         if not part_outline:
             continue

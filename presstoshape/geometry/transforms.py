@@ -62,7 +62,7 @@ def _composite_outline(composite: CompositeShape) -> tuple[Segment, ...]:
         parts = [
             (part_outline, mode)
             for part, mode in zip(composite.parts, composite.modes)
-            if (part_outline := area_outline(part)) is not None
+            if not part.hidden and (part_outline := area_outline(part)) is not None
         ]
         return booleans.combine_parts(parts)
     except pathops.PathOpsError:

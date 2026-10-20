@@ -189,3 +189,33 @@ def test_v5_files_have_no_guides_or_grid():
 
 def test_v6_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v6.p2s").read_bytes()) == expected_v6()
+
+
+def expected_v7() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v7.p2s holds: a hidden shape, a locked group with a hidden child, a hidden
+    Composite part and a locked layer."""
+    red = Style(fill="#ff0000", stroke=None)
+    parts = (RectShape(7, 0.0, 50.0, 40.0, 40.0, red), EllipseShape(8, 40.0, 70.0, 15.0, 15.0, red, hidden=True))
+    children = (RectShape(4, 0.0, 0.0, 20.0, 20.0, red, hidden=True), RectShape(5, 30.0, 0.0, 20.0, 20.0, red))
+    group = GroupShape(3, children, locked=True)
+    composite = CompositeShape(6, parts, ("add", "subtract"), red)
+    document = Document(
+        width=200.0,
+        height=150.0,
+        layers=[
+            Layer("Sketch", True, [RectShape(1, 0.0, 0.0, 200.0, 150.0, Style(), locked=True)], locked=True),
+            Layer("Layer 2", True, [RectShape(2, 10.0, 10.0, 30.0, 30.0, red, hidden=True), group, composite]),
+        ],
+        next_id=9,
+    )
+    return document, SavedState(zoom_percent=100, selected_layer=1)
+
+
+def test_v6_files_open_with_everything_shown_and_unlocked():
+    document, _state = read_p2s((SAMPLES / "v6.p2s").read_bytes())
+    assert all(not layer.locked for layer in document.layers)
+    assert all(not shape.hidden and not shape.locked for layer in document.layers for shape in layer.shapes)
+
+
+def test_v7_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v7.p2s").read_bytes()) == expected_v7()

@@ -228,3 +228,37 @@ def test_duplicate_is_registered_and_needs_a_selection():
     assert not registry.find("edit.duplicate").can_run(session)
     assert clipboard.duplicate_selection is registry.find("edit.duplicate").run
     assert queries.selected_shapes(session.state) == []
+
+
+def test_paste_into_a_locked_layer_says_so():
+    session = Session()
+    layers.set_layer_locked(session, 0, True)
+    paste(session, encode_shapes([RectShape(1, 0, 0, 5, 5, Style())]), None, None)
+    assert len(session.state.document.layers[0].shapes) == 1
+    assert "locked" in session.state.status_message
+
+
+def test_pasted_shapes_arrive_shown_and_unlocked():
+    session = Session()
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+        '<rect width="5" height="5" style="display:none"/><rect x="5" width="5" height="5"/></svg>'
+    )
+    paste(session, None, svg, None)
+    assert all(not shape.hidden and not shape.locked for shape in all_shapes(session))
+
+
+def test_copy_and_paste_keep_the_flags_inside_groups_and_composites():
+    from presstoshape.models.shapes import GroupShape
+
+    session = Session()
+    children = (RectShape(2, 0, 0, 5, 5, Style(), hidden=True), RectShape(3, 0, 0, 5, 5, Style(), locked=True))
+    group = GroupShape(1, children)
+    session.state.document.layers[0].shapes = [group]
+    session.state.document.next_id = 10
+    selection.set_selection(session, {1})
+    content = copy_selection(session)
+    for native, svg in ((content.native, None), (None, content.svg)):
+        paste(session, native, svg, None)
+        pasted = session.state.document.layers[0].shapes[-1]
+        assert [(child.hidden, child.locked) for child in pasted.children] == [(True, False), (False, True)]

@@ -3,7 +3,7 @@ from dataclasses import replace
 from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import selection, shapes, style
 from presstoshape.editing.session import Session
-from presstoshape.models.shapes import CompositeShape, RectShape, Style
+from presstoshape.models.shapes import CompositeShape, GroupShape, RectShape, Style
 
 S = Style()
 
@@ -113,3 +113,101 @@ def test_stale_edit_path_prefix_is_kept():
     session, outer_id, _ = _nested_session()
     session.state.edit_path = (outer_id, 999)
     assert containers.valid_edit_path(session.state) == (outer_id,)
+
+
+# --- hidden and locked ---------------------------------------------------------------------
+
+
+def _flag(session, shape_id, **flags):
+    layer = session.state.document.layers[0]
+    layer.shapes = [replace(shape, **flags) if shape.id == shape_id else shape for shape in layer.shapes]
+
+
+def _ids(shapes):
+    return [shape.id for shape in shapes]
+
+
+def test_hidden_shapes_are_neither_shown_nor_pickable():
+    session, outer_id, _ = _nested_session()
+    _flag(session, 1, hidden=True)
+    assert _ids(queries.shown_shapes(session.state)) == [outer_id]
+    assert _ids(queries.pickable_shapes(session.state)) == [outer_id]
+
+
+def test_locked_shapes_are_shown_but_not_pickable():
+    session, outer_id, _ = _nested_session()
+    _flag(session, 1, locked=True)
+    assert _ids(queries.shown_shapes(session.state)) == [1, outer_id]
+    assert _ids(queries.pickable_shapes(session.state)) == [outer_id]
+
+
+def test_a_locked_layer_is_shown_but_nothing_in_it_is_pickable():
+    session, outer_id, _ = _nested_session()
+    session.state.document.layers[0].locked = True
+    assert _ids(queries.shown_shapes(session.state)) == [1, outer_id]
+    assert queries.pickable_shapes(session.state) == []
+
+
+def test_inside_an_entered_group_the_flags_apply_to_its_children():
+    session = Session()
+    children = (
+        RectShape(1, 0, 0, 5, 5, S),
+        RectShape(2, 0, 0, 5, 5, S, hidden=True),
+        RectShape(3, 0, 0, 5, 5, S, locked=True),
+    )
+    session.state.document.layers[0].shapes = [GroupShape(10, children)]
+    session.state.edit_path = (10,)
+    assert _ids(queries.shown_shapes(session.state)) == [1, 3]
+    assert _ids(queries.pickable_shapes(session.state)) == [1]
+
+
+def test_edit_chain_ends_at_a_hidden_or_locked_container():
+    for flags in ({"hidden": True}, {"locked": True}):
+        session, outer_id, inner_id = _nested_session()
+        outer = _outer(session)
+        inner = replace(outer.parts[1], **flags)
+        _flag(session, outer_id, parts=(outer.parts[0], inner))
+        session.state.edit_path = (outer_id, inner_id)
+        assert containers.valid_edit_path(session.state) == (outer_id,)
+        _flag(session, outer_id, **flags)
+        assert containers.valid_edit_path(session.state) == ()
+
+
+def test_edit_chain_ends_when_the_containers_layer_is_locked():
+    session, outer_id, _ = _nested_session()
+    session.state.edit_path = (outer_id,)
+    session.state.document.layers[0].locked = True
+    assert containers.valid_edit_path(session.state) == ()
+
+
+def test_map_shapes_changes_nested_shapes_and_keeps_the_rest():
+    session, outer_id, inner_id = _nested_session()
+    before = list(session.state.document.layers[0].shapes)
+    replaced = containers.map_shapes(
+        session.state, lambda shape: replace(shape, hidden=True) if shape.id == 4 else shape
+    )
+    after = session.state.document.layers[0].shapes
+    assert _ids(replaced) == [4] and replaced[0].hidden
+    assert after[0] is before[0]
+    outer = after[1]
+    assert outer.parts[0] is before[1].parts[0]
+    inner = outer.parts[1]
+    assert inner.parts[1].hidden and inner.modes == ("add", "subtract")
+    assert queries.find_shape(session.state, 4).hidden
+
+
+def test_map_shapes_without_changes_keeps_every_identity():
+    session, _, _ = _nested_session()
+    layer = session.state.document.layers[0]
+    shapes_list = layer.shapes
+    assert containers.map_shapes(session.state, lambda shape: shape) == []
+    assert layer.shapes is shapes_list
+
+
+def test_any_hidden_and_locked_answer_for_the_current_content():
+    session, outer_id, _ = _nested_session()
+    assert not queries.any_hidden(session.state) and not queries.any_locked(session.state)
+    containers.map_shapes(session.state, lambda shape: replace(shape, hidden=True) if shape.id == 3 else shape)
+    assert queries.any_hidden(session.state) and not queries.any_locked(session.state)
+    session.state.document.layers[0].shapes.append(RectShape(40, 0, 0, 5, 5, S, locked=True))
+    assert queries.any_locked(session.state)
