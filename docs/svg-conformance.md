@@ -21,21 +21,21 @@ Suite: `https://www.w3.org/Graphics/SVG/Test/20110816/archives/W3C_SVG_11_TestSu
 |---|---|---|---|
 | color | 5 | 2 | 2 |
 | conform | 2 | 1 | 0 |
-| coords | 28 | 23 | 22 |
+| coords | 28 | 23 | 23 |
 | filters | 43 | 1 | 0 |
 | imp | 1 | 0 | 0 |
 | linking | 12 | 9 | 9 |
 | masking | 19 | 3 | 2 |
 | metadata | 1 | 1 | 1 |
-| painting | 31 | 24 | 19 |
-| paths | 19 | 17 | 17 |
+| painting | 31 | 25 | 20 |
+| paths | 19 | 18 | 18 |
 | pservers | 33 | 3 | 2 |
 | render | 8 | 3 | 3 |
 | shapes | 22 | 22 | 22 |
-| struct | 54 | 15 | 6 |
-| styling | 18 | 6 | 4 |
-| text | 54 | 28 | 6 |
+| struct | 54 | 20 | 11 |
+| styling | 18 | 11 | 9 |
+| text | 54 | 30 | 8 |
 | types | 2 | 1 | 1 |
-| **Total** | **352** | **159** | **116** |
+| **Total** | **352** | **173** | **131** |
 
 Out of scope (animation, scripting, DOM, interactivity, SVG fonts, colour profiles): animate (78), color-prof (1), coords-dom (4), extend (1), fonts (17), interact (24), paths-dom (2), script (6), struct-dom (18), svgdom (1), text-altglyph (3), text-dom (5), types-dom (13).

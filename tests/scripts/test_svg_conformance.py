@@ -151,9 +151,23 @@ def test_pass_list_reads_names_thresholds_and_comments(tmp_path):
     }
 
 
+def test_resvg_reference_entries(tmp_path):
+    entries = _pass_list(tmp_path, "~styling-pres-03-f # outdated reference\n~text-ws-01-t 0.06 # glyph shapes\n")
+    assert entries == {
+        "styling-pres-03-f": svg_conformance.PassEntry(
+            "styling-pres-03-f", svg_conformance.THRESHOLD, "outdated reference", True, "resvg"
+        ),
+        "text-ws-01-t": svg_conformance.PassEntry("text-ws-01-t", 0.06, "glyph shapes", True, "resvg"),
+    }
+
+
 @pytest.mark.parametrize(
     ("text", "message"),
     [
+        ("~a\n", "pass.txt:1: expected '~name [threshold] # reason'"),
+        ("~a 0.05\n", "pass.txt:1: expected '~name [threshold] # reason'"),
+        ("a\n~a # why\n", "pass.txt:2: a is listed twice"),
+        ("~a # why\n!a # other\n", "pass.txt:2: a is listed twice"),
         ("a\nb c d\n", "pass.txt:2"),
         ("a 0.x\n", "not a number"),
         ("a 1.5\n", "(0, 1]"),
@@ -275,6 +289,37 @@ def _fake_suite(tmp_path: Path) -> Path:
     return suite
 
 
+def test_check_test_can_score_against_resvg_instead_of_the_reference_image(tmp_path):
+    suite = _fake_suite(tmp_path)
+    (suite / "png" / "shapes-rect-01-t.png").write_bytes(
+        svg_conformance.render_resvg(_PICTURE.format(x=120, extra=""), 200, 150)
+    )
+    assert svg_conformance.check_test(suite, "shapes-rect-01-t")[0].status == "differs"
+    result, _doc = svg_conformance.check_test(suite, "shapes-rect-01-t", reference="resvg")
+    assert result.status == "match"
+
+
+def test_check_suite_uses_each_tests_reference(tmp_path):
+    suite = _fake_suite(tmp_path)
+    (suite / "png" / "shapes-rect-01-t.png").write_bytes(
+        svg_conformance.render_resvg(_PICTURE.format(x=120, extra=""), 200, 150)
+    )
+    results = svg_conformance.check_suite(suite, "shapes-rect-0*", references={"shapes-rect-01-t": "resvg"})
+    assert {result.name: result.status for result in results} == {
+        "shapes-rect-01-t": "match",
+        "shapes-rect-02-t": "match",
+    }
+
+
+def test_report_shows_the_reason_for_resvg_checked_tests(tmp_path):
+    suite = _fake_suite(tmp_path)
+    listed = {"shapes-rect-01-t": svg_conformance.PassEntry("shapes-rect-01-t", 0.03, "reference is outdated", True, "resvg")}
+    folder = tmp_path / "report"
+    (folder / "sheets").mkdir(parents=True)
+    page = svg_conformance.write_report([_result("shapes-rect-01-t")], suite, listed, folder).read_text(encoding="utf-8")
+    assert "checked against resvg: reference is outdated" in page
+
+
 def test_report_has_tables_rows_and_sheets_for_in_scope_differences(tmp_path):
     suite = _fake_suite(tmp_path)
     results = [
@@ -320,7 +365,7 @@ def test_pass_list_has_only_in_scope_tests():
 
 @pytest.mark.parametrize("entry", PASS_LIST.values(), ids=list(PASS_LIST))
 def test_listed_test_still_matches(suite, entry):
-    result, _doc = svg_conformance.check_test(suite, entry.name, entry.threshold)
+    result, _doc = svg_conformance.check_test(suite, entry.name, entry.threshold, entry.reference)
     assert result.status == "match", (
         f"{entry.name}: {result.status}, score {result.score}, threshold {entry.threshold}, "
         f"error {result.error}, notes {list(result.notes)}"
@@ -329,5 +374,5 @@ def test_listed_test_still_matches(suite, entry):
 
 @pytest.mark.parametrize("entry", PASS_LIST.values(), ids=list(PASS_LIST))
 def test_listed_test_saves_for_other_viewers(suite, entry):
-    _result, doc = svg_conformance.check_test(suite, entry.name, entry.threshold)
+    _result, doc = svg_conformance.check_test(suite, entry.name, entry.threshold, entry.reference)
     assert svg_conformance.check_generator(doc) < svg_conformance.THRESHOLD

@@ -13,7 +13,7 @@ from presstoshape.formats.clipboard import ClipboardError, decode_shapes, encode
 from presstoshape.formats.svg import read_shapes_svg, write_shapes_svg
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, Rect
-from presstoshape.i18n import N_, _, ngettext
+from presstoshape.i18n import N_, _, ngettext, user_languages
 from presstoshape.models.shapes import GroupShape, PartMode, Shape, TextShape
 from presstoshape.render.paths import PathCache
 
@@ -79,7 +79,7 @@ def _decode(native: bytes | None, svg: str | None) -> tuple[list[Shape], list[st
     if svg is None:
         return _("Nothing to paste")
     try:
-        shapes, notes = read_shapes_svg(svg)
+        shapes, notes = read_shapes_svg(svg, user_languages())
     except (ET.ParseError, ValueError):
         return _("Nothing to paste: the clipboard's SVG couldn't be read")
     if not shapes:

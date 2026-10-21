@@ -1,7 +1,9 @@
 # W3C SVG 1.1 tests PressToShape handles correctly; checked by tests/scripts/test_svg_conformance.py while the
 # suite is fetched (uv run python scripts/svg_conformance.py fetch).
 #
-# Format: `name [threshold] [# comment]`, or `!name # reason` for a test that was looked at and isn't right yet.
+# Format: `name [threshold] [# comment]`, `!name # reason` for a test that was looked at and isn't right yet, or
+# `~name [threshold] # reason` for a test checked against resvg's rendering of the original file because the
+# suite's reference image is outdated.
 # Add a test only after comparing it by eye with the reference image (the report's candidates and sheets help):
 # a score below the threshold alone can come from a small or text-only difference, from a feature we drop that
 # happens not to show, or from a reference image of a failing renderer.
@@ -30,6 +32,7 @@ coords-transformattr-02-f
 coords-transformattr-03-f
 coords-transformattr-04-f
 coords-transformattr-05-f
+coords-units-02-b
 coords-units-03-b
 linking-a-04-t
 linking-a-05-t
@@ -49,6 +52,7 @@ painting-control-03-f
 painting-control-04-f
 painting-control-06-f
 painting-fill-01-t
+painting-fill-02-t
 painting-fill-03-t
 painting-fill-04-t
 painting-fill-05-b
@@ -79,6 +83,7 @@ paths-data-15-t
 paths-data-16-t
 paths-data-17-f
 paths-data-19-f
+paths-data-20-f
 pservers-grad-24-f  # nothing to draw: gradients are neither rendered directly nor through <use>
 pservers-pattern-06-f  # nothing to draw: patterns are neither rendered directly nor through <use>
 render-elems-01-t
@@ -106,15 +111,24 @@ shapes-rect-04-f
 shapes-rect-05-f
 shapes-rect-06-f
 shapes-rect-07-f
+struct-cond-01-t
+struct-cond-02-t
+struct-cond-03-t
 struct-defs-01-t
 struct-frag-05-t
 struct-frag-06-t
 struct-group-01-t
 struct-use-03-t
+struct-use-10-f
+struct-use-11-f
 struct-use-12-f  # invalid and recursive references must be left out
 styling-class-01-f
 styling-css-01-b
+styling-css-02-b
+styling-css-03-b
+styling-css-04-f
 styling-css-07-f
+styling-elem-01-b
 styling-pres-01-t
 text-align-01-b
 text-align-03-b
@@ -123,10 +137,14 @@ text-text-10-t
 text-text-11-t
 text-tselect-01-b
 types-basic-01-f
+~styling-pres-03-f  # the suite's image is blank (outdated); resvg draws the green rectangle the test asks for
+~text-ws-01-t  # the suite's image lacks the draft banner (outdated reference); resvg draws it, text matches
+~text-ws-02-t  # the suite's image lacks the draft banner (outdated reference); resvg draws it, text matches
 
 # Reviewed: they match by score, but not by eye. Remove the "!" line and list the test once it's right.
+!color-prop-04-t  # black: system colours (the platform palette) are not supported
+!color-prop-05-t  # red: `color` on the element wins (SVG 2, as resvg); the SVG 1.1 reference shows the inherited lime
 !conform-viewers-03-f  # image left out (Level 5)
-!coords-units-02-b  # percentage coordinates and lengths come out wrong (small shapes, too few pixels for the score)
 !filters-gauss-03-f  # matches only because the filter is dropped (Level 8)
 !masking-path-12-f  # red square instead of green: clip path ignored (Level 4)
 !painting-marker-01-f  # markers missing (Level 6)
@@ -134,8 +152,9 @@ types-basic-01-f
 !painting-marker-04-f  # markers missing (Level 6)
 !painting-marker-06-f  # markers missing (Level 6)
 !painting-render-02-b  # "light" cells as dark as the "dark" ones (color-interpolation, Level 3)
+!paths-data-18-f  # strokes under scale(8,2) are drawn with one average width (noted on import), covering the gold bars
 !pservers-pattern-03-f  # patterns painted grey, covered by other shapes (Level 3)
-!struct-group-03-t  # first table cell black instead of green
+!struct-group-03-t  # colours right now; font family, style and weight columns still plain (Level 7)
 !struct-image-10-t  # images left out (Level 5)
 !struct-image-18-f  # red instead of green (Level 5)
 !struct-svg-01-f  # nested <svg> left out, test shows FAIL (Level 2)
@@ -144,8 +163,9 @@ types-basic-01-f
 !struct-use-08-b  # <use> of <svg> and <image> drawn wrongly (Levels 2, 5)
 !struct-use-14-f  # script-driven; the reference shows the failing state
 !struct-use-15-f  # script-driven; the reference shows the failing state
-!styling-css-05-b  # CSS rules not applied: text colours and italics missing (Level 1)
-!styling-elem-01-b  # <style> with an unknown type is applied: red square instead of green (Level 1)
+!styling-css-05-b  # colours right now; the italic word is upright (Level 7)
+!styling-css-08-f  # the circle inside the nested <svg> is left out (Level 2)
+!styling-css-10-f  # ours is right (orange, orange, orange, blue); the suite's image and resvg disagree
 !text-align-04-b  # tref and textPath lines missing (Level 7)
 !text-align-05-b  # vertical text (Level 7)
 !text-align-06-b  # baseline-shift and vertical text (Level 7)
@@ -168,3 +188,5 @@ types-basic-01-f
 !text-tref-02-b  # tref text missing (Level 7)
 !text-tref-03-b  # tref text missing (Level 7)
 !text-tspan-01-b  # per-tspan styles and positioning (Level 7)
+!text-ws-03-t  # the lines made with <tref> are missing (Level 7)
+!types-basic-02-f  # ours is right (no red visible); the suite's image and resvg both show red rings

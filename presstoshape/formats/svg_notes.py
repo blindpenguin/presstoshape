@@ -24,6 +24,11 @@ class Note(Enum):
     COMPOSITE_EDITED = auto()
     ANGLED_GUIDE = auto()
     BROKEN_GRID = auto()
+    PATH_ERROR = auto()
+    INVALID_VALUE = auto()
+    CONDITIONAL = auto()
+    UNEVEN_STROKE = auto()
+    TEXT_SKEW = auto()
 
 
 def _message(note: Note, count: int) -> str:
@@ -110,6 +115,26 @@ def _message(note: Note, count: int) -> str:
                 "{count} grid settings couldn't be read, the default grid is used",
                 count,
             )
+        case Note.PATH_ERROR:
+            text = ngettext(
+                "{count} path had errors and was cut short", "{count} paths had errors and were cut short", count
+            )
+        case Note.INVALID_VALUE:
+            text = ngettext("{count} invalid value was ignored", "{count} invalid values were ignored", count)
+        case Note.CONDITIONAL:
+            text = ngettext(
+                "{count} element meant for another language or viewer was left out",
+                "{count} elements meant for another language or viewer were left out",
+                count,
+            )
+        case Note.UNEVEN_STROKE:
+            text = ngettext(
+                "{count} stroke under uneven scaling was approximated",
+                "{count} strokes under uneven scaling were approximated",
+                count,
+            )
+        case Note.TEXT_SKEW:
+            text = ngettext("{count} skewed text lost its skew", "{count} skewed texts lost their skew", count)
     return text.format(count=count)
 
 

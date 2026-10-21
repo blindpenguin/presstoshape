@@ -126,10 +126,14 @@ class PassEntry:
     comment: str = ""
     # False for `!name # reason`: looked at, matches by score but isn't right yet. Keeps it out of the candidates.
     passes: bool = True
+    # "resvg" for `~name # reason`: the suite's own reference image is outdated, so the test is scored against
+    # resvg's rendering of the original file instead.
+    reference: Literal["w3c", "resvg"] = "w3c"
 
 
 def read_pass_list(path: Path = PASS_LIST) -> dict[str, PassEntry]:
-    """Lines `name [threshold] [# comment]` or `!name # reason`; blank and comment-only lines are skipped."""
+    """Lines `name [threshold] [# comment]`, `!name # reason` or `~name [threshold] # reason`; blank and
+    comment-only lines are skipped."""
     entries: dict[str, PassEntry] = {}
     for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         content, _hash, comment = line.partition("#")
@@ -138,10 +142,13 @@ def read_pass_list(path: Path = PASS_LIST) -> dict[str, PassEntry]:
             continue
         if len(fields) > 2:
             raise ValueError(f"{path.name}:{number}: expected 'name [threshold] [# comment]'")
-        name = fields[0].removeprefix("!")
+        name = fields[0].removeprefix("!").removeprefix("~")
         passes = not fields[0].startswith("!")
+        reference: Literal["w3c", "resvg"] = "resvg" if fields[0].startswith("~") else "w3c"
         if not passes and (len(fields) > 1 or not comment.strip()):
             raise ValueError(f"{path.name}:{number}: expected '!name # reason'")
+        if reference == "resvg" and not comment.strip():
+            raise ValueError(f"{path.name}:{number}: expected '~name [threshold] # reason'")
         threshold = THRESHOLD
         if len(fields) == 2:
             try:
@@ -152,7 +159,7 @@ def read_pass_list(path: Path = PASS_LIST) -> dict[str, PassEntry]:
                 raise ValueError(f"{path.name}:{number}: threshold must be in (0, 1]")
         if name in entries:
             raise ValueError(f"{path.name}:{number}: {name} is listed twice")
-        entries[name] = PassEntry(name, threshold, comment.strip(), passes)
+        entries[name] = PassEntry(name, threshold, comment.strip(), passes, reference)
     return entries
 
 
@@ -226,15 +233,20 @@ class CheckResult:
     error: str | None = None
 
 
-def check_test(suite: Path, name: str, threshold: float = THRESHOLD) -> tuple[CheckResult, Document | None]:
-    """Open a suite test with notes, save and reopen it, and score our rendering against the reference image."""
+def check_test(
+    suite: Path, name: str, threshold: float = THRESHOLD, reference: Literal["w3c", "resvg"] = "w3c"
+) -> tuple[CheckResult, Document | None]:
+    """Open a suite test with notes, save and reopen it, and score our rendering against the reference image
+    (or, for reference "resvg", against resvg's rendering of the original file at the image's size)."""
     scope = in_scope(name)
-    reference = suite / "png" / f"{name}.png"
-    if not reference.is_file():
+    reference_png = suite / "png" / f"{name}.png"
+    reference_source = reference
+    if not reference_png.is_file():
         return CheckResult(name, scope, "error", None, error="no reference image"), None
     # Test files are foreign input: a reader or writer failure is a result to report, not a crash of the run.
     try:
-        doc, notes = read_svg_with_notes((suite / "svg" / f"{name}.svg").read_text(encoding="utf-8"))
+        original = (suite / "svg" / f"{name}.svg").read_text(encoding="utf-8")
+        doc, notes = read_svg_with_notes(original)
     except Exception as error:
         return CheckResult(name, scope, "error", None, error=f"{type(error).__name__}: {error}"), None
     try:
@@ -242,7 +254,9 @@ def check_test(suite: Path, name: str, threshold: float = THRESHOLD) -> tuple[Ch
     except Exception as error:
         message = f"round trip: {type(error).__name__}: {error}"
         return CheckResult(name, scope, "error", None, tuple(notes), message), doc
-    theirs = pixels(reference.read_bytes())
+    theirs = pixels(reference_png.read_bytes())
+    if reference_source == "resvg":
+        theirs = pixels(render_resvg(original, theirs.shape[1], theirs.shape[0], suite / "svg"))
     value = score(pixels(render_ours(doc, theirs.shape[1])), theirs)
     status: Status = "match" if value < threshold else "differs"
     return CheckResult(name, scope, status, value, tuple(notes)), doc
@@ -253,8 +267,16 @@ def suite_tests(suite: Path, pattern: str | None = None) -> list[str]:
     return [name for name in names if pattern is None or fnmatch(name, pattern)]
 
 
-def check_suite(suite: Path, pattern: str | None = None, thresholds: Mapping[str, float] = {}) -> list[CheckResult]:
-    return [check_test(suite, name, thresholds.get(name, THRESHOLD))[0] for name in suite_tests(suite, pattern)]
+def check_suite(
+    suite: Path,
+    pattern: str | None = None,
+    thresholds: Mapping[str, float] = {},
+    references: Mapping[str, Literal["w3c", "resvg"]] = {},
+) -> list[CheckResult]:
+    return [
+        check_test(suite, name, thresholds.get(name, THRESHOLD), references.get(name, "w3c"))[0]
+        for name in suite_tests(suite, pattern)
+    ]
 
 
 def check_generator(doc: Document) -> float:
@@ -416,6 +438,8 @@ def write_report(
         name = html.escape(result.name) + ("" if result.in_scope else ' <span class="muted">(out of scope)</span>')
         entry = pass_list.get(result.name)
         listed = " ✓" if entry is not None and entry.passes else ""
+        if entry is not None and entry.passes and entry.reference == "resvg":
+            details.insert(0, f'<span class="muted">checked against resvg: {html.escape(entry.comment)}</span>')
         if entry is not None and not entry.passes:
             details.insert(0, f'<span class="muted">reviewed, not yet right: {html.escape(entry.comment)}</span>')
         parts.append(
@@ -496,7 +520,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"the W3C suite isn't fetched; {FETCH_HINT}", file=sys.stderr)
         return 1
     pass_list = read_pass_list() if PASS_LIST.is_file() else {}
-    results = check_suite(suite, args.filter, {name: entry.threshold for name, entry in passing(pass_list).items()})
+    listed = passing(pass_list)
+    results = check_suite(
+        suite,
+        args.filter,
+        {name: entry.threshold for name, entry in listed.items()},
+        {name: entry.reference for name, entry in listed.items()},
+    )
     index = write_report(results, suite, pass_list)
     total = _total(_tallies(results, pass_list, chapter))
     new, lost = candidates(results, pass_list)

@@ -20,6 +20,12 @@ def active_language() -> str:
     return _active.language
 
 
+def user_languages() -> tuple[str, ...]:
+    """The active language as a BCP 47 tag, then English, for content that offers alternatives per language."""
+    tag = active_language().replace("_", "-").lower()
+    return (tag, "en") if tag != "en" else ("en",)
+
+
 def _(message: str) -> str:
     return _active.gettext(None, message)
 

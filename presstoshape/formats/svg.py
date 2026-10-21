@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 
 from presstoshape.formats.svg_namedview import namedview_element
-from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, q
+from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, XML_SPACE, q
 from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
 from presstoshape.formats.svg_reader import read_shapes_svg, read_svg, read_svg_with_notes
@@ -169,6 +169,8 @@ def _untransformed_element(shape: Shape) -> ET.Element:
             attrs = {"x": _num(x), "y": _num(y), "font-size": _num(size), "font-family": "sans-serif"}
             if shape.anchor != "start":
                 attrs["text-anchor"] = shape.anchor
+            if text != text.strip(" ") or "  " in text:
+                attrs[XML_SPACE] = "preserve"
             element = ET.Element(q("text"), attrs | style)
             element.text = text
             return element

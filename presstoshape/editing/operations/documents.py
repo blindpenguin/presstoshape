@@ -14,7 +14,7 @@ from presstoshape.editing.session import Session
 from presstoshape.formats import p2s, svg
 from presstoshape.formats.p2s import P2sError, SavedState
 from presstoshape.geometry import units
-from presstoshape.i18n import _, ngettext
+from presstoshape.i18n import _, ngettext, user_languages
 from presstoshape.models.app_state import AppState, Document, Unit
 from presstoshape.models.document_presets import DEFAULT
 from presstoshape.render import export
@@ -117,7 +117,7 @@ def open_file(session: Session, path: str) -> bool:
             document, saved = p2s.read_p2s(Path(path).read_bytes())
             notes: list[str] = []
         else:
-            document, notes = svg.read_svg_with_notes(Path(path).read_text(encoding="utf-8"))
+            document, notes = svg.read_svg_with_notes(Path(path).read_text(encoding="utf-8"), user_languages())
             saved = None
     except (OSError, ValueError, ET.ParseError) as error:
         # P2sError is a ValueError, with a message written for this status line.
