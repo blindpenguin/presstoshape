@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-level1/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-21T19:50:33.289Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792612233268_q7ky0ldc2",
+      "approvalTitle": "SVG conformance Level 1: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-21T19:51:24.084Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792612233268_q7ky0ldc2",
+      "approvalTitle": "SVG conformance Level 1: design"
+    }
+  ]
+}

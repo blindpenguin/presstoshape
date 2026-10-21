@@ -22,6 +22,7 @@ LABEL = f"{{{INKSCAPE_NS}}}label"
 # Inkscape marks locked objects and layers with sodipodi:insensitive="true".
 INSENSITIVE = f"{{{SODIPODI_NS}}}insensitive"
 XLINK_HREF = f"{{{XLINK_NS}}}href"
+XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
 SVG_PREFIX = f"{{{SVG_NS}}}"
 
 

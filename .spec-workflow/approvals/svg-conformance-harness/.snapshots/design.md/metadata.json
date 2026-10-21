@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-harness/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-21T19:21:19.792Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792610479772_oa0y5fl5m",
+      "approvalTitle": "SVG conformance Level 0: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-21T19:22:51.303Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792610479772_oa0y5fl5m",
+      "approvalTitle": "SVG conformance Level 0: design"
+    }
+  ]
+}

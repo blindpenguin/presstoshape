@@ -5,7 +5,8 @@ name: Nightly
 
 on:
   schedule:
-    - cron: "17 2 * * *"
+    - cron: "0 2 * * *"
+      timezone: "Europe/Berlin"
   workflow_dispatch:
     inputs:
       tag:

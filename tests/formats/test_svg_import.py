@@ -78,7 +78,7 @@ def test_inherit_keeps_the_parent_value_and_classes_inherit_through_groups():
 
 
 def test_unsupported_css_rules_are_reported():
-    sheet = "<style>g rect { fill: red } @media print { rect { fill: blue } }</style>"
+    sheet = "<style>g rect::before { fill: red } @media print { rect { fill: blue } }</style>"
     notes = _notes(sheet + '<rect width="5" height="5"/>')
     assert notes == ["2 CSS rules were not applied"]
 
@@ -485,3 +485,243 @@ def test_grid_spacing_with_a_unit_and_broken_grids():
 def test_pasting_ignores_guides():
     shapes, notes = read_shapes_svg((SAMPLES / "inkscape_guides_grid.svg").read_text(encoding="utf-8"))
     assert notes == [] and len(shapes) == 1
+
+
+def test_a_broken_path_among_valid_shapes_opens_with_its_valid_part_and_a_note():
+    body = (
+        '<path d="M 10 10 L 20 20"/><path d="M 0 0 L 50 0 L 50"/><path d="L 1 1"/>'
+        '<polyline points="0,0 10,10 20"/><rect width="5" height="5"/>'
+    )
+    document, notes = read_svg_with_notes(_svg(body))
+    shapes = leaves(document.layers[0].shapes)
+    assert len(shapes) == 4
+    assert shapes[1].segments == (MoveTo(0, 0), LineTo(50, 0))
+    assert notes == ["3 paths had errors and were cut short"]
+
+
+def test_percentages_resolve_against_the_view_box_per_axis():
+    svg = _svg('<rect x="10%" y="10%" width="50%" height="50%"/>', 'viewBox="0 0 200 100"')
+    (rect,) = read_shapes_svg(svg)[0]
+    assert (rect.x, rect.y, rect.width, rect.height) == (20, 10, 100, 50)
+
+
+def test_units_in_geometry_and_stroke_width():
+    shapes = _shapes('<rect x="1in" width="2.54cm" height="12pt" stroke="red" stroke-width="1mm"/>')
+    rect = shapes[0]
+    assert (rect.x, rect.width, rect.height) == (96, pytest.approx(96), pytest.approx(16))
+    assert rect.style.stroke_width == pytest.approx(96 / 25.4)
+
+
+def test_em_lengths_chain_through_nested_groups():
+    body = '<g font-size="10"><g font-size="2em"><text x="1em" y="2em">Hi</text></g></g>'
+    (text,) = leaves(_shapes(body))
+    assert text.font_size == 20 and (text.x, text.y) == (20, 40)
+
+
+def test_percent_font_size_is_relative_to_the_parent():
+    (text,) = leaves(_shapes('<g font-size="20"><text font-size="50%" x="1em" y="0">Hi</text></g>'))
+    assert text.font_size == 10 and text.x == 10
+
+
+def test_ex_is_half_the_font_size():
+    (text,) = _shapes('<text font-size="20" x="2ex" y="0">Hi</text>')
+    assert text.x == 20
+
+
+def test_invalid_geometry_attribute_is_counted_and_defaulted():
+    document, notes = read_svg_with_notes(_svg('<rect x="10PX" width="5" height="5"/>'))
+    assert leaves(document.layers[0].shapes)[0].x == 0
+    assert notes == ["1 invalid value was ignored"]
+
+
+def test_relative_dy_in_em_still_spaces_lines():
+    shapes = _shapes('<text font-size="10" x="0" y="10"><tspan x="0" dy="1.5em">Next</tspan></text>')
+    assert shapes[0].y == 25
+
+
+def test_current_color_follows_the_elements_own_color_svg2_style():
+    body = (
+        '<g color="red" fill="currentColor"><rect width="5" height="5"/>'
+        '<g color="blue"><rect width="5" height="5"/></g></g>'
+    )
+    first, second = leaves(_shapes(body))
+    assert (first.style.fill, second.style.fill) == ("#ff0000", "#0000ff")
+
+
+def test_color_inherit_and_current_color_take_the_parents_colour():
+    body = (
+        '<g color="green"><rect color="inherit" fill="currentColor" width="5" height="5"/>'
+        '<rect color="currentColor" fill="currentColor" width="5" height="5"/></g>'
+    )
+    assert [shape.style.fill for shape in leaves(_shapes(body))] == ["#008000", "#008000"]
+
+
+def test_current_color_alpha_multiplies_like_other_colours():
+    (rect,) = leaves(_shapes('<rect color="rgba(0,0,255,.5)" fill="currentColor" fill-opacity=".5" width="5" height="5"/>'))
+    assert rect.style.fill == "#0000ff"
+    assert rect.style.fill_opacity == pytest.approx(0.25, abs=0.01)
+
+
+def test_attribute_units_are_case_sensitive_but_css_ones_are_not():
+    (attribute,) = leaves(_shapes('<rect stroke="red" stroke-width="10PX" width="5" height="5"/>'))
+    (styled,) = leaves(_shapes('<rect stroke="red" style="stroke-width: 20PX" width="5" height="5"/>'))
+    assert attribute.style.stroke_width == 1
+    assert styled.style.stroke_width == 20
+
+
+def test_invalid_values_are_ignored_and_counted_and_the_lower_layer_survives():
+    body = '<rect fill="red" style="fill: nonsense; stroke: ActiveBorder" width="5" height="5"/>'
+    document, notes = read_svg_with_notes(_svg(body))
+    (rect,) = leaves(document.layers[0].shapes)
+    assert rect.style.fill == "#ff0000" and rect.style.stroke is None
+    assert notes == ["2 invalid values were ignored"]
+
+
+def test_a_realistic_exported_sheet_with_combinators():
+    sheet = (
+        "<style>svg g.icon path{fill:#111} g.icon > path.accent{fill:#e00} "
+        "path:first-child{stroke:#00f} .a + .b{opacity:.5} @media screen{rect{fill:#0a0}}</style>"
+    )
+    body = (
+        sheet + '<g class="icon"><path class="accent" d="M0 0 L5 5"/><path d="M0 0 L9 9"/></g>'
+        '<path d="M0 0 L7 7"/><rect width="5" height="5"/>'
+    )
+    group, loose_path, rect = _shapes(body)
+    first, second = leaves([group])
+    assert (first.style.fill, first.style.stroke) == ("#ee0000", "#0000ff")
+    assert (second.style.fill, second.style.stroke) == ("#111111", None)
+    assert loose_path.style.fill == "#000000"
+    assert rect.style.fill == "#00aa00"
+
+
+def test_style_elements_with_other_type_or_media_are_not_read():
+    body = (
+        '<style type="text/foo">rect{fill:red}</style><style media="print">rect{fill:green}</style>'
+        '<style type="TEXT/CSS" media="screen, print">rect{stroke:blue}</style>'
+        '<rect width="5" height="5"/>'
+    )
+    document, notes = read_svg_with_notes(_svg(body))
+    (rect,) = leaves(document.layers[0].shapes)
+    assert (rect.style.fill, rect.style.stroke) == ("#000000", "#0000ff")
+    assert notes == ["2 CSS rules were not applied"]
+
+
+_MULTILINGUAL = (
+    '<switch><text systemLanguage="de" x="0" y="10">Hallo</text><text systemLanguage="en" x="0" y="10">Hello</text>'
+    '<text x="0" y="10">Hi</text></switch>'
+)
+
+
+def _texts(body: str, languages: tuple[str, ...]) -> tuple[list[str], list[str]]:
+    shapes, notes = read_shapes_svg(_svg(body), languages)
+    return [shape.text for shape in leaves(shapes)], notes
+
+
+def test_switch_draws_only_the_choice_for_the_users_language():
+    assert _texts(_MULTILINGUAL, ("de", "en")) == (["Hallo"], ["2 elements meant for another language or viewer were left out"])
+    assert _texts(_MULTILINGUAL, ("en",))[0] == ["Hello"]
+    assert _texts(_MULTILINGUAL, ("fr", "en"))[0] == ["Hello"]
+    assert _texts(_MULTILINGUAL, ("fr",))[0] == ["Hi"]
+
+
+def test_conditions_outside_a_switch_hide_elements():
+    body = '<text systemLanguage="de" x="0" y="10">Hallo</text><text x="0" y="30">Always</text>'
+    assert _texts(body, ("en",)) == (["Always"], ["1 element meant for another language or viewer was left out"])
+    assert _texts(body, ("de",))[0] == ["Hallo", "Always"]
+
+
+def test_required_extensions_false_and_features_ignored():
+    body = (
+        '<rect requiredExtensions="x" width="5" height="5"/><rect requiredFeatures="y" width="6" height="6"/>'
+    )
+    assert [shape.width for shape in leaves(_shapes(body))] == [6]
+
+
+def test_illustrator_switch_falls_back_to_the_plain_content():
+    body = (
+        '<switch><foreignObject requiredExtensions="http://ns.adobe.com/AdobeIllustrator/10.0/"><x/></foreignObject>'
+        '<g><rect width="5" height="5"/></g></switch>'
+    )
+    assert len(leaves(_shapes(body))) == 1
+
+
+def test_system_language_on_a_use_target_and_symbol_content():
+    body = (
+        '<defs><rect id="d" systemLanguage="de" width="5" height="5"/>'
+        '<symbol id="s"><rect systemLanguage="de" width="5" height="5"/><rect width="7" height="7"/></symbol></defs>'
+        '<use href="#d"/><use href="#s"/>'
+    )
+    assert [shape.width for shape in leaves(read_shapes_svg(_svg(body), ("en",))[0])] == [7]
+    assert len(leaves(read_shapes_svg(_svg(body), ("de",))[0])) == 3
+
+
+def test_a_layer_for_another_language_is_left_out():
+    body = (
+        '<g inkscape:groupmode="layer" systemLanguage="de"><rect width="5" height="5"/></g>'
+        '<g inkscape:groupmode="layer"><rect width="6" height="6"/></g>'
+    )
+    document, _notes_ = read_svg_with_notes(_svg(body), ("en",))
+    assert len(document.layers) == 1
+
+
+def test_text_whitespace_default_and_preserve_modes():
+    texts = [
+        shape.text
+        for shape in leaves(
+            _shapes(
+                '<text x="0" y="10">  a \n   b\t c  </text>'
+                '<text x="0" y="20" xml:space="preserve">  a  b </text>'
+                '<g xml:space="preserve"><text x="0" y="30">  inherited </text></g>'
+            )
+        )
+    ]
+    assert texts == ["a b c", "  a  b ", "  inherited "]
+
+
+def test_xml_space_changes_per_tspan_without_losing_boundary_spaces():
+    body = '<text x="0" y="10">one <tspan xml:space="preserve"> two  </tspan> <tspan xml:space="default"> three </tspan></text>'
+    (text,) = leaves(_shapes(body))
+    assert text.text == "one  two   three"
+
+
+def test_spaces_survive_saving_and_reopening():
+    shape = TextShape(1, 0, 10, "  two  spaces ", 16, Style())
+    svg = write_svg(Document(layers=[Layer("L", shapes=[shape])]))
+    assert 'xml:space="preserve"' in svg
+    (reopened,) = leaves(read_svg(svg).layers[0].shapes)
+    assert reopened.text == "  two  spaces "
+
+
+def test_text_without_special_spaces_is_written_without_xml_space():
+    shape = TextShape(1, 0, 10, "plain text", 16, Style())
+    assert "xml:space" not in write_svg(Document(layers=[Layer("L", shapes=[shape])]))
+
+
+def test_clipboard_svg_keeps_spaces():
+    from presstoshape.formats.svg import write_shapes_svg
+
+    shape = TextShape(1, 0, 10, " lead", 16, Style())
+    (back,) = leaves(read_shapes_svg(write_shapes_svg([shape], (0, 0, 50, 50)))[0])
+    assert back.text == " lead"
+
+
+UNEVEN = "1 stroke under uneven scaling was approximated"
+SKEW = "1 skewed text lost its skew"
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ('<path d="M0 0 L9 9" stroke="red" transform="scale(8,2)"/>', [UNEVEN]),
+        ('<path d="M0 0 L9 9" transform="scale(8,2)"/>', []),
+        ('<path d="M0 0 L9 9" stroke="red" transform="scale(3)"/>', []),
+        ('<path d="M0 0 L9 9" stroke="red" transform="scale(-1,1)"/>', []),
+        ('<path d="M0 0 L9 9" stroke="red" transform="rotate(30) scale(2)"/>', []),
+        ('<path d="M0 0 L9 9" stroke="red" transform="skewX(20)"/>', [UNEVEN]),
+        ('<text x="0" y="10" transform="skewX(20)">Hi</text>', [SKEW]),
+        ('<text x="0" y="10" transform="rotate(20)">Hi</text>', []),
+        ('<text x="0" y="10" transform="scale(2) translate(5,5)">Hi</text>', []),
+    ],
+)
+def test_approximations_under_transforms_are_noted(body, expected):
+    assert _notes(body) == expected

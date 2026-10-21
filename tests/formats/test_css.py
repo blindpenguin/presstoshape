@@ -1,12 +1,20 @@
 import time
+import xml.etree.ElementTree as ET
 
 import pytest
 
-from presstoshape.formats.css import Compound, parse, parse_declarations, parse_selector
+from presstoshape.formats.css import parse, parse_declarations
+from presstoshape.formats.svg_nodes import Nodes
 
 
 def _for(sheet, tag="path", element_id=None, classes=()):
-    return sheet.declarations_for(tag, element_id, frozenset(classes))
+    attributes = {"class": " ".join(classes)} if classes else {}
+    if element_id is not None:
+        attributes["id"] = element_id
+    element = ET.Element(f"{{http://www.w3.org/2000/svg}}{tag}", attributes)
+    root = ET.Element("{http://www.w3.org/2000/svg}svg")
+    root.append(element)
+    return sheet.declarations_for(Nodes(root).node(element))
 
 
 def test_illustrator_style_class_rules():
@@ -14,26 +22,6 @@ def test_illustrator_style_class_rules():
     assert _for(sheet, classes=["st0"]) == ({"fill": "#E30613"}, {})
     assert _for(sheet, classes=["st1"])[0] == {"fill": "none", "stroke": "#000000", "stroke-width": "2"}
     assert _for(sheet, classes=["other"]) == ({}, {})
-
-
-@pytest.mark.parametrize(
-    "text, expected",
-    [
-        ("rect", Compound("rect", frozenset(), frozenset())),
-        ("*", Compound(None, frozenset(), frozenset())),
-        ("#logo", Compound(None, frozenset({"logo"}), frozenset())),
-        ("path.st0", Compound("path", frozenset(), frozenset({"st0"}))),
-        (".a.b", Compound(None, frozenset(), frozenset({"a", "b"}))),
-        ("  g#x.y  ", Compound("g", frozenset({"x"}), frozenset({"y"}))),
-    ],
-)
-def test_supported_selectors(text, expected):
-    assert parse_selector(text) == expected
-
-
-@pytest.mark.parametrize("text", ["g rect", "g > rect", "a + b", "a ~ b", "[fill]", "a:hover", "", "svg|rect", "1x"])
-def test_unsupported_selectors(text):
-    assert parse_selector(text) is None
 
 
 def test_compound_selectors_need_every_part():
@@ -51,7 +39,7 @@ def test_selector_lists_apply_to_each_selector():
 
 
 def test_unsupported_selectors_in_a_list_skip_only_themselves():
-    sheet = parse("g rect, .x { fill: red }")
+    sheet = parse("rect::before, .x { fill: red }")
     assert sheet.skipped == 1
     assert _for(sheet, classes=["x"])[0] == {"fill": "red"}
 
@@ -114,3 +102,33 @@ def test_many_rules_are_looked_up_quickly():
     for index in range(10_000):
         _for(sheet, classes=[f"c{index % 500}"])
     assert time.perf_counter() - start < 0.5
+
+
+def test_media_blocks_for_screen_and_all_are_entered():
+    sheet = parse(
+        "@media screen { .a { fill: red } } @media all { .b { fill: green } } @media { .c { fill: blue } }"
+        "@media print, screen { .d { fill: black } } @media (min-width: 10px) { .e { fill: white } } .f { fill: pink }"
+    )
+    assert [_for(sheet, classes=[name])[0] for name in "abcd"] == [
+        {"fill": "red"},
+        {"fill": "green"},
+        {"fill": "blue"},
+        {"fill": "black"},
+    ]
+    assert _for(sheet, classes=["e"]) == ({}, {})
+    assert _for(sheet, classes=["f"])[0] == {"fill": "pink"}
+    assert sheet.skipped == 1
+
+
+def test_rules_inside_media_keep_source_order():
+    sheet = parse(".a { fill: red } @media screen { .a { fill: green } } .a { stroke: blue }")
+    assert _for(sheet, classes=["a"])[0] == {"fill": "green", "stroke": "blue"}
+
+
+def test_combinators_apply():
+    root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><g class="icon"><path id="in"/></g><path id="out"/></svg>')
+    nodes = Nodes(root)
+    sheet = parse("g.icon > path { fill: red }")
+    inside, outside = root[0][0], root[1]
+    assert sheet.declarations_for(nodes.node(inside))[0] == {"fill": "red"}
+    assert sheet.declarations_for(nodes.node(outside)) == ({}, {})

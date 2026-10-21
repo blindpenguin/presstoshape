@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-harness/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-21T19:16:48.214Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792610208176_ua7zen3m8",
+      "approvalTitle": "SVG conformance Level 0: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-21T19:19:03.927Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792610208176_ua7zen3m8",
+      "approvalTitle": "SVG conformance Level 0: requirements"
+    }
+  ]
+}

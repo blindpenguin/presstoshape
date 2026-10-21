@@ -1266,12 +1266,38 @@ msgid_plural "{count} grid settings couldn't be read, the default grid is used"
 msgstr[0] ""
 msgstr[1] ""
 
+#: presstoshape/formats/svg_notes.py
+msgid "{count} path had errors and was cut short"
+msgid_plural "{count} paths had errors and were cut short"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} invalid value was ignored"
+msgid_plural "{count} invalid values were ignored"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} element meant for another language or viewer was left out"
+msgid_plural "{count} elements meant for another language or viewer were left out"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} stroke under uneven scaling was approximated"
+msgid_plural "{count} strokes under uneven scaling were approximated"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} skewed text lost its skew"
+msgid_plural "{count} skewed texts lost their skew"
+msgstr[0] ""
+msgstr[1] ""
+
 #: presstoshape/formats/svg_reader.py
 msgid "not an SVG document"
-msgstr ""
-
-#: presstoshape/formats/svg_values.py
-msgid "bad path data: {data}"
 msgstr ""
 
 #: presstoshape/models/app_state.py

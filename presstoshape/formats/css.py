@@ -1,47 +1,24 @@
-"""The small part of CSS that SVG files from drawing programs use: `<style>` sheets with type, class, id and
-universal selectors (alone, compound like `path.st0`, or in comma lists) and `!important`.
+"""The CSS that SVG files from drawing programs use: `<style>` sheets with selectors (formats/css_selectors.py),
+`@media` blocks for all/screen and `!important`.
 
-Anything else (combinators, attribute selectors, pseudo-classes, at-rules) is skipped and counted, so the
-reader can say that some rules weren't applied instead of applying them wrongly.
+Anything else (other at-rules, unsupported selectors) is skipped and counted, so the reader can say that some
+rules weren't applied instead of applying them wrongly.
 """
 
 import re
 from dataclasses import dataclass, field
 
+from presstoshape.formats.css_selectors import Node, Selector, parse_selector
+
 _COMMENT = re.compile(r"/\*.*?(?:\*/|$)", re.S)
 # Old HTML comment markers some exporters still wrap style sheets in.
 _HTML_COMMENT_MARKERS = re.compile(r"<!--|-->")
-_COMPOUND = re.compile(r"(?P<tag>\*|[A-Za-z_][\w-]*)?(?P<rest>(?:[.#][A-Za-z_-][\w-]*)*)")
-_SIMPLE = re.compile(r"([.#])([\w-]+)")
 _IMPORTANT = re.compile(r"!\s*important\s*$", re.I)
-
-Specificity = tuple[int, int, int]
-
-
-@dataclass(frozen=True)
-class Compound:
-    """One selector without combinators: an optional type (None = any) plus ids and classes that must all
-    match."""
-
-    tag: str | None
-    ids: frozenset[str]
-    classes: frozenset[str]
-
-    def matches(self, tag: str, element_id: str | None, classes: frozenset[str]) -> bool:
-        if self.tag is not None and self.tag != tag:
-            return False
-        if self.ids and (element_id is None or self.ids != {element_id}):
-            return False
-        return self.classes <= classes
-
-    @property
-    def specificity(self) -> Specificity:
-        return len(self.ids), len(self.classes), 0 if self.tag is None else 1
 
 
 @dataclass(frozen=True)
 class Rule:
-    selector: Compound
+    selector: Selector
     # (property, value, important), in source order.
     declarations: tuple[tuple[str, str, bool], ...]
     order: int
@@ -58,19 +35,17 @@ class Stylesheet:
         self.rules.append(rule)
         self._index.setdefault(_index_key(rule.selector), []).append(rule)
 
-    def declarations_for(
-        self, tag: str, element_id: str | None, classes: frozenset[str]
-    ) -> tuple[dict[str, str], dict[str, str]]:
+    def declarations_for(self, node: Node) -> tuple[dict[str, str], dict[str, str]]:
         """(normal, important) declarations for an element, cascaded: higher specificity wins, then the later
         rule."""
         if not self.rules:
             return {}, {}
-        keys = [("*", ""), ("tag", tag), *(("class", name) for name in classes)]
-        if element_id is not None:
-            keys.append(("id", element_id))
+        keys = [("*", ""), ("tag", node.tag), *(("class", name) for name in node.classes)]
+        if node.id is not None:
+            keys.append(("id", node.id))
         candidates = [rule for key in keys for rule in self._index.get(key, ())]
         matching = sorted(
-            (rule for rule in candidates if rule.selector.matches(tag, element_id, classes)),
+            (rule for rule in candidates if rule.selector.matches(node)),
             key=lambda rule: (rule.selector.specificity, rule.order),
         )
         normal: dict[str, str] = {}
@@ -81,30 +56,16 @@ class Stylesheet:
         return normal, important
 
 
-def _index_key(selector: Compound) -> tuple[str, str]:
-    """The most selective part, so a lookup only checks rules that can match."""
-    if selector.ids:
-        return "id", min(selector.ids)
-    if selector.classes:
-        return "class", min(selector.classes)
-    if selector.tag is not None:
-        return "tag", selector.tag
+def _index_key(selector: Selector) -> tuple[str, str]:
+    """The most selective part of the rightmost compound, so a lookup only checks rules that can match."""
+    compound = selector.compounds[-1]
+    if compound.ids:
+        return "id", min(compound.ids)
+    if compound.classes:
+        return "class", min(compound.classes)
+    if compound.tag is not None:
+        return "tag", compound.tag
     return "*", ""
-
-
-def parse_selector(text: str) -> Compound | None:
-    """A compound selector, or None when it uses anything unsupported (or isn't a selector at all)."""
-    text = text.strip()
-    match = _COMPOUND.fullmatch(text)
-    if not text or match is None:
-        return None
-    tag = match.group("tag")
-    parts = _SIMPLE.findall(match.group("rest"))
-    return Compound(
-        None if tag in (None, "*") else tag,
-        frozenset(name for kind, name in parts if kind == "#"),
-        frozenset(name for kind, name in parts if kind == "."),
-    )
 
 
 def parse_declarations(text: str) -> tuple[tuple[str, str, bool], ...]:
@@ -157,19 +118,41 @@ def _block_end(text: str, opening: int) -> int:
     return len(text)
 
 
+_MEDIA = re.compile(r"@media\b([^{]*)", re.I)
+_MAX_MEDIA_DEPTH = 4
+
+
+def media_applies(query: str) -> bool:
+    """Whether a media query list (or a `media` attribute) holds for a screen: empty, `all` or `screen`."""
+    return any(part.strip().lower() in ("", "all", "screen") for part in query.split(","))
+
+
 def parse(text: str) -> Stylesheet:
     """Never raises: malformed parts are skipped and counted, the rest still applies."""
-    text = _HTML_COMMENT_MARKERS.sub(" ", _COMMENT.sub(" ", text))
     sheet = Stylesheet()
+    _parse_into(sheet, _HTML_COMMENT_MARKERS.sub(" ", _COMMENT.sub(" ", text)), 0)
+    return sheet
+
+
+def _parse_into(sheet: Stylesheet, text: str, depth: int) -> None:
     position = 0
     while True:
         while position < len(text) and text[position].isspace():
             position += 1
         if position >= len(text):
-            return sheet
+            return
         brace = text.find("{", position)
         if text[position] == "@":
             semicolon = text.find(";", position)
+            media = _MEDIA.match(text, position)
+            if media and brace != -1 and (semicolon == -1 or brace < semicolon):
+                end = _block_end(text, brace)
+                if media_applies(media.group(1)) and depth < _MAX_MEDIA_DEPTH:
+                    _parse_into(sheet, text[brace + 1 : end - 1 if text[end - 1 : end] == "}" else end], depth + 1)
+                else:
+                    sheet.skipped += 1
+                position = end
+                continue
             if semicolon != -1 and (brace == -1 or semicolon < brace):
                 position = semicolon + 1
             else:
@@ -178,13 +161,13 @@ def parse(text: str) -> Stylesheet:
             continue
         if brace == -1:
             sheet.skipped += 1
-            return sheet
+            return
         end = _block_end(text, brace)
         prelude, body = text[position:brace], text[brace + 1 : end - 1 if text[end - 1 : end] == "}" else end]
         position = end
         # A stray `}` before the selector belongs to broken earlier input; the selector starts after it.
         prelude = prelude.rpartition("}")[2]
-        selectors = [parse_selector(part) for part in prelude.split(",")]
+        selectors = [parse_selector(part) for part in _split_outside(prelude, ",")]
         if any(selector is None for selector in selectors):
             sheet.skipped += 1
         declarations = parse_declarations(body)

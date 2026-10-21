@@ -304,3 +304,25 @@ def test_an_entered_group_is_entered_again_after_reopening(tmp_path):
     assert documents.open_file(session, str(target))
     assert session.state.edit_path == (1,)
     assert session.state.selection == {7}
+
+
+def test_opening_and_pasting_svg_use_the_active_language(tmp_path):
+    from presstoshape import i18n
+    from presstoshape.i18n.catalog import Catalog
+
+    text = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><switch>'
+        '<text systemLanguage="de" x="0" y="10">Hallo</text><text x="0" y="10">Hello</text></switch></svg>'
+    )
+    path = tmp_path / "t.svg"
+    path.write_text(text, encoding="utf-8")
+    try:
+        i18n.install(Catalog("de"))
+        session = Session()
+        assert documents.open_file(session, str(path))
+        assert [shape.text for shape in all_shapes(session)] == ["Hallo"]
+    finally:
+        i18n.install(Catalog("en"))
+    session = Session()
+    assert documents.open_file(session, str(path))
+    assert [shape.text for shape in all_shapes(session)] == ["Hello"]
