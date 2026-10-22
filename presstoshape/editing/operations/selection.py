@@ -6,7 +6,7 @@ from presstoshape.editing.operations._document import delete_selected, map_selec
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
-from presstoshape.i18n import N_, _, ngettext
+from presstoshape.i18n import N_, ngettext
 from presstoshape.models.app_state import Tool
 
 
@@ -49,6 +49,4 @@ def delete_selection(session: Session) -> None:
     count = len(selection)
     with session.edit(ngettext("Delete {count} object", "Delete {count} objects", count).format(count=count)):
         delete_selected(state)
-        state.status_message = ngettext("Deleted {count} object", "Deleted {count} objects", count).format(
-            count=count
-        )
+        state.status_message = ngettext("Deleted {count} object", "Deleted {count} objects", count).format(count=count)

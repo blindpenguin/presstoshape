@@ -20,6 +20,7 @@ _ENUMS = {
     "stroke-linejoin": ("miter", "round", "bevel", "miter-clip", "arcs"),
     "text-anchor": ("start", "middle", "end"),
     "visibility": ("visible", "hidden", "collapse"),
+    "overflow": ("visible", "hidden", "scroll", "auto"),
     "display": (
         "inline",
         "block",
@@ -55,8 +56,13 @@ def normalize(name: str, value: str, css: bool) -> str | None:
         return value
     if name in ("fill", "stroke"):
         return _paint(value, css)
-    if name == "color":
+    if name in ("color", "stop-color"):
         return _color_or_current(value, css)
+    if name == "stop-opacity":
+        return _opacity(value)
+    if name == "color-interpolation":
+        keyword = value if not css else {"srgb": "sRGB", "linearrgb": "linearRGB"}.get(value.lower(), value.lower())
+        return keyword if keyword in ("auto", "sRGB", "linearRGB") else None
     if name in _NON_NEGATIVE_LENGTHS:
         return _length(value, css, non_negative=True, keywords=_FONT_SIZE_KEYWORDS if name == "font-size" else ())
     if name == "stroke-dashoffset":

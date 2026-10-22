@@ -7,7 +7,8 @@ from presstoshape.i18n import ngettext
 
 
 class Note(Enum):
-    GRADIENT = auto()
+    PATTERN = auto()
+    COLOR_INTERPOLATION = auto()
     CLIP = auto()
     MASK = auto()
     IMAGE = auto()
@@ -18,7 +19,7 @@ class Note(Enum):
     MISSING_REFERENCE = auto()
     CYCLIC_REFERENCE = auto()
     MIXED_TEXT = auto()
-    NESTED_SVG = auto()
+    VIEWPORT_OVERFLOW = auto()
     UNKNOWN_ELEMENT = auto()
     COMPOSITE_UNREADABLE = auto()
     COMPOSITE_EDITED = auto()
@@ -33,9 +34,13 @@ class Note(Enum):
 
 def _message(note: Note, count: int) -> str:
     match note:
-        case Note.GRADIENT:
+        case Note.PATTERN:
+            text = ngettext("{count} pattern was painted grey", "{count} patterns were painted grey", count)
+        case Note.COLOR_INTERPOLATION:
             text = ngettext(
-                "{count} gradient or pattern was painted grey", "{count} gradients or patterns were painted grey", count
+                "{count} gradient asks for linearRGB colour mixing, sRGB is used",
+                "{count} gradients ask for linearRGB colour mixing, sRGB is used",
+                count,
             )
         case Note.CLIP:
             text = ngettext(
@@ -89,9 +94,11 @@ def _message(note: Note, count: int) -> str:
                 "{count} text lines with mixed styles now use one style each",
                 count,
             )
-        case Note.NESTED_SVG:
+        case Note.VIEWPORT_OVERFLOW:
             text = ngettext(
-                "{count} embedded SVG document was left out", "{count} embedded SVG documents were left out", count
+                "{count} viewport would clip its content; it is shown unclipped",
+                "{count} viewports would clip their content; it is shown unclipped",
+                count,
             )
         case Note.UNKNOWN_ELEMENT:
             text = ngettext("{count} other element was left out", "{count} other elements were left out", count)

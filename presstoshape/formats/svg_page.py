@@ -10,7 +10,9 @@ import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
+from presstoshape.formats.svg_viewport import DEFAULT, Aspect, fit, parse_aspect
 from presstoshape.geometry import units
+from presstoshape.geometry.affine import Affine
 from presstoshape.models.app_state import Document, Unit
 
 PRESSTOSHAPE_NS = "https://github.com/blindpenguin/presstoshape/ns/svg/1"
@@ -18,6 +20,8 @@ UNIT_ATTRIBUTE = f"{{{PRESSTOSHAPE_NS}}}unit"
 DPI_ATTRIBUTE = f"{{{PRESSTOSHAPE_NS}}}dpi"
 _CSS_DPI = 96.0
 _MIN_DENSITY = 72.0
+# Root width/height whose proportions differ from the viewBox by more than this are fitted (rounding stays below).
+_PROPORTION_TOLERANCE = 1e-3
 _LENGTH = re.compile(r"^\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*([a-zA-Z%]*)\s*$")
 _NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 # SVG length units PressToShape can use as a document unit; pc (pica) becomes pt.
@@ -46,6 +50,9 @@ class Page:
     scale: float
     unit: Unit
     dpi: float
+    # Maps the file's user space into the page when width/height and viewBox have different proportions; None
+    # when origin and scale are enough.
+    view: Affine | None = None
 
 
 def page_attributes(document: Document) -> dict[str, str]:
@@ -107,6 +114,9 @@ def read_page(root: ET.Element) -> Page:
     own = _own_unit_and_dpi(root)
     if own is not None:
         return Page(box_width, box_height, origin, 1.0, *own)
+    fitted = _fitted(root, view_box, width, height)
+    if fitted is not None:
+        return fitted
     physical = _inches(width) if width is not None else None
     if physical is None or physical[1] <= 0:
         return Page(box_width, box_height, origin, 1.0, "px", _CSS_DPI)
@@ -116,3 +126,23 @@ def read_page(root: ET.Element) -> Page:
         return Page(box_width, box_height, origin, 1.0, unit, density)
     scale = _CSS_DPI / density
     return Page(box_width * scale, box_height * scale, origin, scale, unit, _CSS_DPI)
+
+
+def _fitted(
+    root: ET.Element, view_box: list[float], width: tuple[float, str] | None, height: tuple[float, str] | None
+) -> Page | None:
+    """The page of a root with an absolute width and height of other proportions than its viewBox: the page keeps
+    that size and `preserveAspectRatio` places the content in it."""
+    if width is None or height is None or width[0] <= 0 or height[0] <= 0:
+        return None
+    if any(unit != "" and unit != "px" and unit not in _FILE_UNITS for unit in (width[1], height[1])):
+        return None
+    page_width, page_height = _css_px(width, 0.0), _css_px(height, 0.0)
+    if abs(page_width / page_height * view_box[3] / view_box[2] - 1) <= _PROPORTION_TOLERANCE:
+        return None
+    parsed = parse_aspect(root.get("preserveAspectRatio"))
+    aspect = parsed if isinstance(parsed, Aspect) else DEFAULT
+    physical = _inches(width)
+    unit = physical[0] if physical is not None else "px"
+    matrix = fit((view_box[0], view_box[1], view_box[2], view_box[3]), page_width, page_height, aspect)
+    return Page(page_width, page_height, (0.0, 0.0), 1.0, unit, _CSS_DPI, matrix)

@@ -118,7 +118,7 @@ RENDERER_VARIABLE = "PRESSTOSHAPE_RENDERER"
 
 
 def renderer_override() -> str | None:
-    """"gl" or "cpu" when the environment variable forces one; it wins over the setting."""
+    """ "gl" or "cpu" when the environment variable forces one; it wins over the setting."""
     choice = os.environ.get(RENDERER_VARIABLE, "").lower()
     return choice if choice in ("cpu", "gl") else None
 

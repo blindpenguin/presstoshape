@@ -220,9 +220,9 @@ def save_file(
     state.status_message = _("Saved {name}").format(name=name)
     if not native and not state.svg_hint_shown:
         state.svg_hint_shown = True
-        state.status_message = _(
-            "Saved {name} (view, tool settings and selection are only kept in .p2s files)"
-        ).format(name=name)
+        state.status_message = _("Saved {name} (view, tool settings and selection are only kept in .p2s files)").format(
+            name=name
+        )
     if not backed_up:
         state.status_message = _("{message} (no backup of the previous version could be made)").format(
             message=state.status_message

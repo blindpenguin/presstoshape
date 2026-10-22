@@ -113,9 +113,7 @@ def _regions(path: pathops.Path) -> list[pathops.Path]:
         if depth[index] % 2 == 0:
             continue
         owners = [
-            outer
-            for outer in regions
-            if depth[outer] == depth[index] - 1 and contours[outer].contains(anchors[index])
+            outer for outer in regions if depth[outer] == depth[index] - 1 and contours[outer].contains(anchors[index])
         ]
         if owners:
             regions[min(owners, key=lambda outer: abs(contours[outer].area))].addPath(contour)

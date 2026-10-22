@@ -16,21 +16,28 @@ from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
+    MAX_STOPS,
     Close,
     CompositeShape,
     CubicTo,
     EllipseShape,
     FillRule,
+    GradientStop,
+    GradientUnits,
     GroupShape,
+    LinearGradient,
     LineCap,
     LineJoin,
     LineTo,
     MoveTo,
+    Paint,
     PartMode,
     PathShape,
+    RadialGradient,
     RectShape,
     Segment,
     Shape,
+    SpreadMethod,
     Style,
     TextAnchor,
     TextShape,
@@ -85,10 +92,40 @@ _number = float
 _DEFAULT_STYLE = Style()
 
 
+def _encode_stop(stop: GradientStop) -> dict[str, Any]:
+    fields: dict[str, Any] = {"offset": _number(stop.offset), "color": stop.color}
+    if stop.opacity != 1.0:
+        fields["opacity"] = _number(stop.opacity)
+    return fields
+
+
+def encode_paint(paint: Paint) -> str | dict[str, Any] | None:
+    """A colour string or null as before; a gradient as an object (version 8)."""
+    match paint:
+        case LinearGradient(x1=x1, y1=y1, x2=x2, y2=y2):
+            fields: dict[str, Any] = {"type": "linear", **_numbers(x1=x1, y1=y1, x2=x2, y2=y2)}
+        case RadialGradient(cx=cx, cy=cy, r=r, fx=fx, fy=fy):
+            fields = {"type": "radial", **_numbers(cx=cx, cy=cy, r=r, fx=fx, fy=fy)}
+        case _:
+            return paint
+    fields["stops"] = [_encode_stop(stop) for stop in paint.stops]
+    if paint.units != "objectBoundingBox":
+        fields["units"] = paint.units
+    if paint.spread != "pad":
+        fields["spread"] = paint.spread
+    if paint.transform != IDENTITY_TRANSFORM:
+        fields["transform"] = [_number(value) for value in paint.transform]
+    return fields
+
+
 def encode_style(style: Style) -> dict[str, Any]:
     """fill, stroke and stroke_width always; the fields added in version 4 only when they differ from the
     default, so plain shapes stay as compact as before."""
-    fields: dict[str, Any] = {"fill": style.fill, "stroke": style.stroke, "stroke_width": _number(style.stroke_width)}
+    fields: dict[str, Any] = {
+        "fill": encode_paint(style.fill),
+        "stroke": encode_paint(style.stroke),
+        "stroke_width": _number(style.stroke_width),
+    }
     for key in ("opacity", "fill_opacity", "stroke_opacity", "miter_limit", "dash_offset"):
         if getattr(style, key) != getattr(_DEFAULT_STYLE, key):
             fields[key] = _number(getattr(style, key))
@@ -248,6 +285,42 @@ def _color(value: Any, where: str) -> str | None:
     return None if value is None else read_string(value, where, _MAX_COLOR)
 
 
+def _decode_stop(value: Any, where: str) -> GradientStop:
+    fields = read_object(value, where)
+    return GradientStop(
+        _number_field(fields, "offset", where),
+        _color_required(_field(fields, "color", where), f"{where}.color"),
+        _optional_number(fields, "opacity", where, 1.0),
+    )
+
+
+def _color_required(value: Any, where: str) -> str:
+    return read_string(value, where, _MAX_COLOR)
+
+
+def decode_paint(value: Any, where: str) -> Paint:
+    """Inverse of `encode_paint`; the caller sanitizes."""
+    if value is None or isinstance(value, str):
+        return _color(value, where)
+    fields = read_object(value, where)
+    kind = _optional_choice(fields, "type", where, ("linear", "radial"), "linear")
+    stops = tuple(
+        _decode_stop(item, f"{where}.stops[{index}]")
+        for index, item in enumerate(read_list(_field(fields, "stops", where), f"{where}.stops")[:MAX_STOPS])
+    )
+    common = {
+        "stops": stops,
+        "units": _optional_choice(fields, "units", where, get_args(GradientUnits), "objectBoundingBox"),
+        "spread": _optional_choice(fields, "spread", where, get_args(SpreadMethod), "pad"),
+        "transform": _decode_transform(fields, where),
+    }
+    if kind == "linear":
+        x1, y1, x2, y2 = (_number_field(fields, key, where) for key in ("x1", "y1", "x2", "y2"))
+        return LinearGradient(x1, y1, x2, y2, **common)
+    cx, cy, r, fx, fy = (_number_field(fields, key, where) for key in ("cx", "cy", "r", "fx", "fy"))
+    return RadialGradient(cx, cy, r, fx, fy, **common)
+
+
 def _optional_number(
     fields: dict[str, Any],
     key: str,
@@ -278,8 +351,8 @@ def decode_style(value: Any, where: str) -> Style:
         for index, item in enumerate(read_list(fields.get("dashes", []), f"{where}.dashes"))
     )
     style = Style(
-        fill=_color(_field(fields, "fill", where), f"{where}.fill"),
-        stroke=_color(_field(fields, "stroke", where), f"{where}.stroke"),
+        fill=decode_paint(_field(fields, "fill", where), f"{where}.fill"),
+        stroke=decode_paint(_field(fields, "stroke", where), f"{where}.stroke"),
         stroke_width=_number_field(fields, "stroke_width", where, minimum=0.0),
         opacity=_optional_number(fields, "opacity", where, 1.0, minimum=0.0, maximum=1.0),
         fill_opacity=_optional_number(fields, "fill_opacity", where, 1.0, minimum=0.0, maximum=1.0),

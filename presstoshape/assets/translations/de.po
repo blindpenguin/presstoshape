@@ -1166,10 +1166,16 @@ msgid "made with a newer PressToShape (file format {version}, this version reads
 msgstr "mit einer neueren PressToShape-Version erstellt (Dateiformat {version}, diese Version liest bis {supported}); bitte PressToShape aktualisieren"
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} gradient or pattern was painted grey"
-msgid_plural "{count} gradients or patterns were painted grey"
-msgstr[0] "{count} Verlauf oder Muster wurde grau gefüllt"
-msgstr[1] "{count} Verläufe oder Muster wurden grau gefüllt"
+msgid "{count} pattern was painted grey"
+msgid_plural "{count} patterns were painted grey"
+msgstr[0] "{count} Muster wurde grau gefüllt"
+msgstr[1] "{count} Muster wurden grau gefüllt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} gradient asks for linearRGB colour mixing, sRGB is used"
+msgid_plural "{count} gradients ask for linearRGB colour mixing, sRGB is used"
+msgstr[0] "{count} Verlauf verlangt linearRGB-Farbmischung, es wird sRGB verwendet"
+msgstr[1] "{count} Verläufe verlangen linearRGB-Farbmischung, es wird sRGB verwendet"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} clip path was ignored, its content is shown unclipped"
@@ -1232,10 +1238,10 @@ msgstr[0] "{count} Textzeile mit gemischten Stilen hat jetzt einen Stil"
 msgstr[1] "{count} Textzeilen mit gemischten Stilen haben jetzt je einen Stil"
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} embedded SVG document was left out"
-msgid_plural "{count} embedded SVG documents were left out"
-msgstr[0] "{count} eingebettetes SVG-Dokument wurde weggelassen"
-msgstr[1] "{count} eingebettete SVG-Dokumente wurden weggelassen"
+msgid "{count} viewport would clip its content; it is shown unclipped"
+msgid_plural "{count} viewports would clip their content; it is shown unclipped"
+msgstr[0] "{count} Ansichtsbereich würde seinen Inhalt beschneiden; er wird unbeschnitten gezeigt"
+msgstr[1] "{count} Ansichtsbereiche würden ihren Inhalt beschneiden; er wird unbeschnitten gezeigt"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} other element was left out"
@@ -2246,3 +2252,7 @@ msgstr "Glättung"
 #: presstoshape/views/toolbar_view.py
 msgid "Main toolbar"
 msgstr "Hauptwerkzeugleiste"
+
+#: presstoshape/views/widgets.py
+msgid "Gradient: pick a colour to replace it"
+msgstr "Verlauf: Farbe wählen, um ihn zu ersetzen"

@@ -72,11 +72,13 @@ def test_text_is_hit_on_glyphs():
 
 
 def test_rect_selects_intersecting_shapes():
-    doc = _doc([
-        RectShape(1, 0, 0, 50, 50, FILLED),
-        EllipseShape(2, 200, 200, 30, 30, FILLED),
-        RectShape(3, 400, 400, 50, 50, FILLED),
-    ])
+    doc = _doc(
+        [
+            RectShape(1, 0, 0, 50, 50, FILLED),
+            EllipseShape(2, 200, 200, 30, 30, FILLED),
+            RectShape(3, 400, 400, 50, 50, FILLED),
+        ]
+    )
     assert shapes_in_rect(_pickable(doc), PathCache(), (40, 40, 180, 180)) == {1, 2}
 
 

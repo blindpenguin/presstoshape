@@ -11,16 +11,14 @@ approximated and counted as a note (formats/svg_notes.py). svgelements' own docu
 
 import math
 import xml.etree.ElementTree as ET
-from dataclasses import replace
-
-import svgelements as se
+from dataclasses import dataclass, replace
 
 from presstoshape.formats import css
-from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_conditions import is_drawable, passes, switch_choice
-from presstoshape.formats.svg_lengths import Axis, length, resolve, root_viewport
+from presstoshape.formats.svg_gradients import Resolved, resolve_gradient
+from presstoshape.formats.svg_lengths import Axis, Viewport, length, resolve, root_viewport
 from presstoshape.formats.svg_lengths import parse as parse_length_text
-from presstoshape.formats.svg_nodes import Nodes
+from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_names import (
     COMPOSITE,
     GROUPMODE,
@@ -33,15 +31,16 @@ from presstoshape.formats.svg_names import (
     XML_SPACE,
     q,
 )
+from presstoshape.formats.svg_nodes import Nodes
 from presstoshape.formats.svg_notes import Note, NoteCollector
-from presstoshape.formats.svg_properties import normalize
 from presstoshape.formats.svg_page import Page, read_page
+from presstoshape.formats.svg_properties import normalize
 from presstoshape.formats.svg_values import (
-    NUMBER,
     Whitespace,
     corner_radii,
     first_token,
     one_of,
+    parse_color,
     parse_dashes,
     parse_fraction,
     parse_number,
@@ -49,9 +48,19 @@ from presstoshape.formats.svg_values import (
     parse_points,
     parse_transform,
 )
+from presstoshape.formats.svg_viewport import (
+    DEFAULT,
+    INVALID,
+    Aspect,
+    escapes,
+    fit,
+    is_finite,
+    parse_aspect,
+    parse_view_box,
+)
 from presstoshape.geometry import booleans
-from presstoshape.geometry.affine import IDENTITY, Affine, apply, compose, scaling, translation
-from presstoshape.geometry.segments import transform_segments
+from presstoshape.geometry.affine import IDENTITY, Affine, apply, compose, invert, scaling, translation
+from presstoshape.geometry.segments import segments_bounds, transform_segments
 from presstoshape.geometry.transforms import outline, transform_shape
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, layer_name
@@ -59,9 +68,11 @@ from presstoshape.models.shapes import (
     Close,
     CompositeShape,
     EllipseShape,
+    Gradient,
     GroupShape,
     LineTo,
     MoveTo,
+    Paint,
     PathShape,
     RectShape,
     Segment,
@@ -70,6 +81,8 @@ from presstoshape.models.shapes import (
     TextShape,
     sanitized,
 )
+
+Box = tuple[float, float, float, float]
 
 # How far a stored result may drift from the parts' result (float rounding, other tools rewriting `d`) and
 # still count as unedited: a share of the result's area, with a floor for tiny shapes.
@@ -93,11 +106,22 @@ _INHERITED_KEYS = frozenset(
         "stroke-dashoffset",
         "text-anchor",
         "visibility",
+        "color-interpolation",
     }
 )
 _MARKER_KEYS = ("marker", "marker-start", "marker-mid", "marker-end")
 _EFFECT_NOTES = (("clip-path", Note.CLIP), ("mask", Note.MASK), ("filter", Note.FILTER))
-_STYLE_KEYS = _INHERITED_KEYS | {"display", "opacity", "clip-path", "mask", "filter", *_MARKER_KEYS}
+_STYLE_KEYS = _INHERITED_KEYS | {
+    "display",
+    "opacity",
+    "overflow",
+    "clip-path",
+    "mask",
+    "filter",
+    "stop-color",
+    "stop-opacity",
+    *_MARKER_KEYS,
+}
 # Compared between a text line and its tspans to notice mixed styles.
 _TEXT_LOOK_KEYS = ("fill", "stroke", "font-size", "fill-opacity")
 _DEFAULT_STYLE = {"color": "black", "fill": "black", "stroke": "none", "stroke-width": "1", "font-size": "16"}
@@ -112,6 +136,7 @@ _FONT_SIZES = {
 }
 _FONT_STEP = 1.2
 _UNSUPPORTED_PAINT = "#808080"
+_GRADIENT_TAGS = ("linearGradient", "radialGradient")
 _HIDDEN = ("hidden", "collapse")
 _SHAPE_TAGS = frozenset({"rect", "circle", "ellipse", "line", "polyline", "polygon", "path"})
 # Elements that only define things for others, or carry no drawing: never drawn where they stand.
@@ -148,7 +173,7 @@ def read_svg_with_notes(text: str, languages: tuple[str, ...] = ("en",)) -> tupl
     first, for `systemLanguage` and `<switch>`."""
     root = _parse_root(text)
     page = read_page(root)
-    base_matrix = compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
+    base_matrix = page.view or compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
     document, notes = _read_layers(root, base_matrix, languages, page)
     document.width, document.height = page.width, page.height
     document.unit, document.dpi = page.unit, page.dpi
@@ -179,6 +204,7 @@ def _read_layers(
     reader = _Reader(root, languages)
     base_style = reader.style(_DEFAULT_STYLE, root)
     base_opacity = parse_fraction(base_style.get("opacity"))
+    reader.notes.add(Note.INVALID_VALUE, parse_aspect(root.get("preserveAspectRatio")) is INVALID)
 
     layers: list[Layer] = []
     loose: Layer | None = None
@@ -230,6 +256,16 @@ def _local_name(element: ET.Element) -> str | None:
     return tag[len(SVG_PREFIX) :]
 
 
+@dataclass(frozen=True)
+class _View:
+    """Where a viewport puts its content: viewBox to parent space, the viewport rectangle (parent space) and what
+    percentages inside refer to."""
+
+    matrix: Affine
+    rect: tuple[float, float, float, float]
+    inner: Viewport
+
+
 class _Reader:
     def __init__(self, root: ET.Element, languages: tuple[str, ...]) -> None:
         self.languages = languages
@@ -244,6 +280,7 @@ class _Reader:
             if element_id is not None:
                 self.ids.setdefault(element_id, element)
         self.nodes = Nodes(root)
+        self._gradients: dict[tuple[int, Viewport], Resolved | None] = {}
         sheets = []
         left_out = 0
         for element in root.iter(q("style")):
@@ -350,6 +387,7 @@ class _Reader:
         out: list[Shape],
         opacity: float = 1.0,
         uses: tuple[str, ...] = (),
+        use: ET.Element | None = None,
     ) -> None:
         tag = _local_name(element)
         if tag is None or tag in _NOT_RENDERED:
@@ -363,7 +401,7 @@ class _Reader:
         if hidden and uses:
             return
         before = len(out)
-        self._visit_shown(tag, element, style, matrix, out, opacity, uses)
+        self._visit_shown(tag, element, style, matrix, out, opacity, uses, use)
         locked = _locked(element)
         if hidden or locked:
             out[before:] = [replace(shape, hidden=hidden, locked=locked) for shape in out[before:]]
@@ -377,9 +415,12 @@ class _Reader:
         out: list[Shape],
         opacity: float,
         uses: tuple[str, ...],
+        use: ET.Element | None = None,
     ) -> None:
         if tag == "svg":
-            self.notes.add(Note.NESTED_SVG)
+            self._note_effects(style)
+            matrix = compose(matrix, parse_transform(element.get("transform")))
+            self._viewport_content(element, style, matrix, out, opacity, uses, use)
             return
         if tag == "image":
             self.notes.add(Note.IMAGE)
@@ -508,10 +549,9 @@ class _Reader:
             symbol_style = self.style(style, target)
             if symbol_style.get("display") == "none":
                 return
-            matrix = compose(matrix, self._symbol_matrix(target, element, symbol_style))
-            self._group(target, symbol_style, matrix, out, opacity, uses)
+            self._viewport_content(target, symbol_style, matrix, out, opacity, uses, element)
         else:
-            self.visit(target, style, matrix, out, opacity, uses)
+            self.visit(target, style, matrix, out, opacity, uses, element if _local_name(target) == "svg" else None)
 
     def _read(self, tag: str, el: ET.Element, style: dict[str, str], m: Affine, opacity: float) -> Shape | None:
         """One element as a shape; a path carrying a Composite definition becomes that Composite."""
@@ -579,30 +619,111 @@ class _Reader:
             )
         )
 
-    def _color(self, value: str, style: dict[str, str]) -> tuple[str | None, float]:
-        """Hex colour (None for no paint) and the colour's own alpha. Gradients and patterns are grey, unless
-        the reference names a fallback colour (`url(#g) red`)."""
+    def _color(self, value: str, style: dict[str, str]) -> tuple[Paint, float]:
+        """The paint (a hex colour, a gradient, None for no paint) and its own alpha. A `url()` that names no
+        usable gradient takes its fallback colour, else it paints nothing; patterns are grey."""
         value = value.strip()
         if value.startswith("url("):
-            self.notes.add(Note.GRADIENT)
-            fallback = value.partition(")")[2].strip()
-            if not fallback or fallback.startswith("url("):
-                return _UNSUPPORTED_PAINT, 1.0
-            value = fallback
-        if value in ("none", "transparent"):
-            return None, 1.0
+            reference, fallback = self._reference(value)
+            if reference is not None:
+                return reference
+            if fallback.startswith("url("):
+                return None, 1.0
+            value = fallback or "none"
         if value == "currentColor":
             return self._color(style.get("color", "black"), {})
+        return parse_color(value)
+
+    def _reference(self, value: str) -> tuple[tuple[Paint, float] | None, str]:
+        """(paint, alpha) of a `url(#id)` paint, None when it can't be used, and the fallback text after it."""
+        target_text, _close, fallback = value[4:].partition(")")
+        target_text = target_text.strip().strip("'\"")
+        target = self.ids.get(target_text[1:]) if target_text.startswith("#") else None
+        fallback = fallback.strip()
+        tag = _local_name(target) if target is not None else None
+        if tag in _GRADIENT_TAGS:
+            resolved = self._gradient(target)
+            if resolved is not None:
+                return (resolved.paint, resolved.opacity), fallback
+        elif tag == "pattern":
+            self.notes.add(Note.PATTERN)
+            return (None if fallback else (_UNSUPPORTED_PAINT, 1.0)), fallback
+        else:
+            self.notes.add(Note.MISSING_REFERENCE)
+        return None, fallback
+
+    def _gradient(self, element: ET.Element) -> Resolved | None:
+        key = (id(element), self.viewport)
+        if key not in self._gradients:
+            resolved = resolve_gradient(element, self.ids, self._stop_style, self.viewport)
+            self._gradients[key] = resolved
+            if resolved is not None:
+                self.notes.add(Note.INVALID_VALUE, resolved.invalid)
+                if self._element_style(element).get("color-interpolation") == "linearRGB":
+                    self.notes.add(Note.COLOR_INTERPOLATION)
+        return self._gradients[key]
+
+    def _element_style(self, element: ET.Element) -> dict[str, str]:
+        """The cascade down to `element` from the root, as for a drawn element."""
+        chain = []
+        current: ET.Element | None = element
+        while current is not None:
+            chain.append(current)
+            position = self.nodes.position(current)
+            current = position[0] if position else None
+        style = dict(_DEFAULT_STYLE)
+        for ancestor in reversed(chain):
+            style = self.style(style, ancestor)
+        return style
+
+    def _stop_style(self, stop: ET.Element) -> dict[str, str]:
+        return self._element_style(stop)
+
+    def _place_gradients(self, shape: Shape, m: Affine, box: Box | None, props: dict[str, str] | None = None) -> Shape:
+        """A gradient is defined in the user space of the element that uses it. Where the shape took part of
+        the element's matrix into its geometry, `baked = shape.transform⁻¹ ∘ m`, the gradient follows. A
+        bounding-box gradient on geometry without width or height is invalid: its fallback colour is used, else
+        nothing is painted."""
+        style = shape.style
+        if props is not None and box is not None and (box[2] <= 0 or box[3] <= 0):
+            style = self._without_box_gradients(style, props)
+            shape = replace(shape, style=style)
+        if not isinstance(style.fill, Gradient) and not isinstance(style.stroke, Gradient):
+            return shape
         try:
-            color = se.Color(value)
-        except (ValueError, TypeError):
-            return "#000000", 1.0
-        if color.value is None:
-            return "#000000", 1.0
-        return color.hexrgb, round(color.opacity, 3)
+            baked = compose(invert(shape.transform), m)
+        except ValueError:
+            return shape
+        if baked == IDENTITY:
+            return shape
+        return replace(
+            shape,
+            style=replace(style, fill=_placed(style.fill, baked, box), stroke=_placed(style.stroke, baked, box)),
+        )
+
+    def _without_box_gradients(self, style: Style, props: dict[str, str]) -> Style:
+        changes: dict[str, object] = {}
+        for key, opacity_key in (("fill", "fill_opacity"), ("stroke", "stroke_opacity")):
+            paint = getattr(style, key)
+            if isinstance(paint, Gradient) and paint.units == "objectBoundingBox":
+                text = props.get(key, "")
+                fallback = text.partition(")")[2].strip() if text.startswith("url(") else ""
+                replacement, alpha = self._color(fallback, props) if fallback else (None, 1.0)
+                changes[key] = replacement
+                changes[opacity_key] = getattr(style, opacity_key) * alpha
+        return sanitized(replace(style, **changes)) if changes else style
 
     def _shape(self, tag: str, el: ET.Element, style: dict[str, str], m: Affine, opacity: float) -> Shape | None:
         paint = self._paint(style, m, opacity)
+        shape, box = self._geometry(tag, el, style, m, paint)
+        if shape is None or not (isinstance(paint.fill, Gradient) or isinstance(paint.stroke, Gradient)):
+            return shape
+        return self._place_gradients(shape, m, box, style)
+
+    def _geometry(
+        self, tag: str, el: ET.Element, style: dict[str, str], m: Affine, paint: Style
+    ) -> tuple[Shape | None, Box | None]:
+        """The shape and the element's own geometry box (before `m`), which bounding-box gradients refer to."""
         translate_only = m[:4] == (1.0, 0.0, 0.0, 1.0)
         tx, ty = m[4], m[5]
 
@@ -610,13 +731,14 @@ class _Reader:
             x, y = self._length(el.get("x"), "x", style), self._length(el.get("y"), "y", style)
             w, h = self._length(el.get("width"), "x", style), self._length(el.get("height"), "y", style)
             if w <= 0 or h <= 0:
-                return None
+                return None, None
+            box = (x, y, w, h)
             rx, ry = corner_radii(
                 self._optional_length(el.get("rx"), "x", style), self._optional_length(el.get("ry"), "y", style)
             )
             if translate_only:
-                return RectShape(self.new_id(), x + tx, y + ty, w, h, paint, rx=rx, ry=ry)
-            return self._transformed(RectShape(self.new_id(), x, y, w, h, paint, rx=rx, ry=ry), m)
+                return RectShape(self.new_id(), x + tx, y + ty, w, h, paint, rx=rx, ry=ry), box
+            return self._transformed(RectShape(self.new_id(), x, y, w, h, paint, rx=rx, ry=ry), m), box
 
         if tag in ("circle", "ellipse"):
             cx, cy = self._length(el.get("cx"), "x", style), self._length(el.get("cy"), "y", style)
@@ -627,34 +749,35 @@ class _Reader:
                     self._optional_length(el.get("rx"), "x", style), self._optional_length(el.get("ry"), "y", style)
                 )
             if rx <= 0 or ry <= 0:
-                return None
+                return None, None
+            box = (cx - rx, cy - ry, 2 * rx, 2 * ry)
             if translate_only:
-                return EllipseShape(self.new_id(), cx + tx, cy + ty, rx, ry, paint)
-            return self._transformed(EllipseShape(self.new_id(), cx, cy, rx, ry, paint), m)
+                return EllipseShape(self.new_id(), cx + tx, cy + ty, rx, ry, paint), box
+            return self._transformed(EllipseShape(self.new_id(), cx, cy, rx, ry, paint), m), box
 
         if tag == "line":
             x1, x2 = (self._length(el.get(k), "x", style) for k in ("x1", "x2"))
             y1, y2 = (self._length(el.get(k), "y", style) for k in ("y1", "y2"))
-            return self._path((MoveTo(x1, y1), LineTo(x2, y2)), m, paint)
+            return self._path_with_box((MoveTo(x1, y1), LineTo(x2, y2)), m, paint)
 
         if tag in ("polyline", "polygon"):
             points, cut = parse_points(el.get("points", ""))
             if cut:
                 self.notes.add(Note.PATH_ERROR)
             if len(points) < 2:
-                return None
+                return None, None
             segments: list[Segment] = [MoveTo(*points[0]), *(LineTo(*p) for p in points[1:])]
             if tag == "polygon":
                 segments.append(Close())
-            return self._path(tuple(segments), m, paint)
+            return self._path_with_box(tuple(segments), m, paint)
 
         if tag == "path":
             segments, cut = parse_path_data(el.get("d", ""))
             if cut:
                 self.notes.add(Note.PATH_ERROR)
-            return self._path(segments, m, paint) if segments else None
+            return self._path_with_box(segments, m, paint) if segments else (None, None)
 
-        return None
+        return None, None
 
     def _text(self, element: ET.Element, style: dict[str, str], m: Affine, opacity: float) -> list[Shape]:
         """One text object per positioned run: the text element's own position, then each tspan with its own
@@ -676,7 +799,7 @@ class _Reader:
             # Rotation and uniform scale are kept; skew can't be represented on text and is dropped.
             shape = self._transformed(text, m)
             if shape is not None:
-                shapes.append(shape)
+                shapes.append(self._place_gradients(shape, m, None))
         return shapes
 
     def _preserves_space(self, element: ET.Element) -> bool:
@@ -711,23 +834,77 @@ class _Reader:
             if child.tail:
                 runs[-1].add(child.tail, style, self.notes, preserve)
 
-    def _symbol_matrix(self, symbol: ET.Element, use: ET.Element, style: dict[str, str]) -> Affine:
-        """Maps the symbol's viewBox into the use's width × height (default: the viewBox size), centred and
-        uniformly scaled unless preserveAspectRatio is "none"."""
-        values = [float(v) for v in NUMBER.findall(symbol.get("viewBox", ""))]
-        if len(values) != 4 or values[2] <= 0 or values[3] <= 0:
-            return IDENTITY
-        min_x, min_y, box_width, box_height = values
-        width = self._length(use.get("width") or symbol.get("width"), "x", style, box_width)
-        height = self._length(use.get("height") or symbol.get("height"), "y", style, box_height)
+    @staticmethod
+    def _attribute(name: str, element: ET.Element, use: ET.Element | None) -> str | None:
+        """A viewport attribute; the `<use>` that instantiates the viewport overrides the element's own."""
+        if use is not None and use.get(name) is not None:
+            return use.get(name)
+        return element.get(name)
+
+    def _viewport(
+        self, element: ET.Element, use: ET.Element | None, style: dict[str, str], positioned: bool
+    ) -> _View | None:
+        """Where an `<svg>` or `<symbol>` puts its content, None when it isn't rendered (no size, or a viewBox
+        without extent). A symbol's position comes from its `<use>`, so only `<svg>` reads `x` and `y`."""
+        x = self._length(element.get("x"), "x", style) if positioned else 0.0
+        y = self._length(element.get("y"), "y", style) if positioned else 0.0
+        width = self._length(self._attribute("width", element, use), "x", style, self.viewport.width)
+        height = self._length(self._attribute("height", element, use), "y", style, self.viewport.height)
+        view_box = parse_view_box(element.get("viewBox"))
+        aspect = parse_aspect(self._attribute("preserveAspectRatio", element, use))
+        self.notes.add(Note.INVALID_VALUE, (view_box is INVALID) + (aspect is INVALID))
         if width <= 0 or height <= 0:
-            return IDENTITY
-        scale_x, scale_y = width / box_width, height / box_height
-        if (use.get("preserveAspectRatio") or symbol.get("preserveAspectRatio", "")).strip() != "none":
-            scale_x = scale_y = min(scale_x, scale_y)
-        offset_x = (width - box_width * scale_x) / 2 - min_x * scale_x
-        offset_y = (height - box_height * scale_y) / 2 - min_y * scale_y
-        return compose(translation(offset_x, offset_y), scaling(scale_x, scale_y))
+            return None
+        aspect = aspect if isinstance(aspect, Aspect) else DEFAULT
+        if isinstance(view_box, tuple):
+            if view_box[2] <= 0 or view_box[3] <= 0:
+                return None
+            matrix = compose(translation(x, y), fit(view_box, width, height, aspect))
+            inner = Viewport(view_box[2], view_box[3])
+        else:
+            matrix = translation(x, y)
+            inner = Viewport(width, height)
+        if not is_finite(matrix):
+            self.notes.add(Note.INVALID_VALUE)
+            return None
+        return _View(matrix, (x, y, width, height), inner)
+
+    def _viewport_content(
+        self,
+        element: ET.Element,
+        style: dict[str, str],
+        matrix: Affine,
+        out: list[Shape],
+        opacity: float,
+        uses: tuple[str, ...],
+        use: ET.Element | None,
+    ) -> None:
+        """The content of an `<svg>` or `<symbol>` as one group, mapped into its viewport; percentages inside
+        refer to that viewport."""
+        view = self._viewport(element, use, style, _local_name(element) == "svg")
+        if view is None:
+            return
+        outer = self.viewport
+        self.viewport = view.inner
+        before = len(out)
+        try:
+            self._group(element, style, compose(matrix, view.matrix), out, opacity, uses)
+        finally:
+            self.viewport = outer
+        if len(out) > before and style.get("overflow") not in ("visible", "auto"):
+            self._check_overflow(out[before:], view.rect, matrix)
+
+    def _check_overflow(self, shapes: list[Shape], rect: tuple[float, float, float, float], matrix: Affine) -> None:
+        """Content is read in document space, so the viewport rectangle is taken there too (the bounding box of
+        its corners when the matrix turns it). Nothing is clipped before there are clip objects; this only counts."""
+        x, y, width, height = rect
+        corners = [
+            apply(matrix, cx, cy) for cx, cy in ((x, y), (x + width, y), (x, y + height), (x + width, y + height))
+        ]
+        left, right = min(cx for cx, _ in corners), max(cx for cx, _ in corners)
+        top, bottom = min(cy for _, cy in corners), max(cy for _, cy in corners)
+        if escapes(shapes, left, top, right - left, bottom - top):
+            self.notes.add(Note.VIEWPORT_OVERFLOW)
 
     def _transformed(self, shape: Shape, m: Affine) -> Shape | None:
         try:
@@ -739,6 +916,33 @@ class _Reader:
         if m != IDENTITY:
             segments = transform_segments(segments, lambda x, y: apply(m, x, y))
         return PathShape(self.new_id(), segments, paint)
+
+    def _path_with_box(self, segments: tuple[Segment, ...], m: Affine, paint: Style) -> tuple[PathShape, Box | None]:
+        """The baked path and its box before `m`, which is only worked out for gradients."""
+        box = (
+            segments_bounds(segments)
+            if isinstance(paint.fill, Gradient) or isinstance(paint.stroke, Gradient)
+            else None
+        )
+        return self._path(segments, m, paint), box
+
+
+def _placed(paint: Paint, baked: Affine, box: Box | None) -> Paint:
+    """`paint` for geometry that `baked` was applied to. User-space gradients take the matrix on. A bounding-box
+    gradient is unchanged while the box only moved and grew (`baked` has positive scales and no turn); otherwise
+    it becomes a user-space gradient on the original box, since the baked geometry's box isn't that box."""
+    if not isinstance(paint, Gradient):
+        return paint
+    a, b, c, d = baked[:4]
+    if paint.units == "objectBoundingBox":
+        if abs(b) < 1e-9 and abs(c) < 1e-9 and a > 0 and d > 0:
+            return paint
+        if box is None or box[2] <= 0 or box[3] <= 0:
+            return paint
+        x, y, width, height = box
+        inner = compose((width, 0.0, 0.0, height, x, y), paint.transform)
+        return replace(paint, units="userSpaceOnUse", transform=compose(baked, inner))
+    return replace(paint, transform=compose(baked, paint.transform))
 
 
 class _TextRun:

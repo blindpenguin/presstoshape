@@ -47,8 +47,12 @@ def test_cannot_combine_with_text():
 
 @pytest.mark.parametrize(
     "op, area, label",
-    [("union", 175, "Union"), ("difference", 75, "Difference"), ("intersection", 25, "Intersection"),
-     ("exclude", 150, "Exclude")],
+    [
+        ("union", 175, "Union"),
+        ("difference", 75, "Difference"),
+        ("intersection", 25, "Intersection"),
+        ("exclude", 150, "Exclude"),
+    ],
 )
 def test_combine_operations(op, area, label):
     session = Session()

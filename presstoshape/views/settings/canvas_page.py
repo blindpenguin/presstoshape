@@ -45,7 +45,9 @@ class CanvasPage(SettingsPage):
 
     def _on_snap_distance(self, value: int) -> None:
         settings = self._context.settings
-        app_settings.set_snap_settings(settings, replace(app_settings.snap_settings(settings), distance_px=float(value)))
+        app_settings.set_snap_settings(
+            settings, replace(app_settings.snap_settings(settings), distance_px=float(value))
+        )
 
     def _on_renderer(self) -> None:
         value = self._renderer.currentData()

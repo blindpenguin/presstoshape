@@ -24,8 +24,8 @@ from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fnmatch import fnmatch
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import resvg_py
@@ -50,7 +50,6 @@ from presstoshape.formats.svg_names import q  # noqa: E402
 from presstoshape.models.app_state import Document  # noqa: E402
 from presstoshape.render.export import export_size, render_png  # noqa: E402
 from presstoshape.render.text import typeface  # noqa: E402
-
 
 # --- Suite and cache --------------------------------------------------------------------------
 
@@ -445,7 +444,7 @@ def write_report(
         parts.append(
             f'<tr id="{html.escape(result.name)}"><td>{name}{listed}</td>'
             f'<td class="{result.status}">{result.status}</td><td class="number">{score_text}</td>'
-            f'<td>{"<br>".join(details)}</td><td>{link}</td></tr>'
+            f"<td>{'<br>'.join(details)}</td><td>{link}</td></tr>"
         )
     parts.append("</table></body></html>\n")
     index = folder / "index.html"

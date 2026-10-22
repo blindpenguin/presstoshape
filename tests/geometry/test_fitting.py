@@ -128,9 +128,7 @@ def test_no_overshooting_handles():
 
 def test_long_strokes_fit_quickly():
     rng = random.Random(6)
-    stroke = [
-        (i * 0.4 + 30 * math.sin(i / 90), 60 * math.sin(i / 140) + rng.uniform(-1, 1)) for i in range(5000)
-    ]
+    stroke = [(i * 0.4 + 30 * math.sin(i / 90), 60 * math.sin(i / 140) + rng.uniform(-1, 1)) for i in range(5000)]
     started = time.perf_counter()
     result = fit_stroke(_samples(stroke), 50, 1.0)
     assert result is not None

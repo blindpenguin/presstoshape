@@ -3,6 +3,13 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QColorDialog, QComboBox, QPushButton
 
 from presstoshape.editing.operations.composites import PART_MODES, mode_label
+from presstoshape.i18n import _
+from presstoshape.models.shapes import Gradient, GradientStop, flat_color
+
+
+def _rgba(stop: GradientStop) -> str:
+    color = QColor(stop.color)
+    return f"rgba({color.red()}, {color.green()}, {color.blue()}, {round(stop.opacity * 255)})"
 
 
 class ColorButton(QPushButton):
@@ -19,8 +26,19 @@ class ColorButton(QPushButton):
 
     def set_color(self, color: str) -> None:
         self.color = color
+        self.setToolTip("")
+        self._set_background(color)
+
+    def set_gradient(self, gradient: Gradient) -> None:
+        """Shows the gradient's stops as a strip; `color` becomes its first stop, where a colour pick starts."""
+        self.color = flat_color(gradient) or self.color
+        self.setToolTip(_("Gradient: pick a colour to replace it"))
+        stops = ", ".join(f"stop:{stop.offset:.3f} {_rgba(stop)}" for stop in gradient.stops)
+        self._set_background(f"qlineargradient(x1:0, y1:0, x2:1, y2:0, {stops})")
+
+    def _set_background(self, background: str) -> None:
         self.setStyleSheet(
-            f"QPushButton {{ background: {color}; border: 1px solid #52525b; border-radius: 3px; }}"
+            f"QPushButton {{ background: {background}; border: 1px solid #52525b; border-radius: 3px; }}"
             "QPushButton:disabled { background: #3f3f46; }"
         )
 

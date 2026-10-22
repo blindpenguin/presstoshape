@@ -21,12 +21,11 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+import tomllib
 import urllib.request
 import zipfile
 from importlib.metadata import distribution
 from pathlib import Path
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 RELEASE_DIR = ROOT / "dist" / "release"

@@ -3,11 +3,11 @@ import pytest
 from presstoshape.i18n import po
 from presstoshape.i18n.po import Entry, PoError, fields, parse_po, write_po
 
-HEADER = '''msgid ""
+HEADER = """msgid ""
 msgstr ""
 "Language: de\\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\\n"
-'''
+"""
 
 
 def _parse(body: str, header: str = HEADER):
@@ -23,7 +23,7 @@ def test_header_language_and_plural_rule():
 
 def test_entries_contexts_plurals_comments_and_multiline():
     parsed = _parse(
-        r'''
+        r"""
 # translator comment
 #. extracted comment
 #: presstoshape/a.py:3 presstoshape/b.py:9
@@ -42,7 +42,7 @@ msgstr[1] ""
 
 msgid "Tab\tand \"quotes\" \\ and\nnewline"
 msgstr "Tab\tund \"Anführung\" \\ und\nZeilenumbruch"
-'''
+"""
     )
     delete, add, copied, escaped = parsed.entries
     assert delete == Entry(None, "&Delete", None, ("&Löschen",), False, ("presstoshape/a.py:3", "presstoshape/b.py:9"))
@@ -56,7 +56,7 @@ msgstr "Tab\tund \"Anführung\" \\ und\nZeilenumbruch"
 
 def test_fuzzy_and_empty_entries_are_untranslated_and_obsolete_ones_skipped():
     parsed = _parse(
-        '''
+        """
 #, fuzzy, python-format
 msgid "Open"
 msgstr "Öffnen"
@@ -66,7 +66,7 @@ msgstr ""
 
 #~ msgid "Gone"
 #~ msgstr "Weg"
-'''
+"""
     )
     assert [(entry.message, entry.fuzzy, entry.translated) for entry in parsed.entries] == [
         ("Open", True, False),
@@ -120,7 +120,7 @@ def test_size_limit(monkeypatch):
 
 def test_placeholder_rules():
     parsed = _parse(
-        '''
+        """
 msgid "Moved {count} object"
 msgstr "{cout} verschoben"
 
@@ -146,7 +146,7 @@ msgstr[1] "{count}"
 msgid "One form"
 msgid_plural "Forms"
 msgstr[0] "Nur eine"
-'''
+"""
     )
     assert [entry.message for entry in parsed.entries] == ["Hello {name}", "Copied {count} object"]
     assert len(parsed.ignored) == 5
@@ -172,4 +172,4 @@ def test_write_then_parse_round_trips():
     parsed = parse_po(text, "round.po")
     assert parsed.entries == tuple(entries)
     assert dict(parsed.header) == header
-    assert "#~ msgid \"Gone\"" in text
+    assert '#~ msgid "Gone"' in text

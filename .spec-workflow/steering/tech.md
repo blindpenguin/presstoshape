@@ -15,7 +15,7 @@ Desktop application for Linux and Windows (macOS not a target for now): a profes
 - **skia-pathops (0.9.2)**: boolean path operations (union, difference, intersection, XOR; divide and region splitting built on them) in `presstoshape/geometry/booleans.py`. Works in float32; results are rounded on conversion.
 - **svgelements (1.9.6)**: parsing SVG path data, colors, lengths and transform strings only. Its `SVG.parse` document reader is not used — it drops `display:none` groups (hidden layers) and `<text>`. Document traversal uses `xml.etree.ElementTree`.
 - **skia-python (==144.0.post2)**: canvas and PNG export renderer (`presstoshape/render/`), GPU via OpenGL, CPU raster fallback (see Decision Log).
-- **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). Planned: `ruff`, a static type checker. **Build only** (`build` group): `pyinstaller`, `pillow` (icon rendering).
+- **Dev only**: `pytest` (tests), `pytablericons` (source of Tabler icon SVGs, copied by `scripts/generate_icons.py`; never imported by the running app). `ruff` (lint + format). Planned: a static type checker. **Build only** (`build` group): `pyinstaller`, `pillow` (icon rendering).
 
 ### Application Architecture
 Session / operations / tools / views, as in professional editors (Blender's operators, Krita's commands, Inkscape's verbs), with Elm-like state ownership inside Qt's retained-mode widgets:
@@ -59,8 +59,8 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
   - `scripts/spec_dashboard.sh` — spec-workflow approval dashboard.
 
 ### Code Quality Tools
-- **Static Analysis**: `ruff check` (planned) and a static type checker — mypy or pyright, chosen when adding it. Code is already fully type-annotated.
-- **Formatting**: `ruff format` (planned).
+- **Static Analysis**: `ruff check` (rules `E`, `F`, `I`) and, still to come, a static type checker — mypy or pyright, chosen when adding it. Code is already fully type-annotated.
+- **Formatting**: `ruff format`, line length 120.
 - **Testing Framework**: `pytest` for everything below views (models, geometry, formats, render, editing, tools), mirrored in `tests/<package>/`; an architecture test enforces the layer rules. No pixel assertions in the suite; visual/interaction checks are done with offscreen screenshots and QTest scratch scripts.
 - **Documentation**: `README.md` (features, dev commands), `CLAUDE.md` (agent/contributor rules), spec-workflow steering docs and specs in `.spec-workflow/`.
 

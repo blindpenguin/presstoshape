@@ -3,13 +3,14 @@ from presstoshape.i18n import N_, _, ngettext, npgettext, pgettext
 from presstoshape.i18n.catalog import Catalog, build_catalog
 from presstoshape.i18n.po import parse_po
 
+
 def _po(body: str, plural_forms: str = "nplurals=2; plural=(n != 1);"):
     header = f'msgid ""\nmsgstr ""\n"Plural-Forms: {plural_forms}\\n"\n\n'
     return parse_po(header + body, "test.po")
 
 
 SHIPPED = _po(
-    '''msgid "Open"
+    """msgid "Open"
 msgstr "Öffnen"
 
 msgid "Save"
@@ -23,7 +24,7 @@ msgid "Copied {count} object"
 msgid_plural "Copied {count} objects"
 msgstr[0] "{count} Objekt kopiert"
 msgstr[1] "{count} Objekte kopiert"
-'''
+"""
 )
 
 
@@ -49,7 +50,7 @@ def test_installed_catalog_translates_with_contexts_and_plurals():
 
 def test_user_file_overrides_entry_by_entry_and_untranslated_entries_dont_hide_shipped_ones():
     user = _po(
-        '''msgid "Open"
+        """msgid "Open"
 msgstr "Aufmachen"
 
 msgid "Save"
@@ -59,7 +60,7 @@ msgstr ""
 msgctxt "part mode"
 msgid "Add"
 msgstr "Plus"
-'''
+"""
     )
     catalog = build_catalog("de", [SHIPPED, user])
     assert catalog.gettext(None, "Open") == "Aufmachen"

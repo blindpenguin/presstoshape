@@ -9,10 +9,13 @@ from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
+    GradientStop,
     GroupShape,
+    LinearGradient,
     LineTo,
     MoveTo,
     PathShape,
+    RadialGradient,
     RectShape,
     Style,
     TextShape,
@@ -219,3 +222,30 @@ def test_v6_files_open_with_everything_shown_and_unlocked():
 
 def test_v7_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v7.p2s").read_bytes()) == expected_v7()
+
+
+def expected_v8() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v8.p2s holds: a linear and a radial gradient fill, a gradient stroke."""
+    stops = (GradientStop(0.0, "#ff0000"), GradientStop(0.5, "#00ff00", 0.5), GradientStop(1.0, "#0000ff"))
+    linear = LinearGradient(0.0, 0.0, 1.0, 0.5, stops, "userSpaceOnUse", "reflect", (1.0, 0.0, 0.0, 2.0, 5.0, 0.0))
+    radial = RadialGradient(0.5, 0.5, 0.5, 0.25, 0.5, stops[::2])
+    document = Document(
+        width=200.0,
+        height=150.0,
+        layers=[
+            Layer(
+                "Layer 1",
+                True,
+                [
+                    RectShape(1, 0.0, 0.0, 100.0, 100.0, Style(fill=linear, stroke=radial, stroke_width=4.0)),
+                    EllipseShape(2, 150.0, 75.0, 40.0, 40.0, Style(fill=radial, stroke=None)),
+                ],
+            )
+        ],
+        next_id=3,
+    )
+    return document, SavedState(zoom_percent=100)
+
+
+def test_v8_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v8.p2s").read_bytes()) == expected_v8()

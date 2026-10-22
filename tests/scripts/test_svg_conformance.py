@@ -313,10 +313,14 @@ def test_check_suite_uses_each_tests_reference(tmp_path):
 
 def test_report_shows_the_reason_for_resvg_checked_tests(tmp_path):
     suite = _fake_suite(tmp_path)
-    listed = {"shapes-rect-01-t": svg_conformance.PassEntry("shapes-rect-01-t", 0.03, "reference is outdated", True, "resvg")}
+    listed = {
+        "shapes-rect-01-t": svg_conformance.PassEntry("shapes-rect-01-t", 0.03, "reference is outdated", True, "resvg")
+    }
     folder = tmp_path / "report"
     (folder / "sheets").mkdir(parents=True)
-    page = svg_conformance.write_report([_result("shapes-rect-01-t")], suite, listed, folder).read_text(encoding="utf-8")
+    page = svg_conformance.write_report([_result("shapes-rect-01-t")], suite, listed, folder).read_text(
+        encoding="utf-8"
+    )
     assert "checked against resvg: reference is outdated" in page
 
 
@@ -376,3 +380,15 @@ def test_listed_test_still_matches(suite, entry):
 def test_listed_test_saves_for_other_viewers(suite, entry):
     _result, doc = svg_conformance.check_test(suite, entry.name, entry.threshold, entry.reference)
     assert svg_conformance.check_generator(doc) < svg_conformance.THRESHOLD
+
+
+@pytest.mark.parametrize("entry", PASS_LIST.values(), ids=list(PASS_LIST))
+def test_listed_test_survives_p2s_and_svg_round_trips(suite, entry):
+    from presstoshape.formats.p2s import SavedState, read_p2s, write_p2s
+    from presstoshape.formats.svg import write_svg
+
+    _result, doc = svg_conformance.check_test(suite, entry.name, entry.threshold, entry.reference)
+    reopened, _state = read_p2s(write_p2s(doc, SavedState(), None, "test"))
+    assert reopened == doc
+    assert write_svg(reopened) == write_svg(doc)
+    assert write_svg(read_svg(write_svg(doc))) == write_svg(read_svg(write_svg(reopened)))

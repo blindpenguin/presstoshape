@@ -6,7 +6,8 @@ from presstoshape.formats.svg_properties import is_color, normalize
 
 
 @pytest.mark.parametrize(
-    "value", ["red", "RED", "#abc", "#abcd", "#aabbcc", "#aabbccdd", "rgb(1,2,3)", "rgba(1, 2, 3, .5)", "hsl(120 50% 50%)"]
+    "value",
+    ["red", "RED", "#abc", "#abcd", "#aabbcc", "#aabbccdd", "rgb(1,2,3)", "rgba(1, 2, 3, .5)", "hsl(120 50% 50%)"],
 )
 def test_valid_colours(value):
     assert is_color(value)

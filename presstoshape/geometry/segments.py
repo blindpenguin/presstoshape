@@ -1,5 +1,6 @@
 """Building and mapping path segments (the model's MoveTo/LineTo/CubicTo/Close)."""
 
+import math
 from collections.abc import Callable
 
 from presstoshape.geometry.boxes import Point
@@ -87,3 +88,52 @@ def transform_segments(segments: tuple[Segment, ...], fn: Callable[[float, float
             case Close():
                 out.append(s)
     return tuple(out)
+
+
+def _cubic_extrema(p0: float, p1: float, p2: float, p3: float) -> list[float]:
+    """Parameters in (0, 1) where one coordinate of a cubic has a turning point."""
+    a = -p0 + 3 * p1 - 3 * p2 + p3
+    b = 2 * (p0 - 2 * p1 + p2)
+    c = p1 - p0
+    if abs(a) < 1e-12:
+        roots = [-c / b] if abs(b) > 1e-12 else []
+    else:
+        discriminant = b * b - 4 * a * c
+        if discriminant < 0:
+            return []
+        root = math.sqrt(discriminant)
+        roots = [(-b + root) / (2 * a), (-b - root) / (2 * a)]
+    return [t for t in roots if 0 < t < 1]
+
+
+def segments_bounds(segments: tuple[Segment, ...]) -> tuple[float, float, float, float] | None:
+    """Tight bounding box (x, y, width, height) of the drawn geometry, curve turning points included; None when
+    there are no points."""
+    xs: list[float] = []
+    ys: list[float] = []
+    current: Point | None = None
+    start: Point | None = None
+    for s in segments:
+        match s:
+            case MoveTo(x, y):
+                current = start = (x, y)
+                xs.append(x)
+                ys.append(y)
+            case LineTo(x, y):
+                current = (x, y)
+                xs.append(x)
+                ys.append(y)
+            case CubicTo(c1x, c1y, c2x, c2y, x, y):
+                x0, y0 = current if current is not None else (c1x, c1y)
+                for t in _cubic_extrema(x0, c1x, c2x, x) + _cubic_extrema(y0, c1y, c2y, y):
+                    u = 1 - t
+                    xs.append(u**3 * x0 + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t**3 * x)
+                    ys.append(u**3 * y0 + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t**3 * y)
+                current = (x, y)
+                xs.append(x)
+                ys.append(y)
+            case Close():
+                current = start
+    if not xs:
+        return None
+    return min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)

@@ -250,7 +250,7 @@ def _entry_lines(entry: Entry, prefix: str = "") -> list[str]:
 
 def write_po(header: Mapping[str, str], entries: Sequence[Entry], obsolete: Iterable[Entry] = ()) -> str:
     """PO text with the header first; `obsolete` entries are kept as #~ comments (how gettext tools do it)."""
-    blocks = [["msgid \"\"", "msgstr \"\""] + [_quoted(f"{key}: {value}\n") for key, value in header.items()]]
+    blocks = [['msgid ""', 'msgstr ""'] + [_quoted(f"{key}: {value}\n") for key, value in header.items()]]
     blocks.extend(_entry_lines(entry) for entry in entries)
     blocks.extend(_entry_lines(entry, "#~ ") for entry in obsolete)
     return "\n\n".join("\n".join(block) for block in blocks) + "\n"

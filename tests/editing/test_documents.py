@@ -271,12 +271,13 @@ def test_opening_a_lossy_svg_keeps_its_notes_outside_undo(tmp_path):
     target = tmp_path / "lossy.svg"
     target.write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
-        '<rect width="5" height="5" fill="url(#g)"/><image href="x.png" width="1" height="1"/></svg>',
+        '<pattern id="g" width="2" height="2"/><rect width="5" height="5" fill="url(#g)"/>'
+        '<image href="x.png" width="1" height="1"/></svg>',
         encoding="utf-8",
     )
     session = Session()
     assert documents.open_file(session, str(target))
-    assert session.state.import_notes == ["1 gradient or pattern was painted grey", "1 image was left out"]
+    assert session.state.import_notes == ["1 pattern was painted grey", "1 image was left out"]
     assert session.state.status_message == "Opened lossy.svg with 2 import notes"
     assert not session.can_undo
     view.clear_import_notes(session)

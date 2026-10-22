@@ -18,6 +18,7 @@ from presstoshape.formats.p2s import (
     write_p2s,
 )
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION
+from presstoshape.formats.svg import read_svg
 from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
@@ -25,10 +26,13 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GradientStop,
     GroupShape,
+    LinearGradient,
     LineTo,
     MoveTo,
     PathShape,
+    RadialGradient,
     RectShape,
     Style,
     TextShape,
@@ -455,3 +459,94 @@ def test_flags_are_written_only_when_set():
     assert "hidden" not in top["shapes"][1] and "locked" not in top["shapes"][1]
     assert top["shapes"][0]["parts"][0]["hidden"] is True
     assert json.dumps(encode_document(_round_trip(_flagged_document()))) == json.dumps(encoded)
+
+
+def test_document_read_from_nested_viewports_round_trips():
+    document = read_svg(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+        '<svg x="5" y="5" width="20" height="20" viewBox="0 0 10 10"><rect width="10" height="10"/></svg></svg>'
+    )
+    assert _round_trip(document) == document
+
+
+_STOPS = (GradientStop(0.0, "#ff0000"), GradientStop(0.4, "#00ff00", 0.25), GradientStop(1.0, "#0000ff"))
+_LINEAR = LinearGradient(0.0, 0.0, 1.0, 1.0, _STOPS)
+_RADIAL = RadialGradient(0.5, 0.5, 0.5, 0.25, 0.5, _STOPS, "userSpaceOnUse", "repeat", ROTATED)
+
+
+@pytest.mark.parametrize(
+    "paint", [_LINEAR, _RADIAL, LinearGradient(1.0, 2.0, 3.0, 4.0, _STOPS, "userSpaceOnUse", "reflect")]
+)
+def test_gradient_paints_round_trip(paint):
+    style = Style(fill=paint, stroke=paint, stroke_width=3.0)
+    assert p2s.decode_style(p2s.encode_style(style), "style") == style
+
+
+def test_gradient_defaults_are_left_out():
+    encoded = p2s.encode_paint(_LINEAR)
+    assert set(encoded) == {"type", "x1", "y1", "x2", "y2", "stops"}
+    assert "opacity" not in encoded["stops"][0] and encoded["stops"][1]["opacity"] == 0.25
+
+
+def test_flat_paints_encode_as_before():
+    assert p2s.encode_paint("#abcdef") == "#abcdef"
+    assert p2s.encode_paint(None) is None
+
+
+def test_gradient_shapes_survive_an_archive():
+    document = Document(
+        layers=[Layer("L", True, [RectShape(1, 0, 0, 10, 10, Style(fill=_RADIAL, stroke=_LINEAR))])], next_id=2
+    )
+    assert read_p2s(write_p2s(document, SavedState(), None, "x"))[0] == document
+
+
+def test_tool_styles_carry_gradients():
+    state = SavedState(tool_styles={Tool.RECTANGLE: Style(fill=_LINEAR)})
+    assert read_p2s(write_p2s(Document(), state, None, "x"))[1].tool_styles == state.tool_styles
+
+
+def _gradient_fields():
+    return p2s.encode_paint(_RADIAL)
+
+
+@pytest.mark.parametrize(
+    "change, field",
+    [
+        (lambda f: f.update(type="conic"), "type"),
+        (lambda f: f.update(units="em"), "units"),
+        (lambda f: f.update(spread="wrap"), "spread"),
+        (lambda f: f.update(stops="red"), "stops"),
+        (lambda f: f.update(r="big"), "r"),
+        (lambda f: f.update(transform=[1, 2]), "transform"),
+        (lambda f: f.pop("stops"), "stops"),
+        (lambda f: f.update(stops=[{"offset": 0}]), "color"),
+        (lambda f: f.update(stops=[{"offset": 0, "color": 5}]), "color"),
+    ],
+)
+def test_damaged_gradients_are_refused(change, field):
+    fields = _gradient_fields()
+    change(fields)
+    with pytest.raises(P2sError, match=field):
+        p2s.decode_paint(fields, "style.fill")
+
+
+def test_out_of_range_gradient_values_are_brought_into_range_on_read():
+    fields = _gradient_fields()
+    fields["stops"] = [{"offset": 3, "color": "#fff", "opacity": 7}, {"offset": 0.1, "color": "#000"}]
+    fields.update(fx=9.0, fy=0.5)
+    style = p2s.decode_style({"fill": fields, "stroke": None, "stroke_width": 1.0}, "style")
+    assert [(stop.offset, stop.opacity) for stop in style.fill.stops] == [(1.0, 1.0), (1.0, 1.0)]
+    assert (style.fill.fx, style.fill.fy) == (1.0, 0.5)
+
+
+def test_gradient_without_stops_reads_as_no_paint():
+    fields = _gradient_fields()
+    fields["stops"] = []
+    assert p2s.decode_style({"fill": fields, "stroke": None, "stroke_width": 1.0}, "s").fill is None
+
+
+def test_huge_stop_lists_are_cut_before_decoding():
+    fields = _gradient_fields()
+    fields["stops"] = [{"offset": 0.5, "color": "#000"}] * 100_000
+    style = p2s.decode_style({"fill": fields, "stroke": None, "stroke_width": 1.0}, "s")
+    assert len(style.fill.stops) == 1024

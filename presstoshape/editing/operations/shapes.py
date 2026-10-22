@@ -68,6 +68,7 @@ def add_rectangle(session: Session, start: Point, end: Point, square: bool = Fal
     if w < 1 or h < 1:
         return None
     style = session.state.tool_styles[Tool.RECTANGLE]
+
     def make(shape_id: int) -> Shape:
         return RectShape(shape_id, x, y, w, h, style)
 
@@ -79,6 +80,7 @@ def add_ellipse(session: Session, start: Point, end: Point, circle: bool = False
     if w < 1 or h < 1:
         return None
     style = session.state.tool_styles[Tool.ELLIPSE]
+
     def make(shape_id: int) -> Shape:
         return EllipseShape(shape_id, x + w / 2, y + h / 2, w / 2, h / 2, style)
 
@@ -90,6 +92,7 @@ def add_path(session: Session, points: list[Point]) -> int | None:
         return None
     segments = smooth_segments(points)
     style = session.state.tool_styles[Tool.PEN]
+
     def make(shape_id: int) -> Shape:
         return PathShape(shape_id, segments, style)
 
@@ -115,6 +118,7 @@ def add_text(session: Session, position: Point, text: str) -> int | None:
         return None
     style = session.state.tool_styles[Tool.TEXT]
     size = session.state.font_size
+
     def make(shape_id: int) -> Shape:
         return TextShape(shape_id, position[0], position[1], text, size, style)
 

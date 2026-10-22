@@ -190,7 +190,6 @@ def test_inkscape_style_transforms_import_as_primitives():
 # --- composites ---------------------------------------------------------------------------
 
 
-
 def _nested_composite() -> CompositeShape:
     red = Style(fill="#ff0000", stroke=None)
     inner = CompositeShape(
@@ -500,3 +499,19 @@ def test_clipboard_svg_keeps_nested_flags():
     shapes, _notes = read_shapes_svg(write_shapes_svg([group], (0, 0, 10, 10)))
     (read_group,) = shapes
     assert [(child.hidden, child.locked) for child in read_group.children] == [(True, False), (False, True)]
+
+
+def test_nested_viewports_are_saved_flattened_and_reopen_unchanged():
+    source = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 100 100">'
+        '<svg x="10" y="10" width="40" height="20" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/>'
+        '<svg x="2" width="5" height="5"><circle cx="2" cy="2" r="1"/></svg></svg></svg>'
+    )
+    document, notes = read_svg_with_notes(source)
+    assert notes == []
+    saved = write_svg(document)
+    assert saved.count("<svg") == 1
+    reopened = read_svg(saved)
+    assert write_svg(reopened) == saved
+    assert (reopened.width, reopened.height) == (200, 100)
+    assert [type(shape) for shape in leaves(reopened.layers[0].shapes)] == [RectShape, EllipseShape]

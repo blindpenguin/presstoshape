@@ -2,6 +2,7 @@
 
 import math
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from typing import Literal, get_args
 
 
@@ -40,17 +41,69 @@ IDENTITY_TRANSFORM: Transform = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
 
 FillRule = Literal["nonzero", "evenodd"]
+GradientUnits = Literal["objectBoundingBox", "userSpaceOnUse"]
+SpreadMethod = Literal["pad", "reflect", "repeat"]
 LineCap = Literal["butt", "round", "square"]
 LineJoin = Literal["miter", "round", "bevel"]
 TextAnchor = Literal["start", "middle", "end"]
+
+
+MAX_STOPS = 1024
+
+
+@dataclass(frozen=True)
+class GradientStop:
+    offset: float
+    color: str
+    opacity: float = 1.0
+
+
+@dataclass(frozen=True)
+class LinearGradient:
+    """Coordinates are fractions of the shape's bounding box for `objectBoundingBox`, user-space numbers
+    (in the shape's own coordinate system) for `userSpaceOnUse`."""
+
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    stops: tuple[GradientStop, ...]
+    units: GradientUnits = "objectBoundingBox"
+    spread: SpreadMethod = "pad"
+    transform: Transform = IDENTITY_TRANSFORM
+
+
+@dataclass(frozen=True)
+class RadialGradient:
+    cx: float
+    cy: float
+    r: float
+    fx: float
+    fy: float
+    stops: tuple[GradientStop, ...]
+    units: GradientUnits = "objectBoundingBox"
+    spread: SpreadMethod = "pad"
+    transform: Transform = IDENTITY_TRANSFORM
+
+
+Gradient = LinearGradient | RadialGradient
+# A colour (#rrggbb), a gradient, or None for no paint.
+Paint = str | Gradient | None
+
+
+def flat_color(paint: Paint) -> str | None:
+    """The one colour that stands for `paint`: the colour itself, a gradient's first stop, None for no paint."""
+    if isinstance(paint, (LinearGradient, RadialGradient)):
+        return paint.stops[0].color if paint.stops else None
+    return paint
 
 
 @dataclass(frozen=True)
 class Style:
     """Paint of a shape. Defaults match SVG, so a style without the newer fields draws as SVG would."""
 
-    fill: str | None = "#3b82f6"
-    stroke: str | None = "#18181b"
+    fill: Paint = "#3b82f6"
+    stroke: Paint = "#18181b"
     stroke_width: float = 2.0
     # Opacities are 0..1; `opacity` applies to the shape as a whole (fill and stroke flattened first).
     opacity: float = 1.0
@@ -77,11 +130,65 @@ def _dashes(values: tuple[float, ...]) -> tuple[float, ...]:
     return values * 2 if len(values) % 2 else values
 
 
+def _finite(value: float, default: float) -> float:
+    return float(value) if math.isfinite(value) else default
+
+
+def _stops(stops: tuple[GradientStop, ...]) -> tuple[GradientStop, ...]:
+    result: list[GradientStop] = []
+    previous = 0.0
+    for stop in tuple(stops)[:MAX_STOPS]:
+        offset = min(1.0, max(previous, _finite(stop.offset, previous)))
+        previous = offset
+        result.append(GradientStop(offset, stop.color, _unit(stop.opacity)))
+    return tuple(result)
+
+
+def _invertible(m: Transform) -> bool:
+    return all(math.isfinite(v) for v in m) and abs(m[0] * m[3] - m[1] * m[2]) > 1e-12
+
+
+@lru_cache(maxsize=512)
+def _sanitized_gradient(paint: Gradient) -> Gradient | None:
+    stops = _stops(paint.stops)
+    if not stops:
+        return None
+    common = {
+        "stops": stops,
+        "units": paint.units if paint.units in get_args(GradientUnits) else "objectBoundingBox",
+        "spread": paint.spread if paint.spread in get_args(SpreadMethod) else "pad",
+        "transform": paint.transform if _invertible(paint.transform) else IDENTITY_TRANSFORM,
+    }
+    if isinstance(paint, LinearGradient):
+        x1, y1, x2, y2 = (
+            _finite(v, d) for v, d in ((paint.x1, 0.0), (paint.y1, 0.0), (paint.x2, 1.0), (paint.y2, 0.0))
+        )
+        return LinearGradient(x1, y1, x2, y2, **common)
+    if not math.isfinite(paint.r) or paint.r < 0:
+        return None
+    cx, cy = _finite(paint.cx, 0.5), _finite(paint.cy, 0.5)
+    fx, fy = _finite(paint.fx, cx), _finite(paint.fy, cy)
+    distance = math.hypot(fx - cx, fy - cy)
+    if distance > paint.r:
+        fx, fy = (cx + (fx - cx) * paint.r / distance, cy + (fy - cy) * paint.r / distance)
+    return RadialGradient(cx, cy, float(paint.r), fx, fy, **common)
+
+
+def _sanitized_paint(paint: Paint) -> Paint:
+    if isinstance(paint, (LinearGradient, RadialGradient)):
+        clean = _sanitized_gradient(paint)
+        # An unchanged gradient stays the very object it was, so shapes that share one keep sharing it.
+        return paint if clean == paint else clean
+    return paint
+
+
 def sanitized(style: Style) -> Style:
     """`style` with every field in range: opacities clamped, unknown enum values reset, dashes normalized."""
     defaults = Style()
     return replace(
         style,
+        fill=_sanitized_paint(style.fill),
+        stroke=_sanitized_paint(style.stroke),
         stroke_width=max(0.0, style.stroke_width) if math.isfinite(style.stroke_width) else defaults.stroke_width,
         opacity=_unit(style.opacity),
         fill_opacity=_unit(style.fill_opacity),

@@ -1,5 +1,3 @@
-
-
 from presstoshape.editing import queries
 from presstoshape.editing.operations import composites, edit_mode, node_editing, selection, shapes, view
 from presstoshape.geometry import nodes

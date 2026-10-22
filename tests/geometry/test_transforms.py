@@ -26,7 +26,6 @@ def _rot(deg, cx, cy):
     return affine.rotation(math.radians(deg), cx, cy)
 
 
-
 def test_translate_each_shape_type():
     style = Style()
     assert transforms.translate(RectShape(1, 0, 0, 5, 5, style), 2, 3).x == 2
@@ -36,15 +35,12 @@ def test_translate_each_shape_type():
     assert moved.segments == (MoveTo(2, 3), LineTo(3, 4), Close())
 
 
-
 def test_outline_none_for_text():
     assert transforms.outline(TextShape(1, 0, 0, "a", 10, Style())) is None
 
 
-
 def test_new_shapes_have_identity_transform():
     assert RectShape(1, 0, 0, 10, 10, S).transform == affine.IDENTITY
-
 
 
 def test_outline_applies_transform():
@@ -55,7 +51,6 @@ def test_outline_applies_transform():
     assert (first.x, first.y) == pytest.approx((10, 0))
 
 
-
 def test_scale_rect_goes_into_size():
     rect = RectShape(1, 10, 10, 20, 10, S)
     out = transforms.transform_shape(rect, affine.scaling(2, 3, 10, 10))
@@ -63,13 +58,11 @@ def test_scale_rect_goes_into_size():
     assert out.transform == affine.IDENTITY
 
 
-
 def test_flip_rect_stays_untransformed():
     rect = RectShape(1, 0, 0, 20, 10, S)
     out = transforms.transform_shape(rect, affine.scaling(-1, 1, 0, 0))
     assert (out.x, out.y, out.width, out.height) == pytest.approx((-20, 0, 20, 10))
     assert affine.is_identity(out.transform)
-
 
 
 def test_rotate_rect_keeps_rect_with_rotation_about_center():
@@ -80,9 +73,9 @@ def test_rotate_rect_keeps_rect_with_rotation_about_center():
     angle, cx, cy = affine.as_rotation(out.transform)
     assert angle == pytest.approx(30)
     assert (cx, cy) == pytest.approx((out.x + 10, out.y + 5))
-    assert bbox(transforms.outline(out)) == pytest.approx(bbox(transform_segments(
-        transforms.outline(rect), lambda x, y: affine.apply(_rot(30, 0, 0), x, y))))
-
+    assert bbox(transforms.outline(out)) == pytest.approx(
+        bbox(transform_segments(transforms.outline(rect), lambda x, y: affine.apply(_rot(30, 0, 0), x, y)))
+    )
 
 
 def test_scale_rotated_rect_along_own_axes():
@@ -93,13 +86,11 @@ def test_scale_rotated_rect_along_own_axes():
     assert transforms.rotation_of(out) == pytest.approx(90)
 
 
-
 def test_skewed_rect_keeps_full_matrix():
     rect = transforms.with_rotation(RectShape(1, 0, 0, 20, 10, S), 30)
     out = transforms.transform_shape(rect, affine.scaling(2, 1))
     assert (out.width, out.height) == (20, 10)
     assert transforms.rotation_of(out) is None
-
 
 
 def test_min_extent_clamps_size():
@@ -108,18 +99,15 @@ def test_min_extent_clamps_size():
     assert out.width == pytest.approx(1.0)
 
 
-
 def test_singular_transform_raises():
     with pytest.raises(ValueError):
         transforms.transform_shape(RectShape(1, 0, 0, 20, 10, S), affine.scaling(0, 1))
-
 
 
 def test_scale_ellipse_radii():
     ellipse = EllipseShape(1, 10, 10, 5, 5, S)
     out = transforms.transform_shape(ellipse, affine.scaling(2, 1, 5, 10))
     assert (out.cx, out.cy, out.rx, out.ry) == pytest.approx((15, 10, 10, 5))
-
 
 
 def test_path_transform_is_baked():
@@ -129,13 +117,11 @@ def test_path_transform_is_baked():
     assert (out.segments[1].x, out.segments[1].y) == pytest.approx((0, 10))
 
 
-
 def test_text_scales_uniformly_by_larger_factor():
     text = TextShape(1, 10, 20, "Hi", 10.0, S)
     out = transforms.transform_shape(text, affine.scaling(3, 1.5, 0, 0))
     assert (out.x, out.y, out.font_size) == pytest.approx((30, 30, 30))
     assert out.transform == affine.IDENTITY
-
 
 
 def test_text_rotation_about_anchor():
@@ -145,13 +131,11 @@ def test_text_rotation_about_anchor():
     assert transforms.rotation_of(out) == pytest.approx(45)
 
 
-
 def test_text_flip_keeps_previous_rotation():
     text = transforms.with_rotation(TextShape(1, 10, 20, "Hi", 10.0, S), 20)
     out = transforms.transform_shape(text, affine.scaling(-1, 1, 10, 20))
     assert transforms.rotation_of(out) == pytest.approx(20)
     assert out.font_size == pytest.approx(10)
-
 
 
 def test_translate_rotated_rect_keeps_rotation_about_new_center():
@@ -162,7 +146,6 @@ def test_translate_rotated_rect_keeps_rotation_about_new_center():
     assert (cx, cy) == pytest.approx((15, 12))
     before, after = transforms.outline(rect), transforms.outline(out)
     assert (after[0].x - before[0].x, after[0].y - before[0].y) == pytest.approx((5, 7))
-
 
 
 def test_rotation_of_and_with_rotation():

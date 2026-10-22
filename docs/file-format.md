@@ -65,7 +65,7 @@ Every shape has:
 |---|---|---|
 | `type` | string | `"rect"`, `"ellipse"`, `"path"`, `"text"`, `"composite"` or `"group"`. |
 | `id` | integer ≥ 0 | Unique in the whole document, Composite parts included. |
-| `style` | object | `{"fill": color or null, "stroke": color or null, "stroke_width": number ≥ 0}`, plus the optional fields below. Groups have none. |
+| `style` | object | `{"fill": paint, "stroke": paint, "stroke_width": number ≥ 0}`, plus the optional fields below; a paint is a colour string, `null` (none) or a gradient object (see below). Groups have none. |
 | `transform` | list of 6 numbers | Optional. Affine `[a, b, c, d, e, f]` as in SVG's `matrix()`, applied on top of the geometry. Left out when it's the identity. |
 | `hidden` | bool | Optional, written only as `true`. The shape isn't drawn or exported; inside a group or Composite it hides just that child or part (a hidden part is left out of the Composite's result). |
 | `locked` | bool | Optional, written only as `true`. The shape is drawn but can't be selected; a locked group or Composite can't be entered. |
@@ -82,6 +82,16 @@ Optional style fields, written only when they differ from the default (which is 
 | `miter_limit` | number ≥ 1 | `4.0` | As SVG's `stroke-miterlimit`. |
 | `dashes` | list of numbers ≥ 0 | `[]` | Dash and gap lengths in document pixels; empty is a solid line. Readers repeat an odd-length list and treat an all-zero list as solid, as SVG does. |
 | `dash_offset` | number | `0.0` | Where the dash pattern starts along the stroke. |
+
+Gradient paint (version 8), an object in `fill` or `stroke`:
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `type` | string | `"linear"` | `"linear"` (`x1`, `y1`, `x2`, `y2`) or `"radial"` (`cx`, `cy`, `r`, `fx`, `fy`); numbers, required. |
+| `stops` | list of objects | required | `{"offset": 0 to 1, "color": string, "opacity": 0 to 1}`, offsets not decreasing; `opacity` is optional (default `1.0`). At least one stop, readers drop a gradient without any. |
+| `units` | string | `"objectBoundingBox"` | `"objectBoundingBox"` (coordinates are fractions of the shape's own box) or `"userSpaceOnUse"` (in the shape's coordinates), as SVG's `gradientUnits`. |
+| `spread` | string | `"pad"` | `"pad"`, `"reflect"` or `"repeat"`, as SVG's `spreadMethod`. |
+| `transform` | list of 6 numbers | identity | As SVG's `gradientTransform`. |
 
 Geometry per type:
 
@@ -154,6 +164,7 @@ Undo history and the active tool are not stored.
 | 5 | nightlies from October 2026 | Shape type `group`. `state.edit_path` may now name groups too. Version 4 files need no change. |
 | 6 | nightlies from October 2026 | Optional `document.guides` and `document.grid`, and their view state in `state.view`. Version 5 files need no change. |
 | 7 | nightlies from October 2026 | Optional `hidden` and `locked` on shapes, optional `locked` on layers. Version 6 files need no change (everything shown and unlocked). |
+| 8 | nightlies from October 2026 | `style.fill` and `style.stroke` may be a gradient object (`linear` or `radial`) instead of a colour. Version 7 files need no change. |
 
 Rules for changing the format:
 

@@ -114,7 +114,23 @@ def test_specificity():
 
 @pytest.mark.parametrize(
     "text",
-    ["", "rect::before", "rect:before", "a:unknown", "svg|rect", "a >", "> a", "a ,b", "[", "[a=]", ":nth-child(x)", "1x", "a)", ".", "#"],
+    [
+        "",
+        "rect::before",
+        "rect:before",
+        "a:unknown",
+        "svg|rect",
+        "a >",
+        "> a",
+        "a ,b",
+        "[",
+        "[a=]",
+        ":nth-child(x)",
+        "1x",
+        "a)",
+        ".",
+        "#",
+    ],
 )
 def test_unsupported_selectors(text):
     assert parse_selector(text) is None

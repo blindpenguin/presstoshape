@@ -49,6 +49,7 @@ uv run python main.py
 
 ```
 uv run pytest                                          # logic tests
+uv run ruff check . && uv run ruff format --check .   # lint + formatting (drop --check to reformat)
 uv run python scripts/screenshot_app.py                # offscreen screenshot -> dev-screenshots/app.png (--language de)
 uv run python scripts/update_translations.py           # after changing UI text: template + shipped .po files
 uv run python scripts/bench_canvas.py                  # canvas frame times, 10k shapes (PRESSTOSHAPE_RENDERER=cpu|gl)
