@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-level2/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-22T18:19:02.882Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792693142849_z9n5u8bgj",
+      "approvalTitle": "SVG conformance Level 2 (viewports): requirements"
+    }
+  ]
+}
