@@ -18,7 +18,7 @@ class Note(Enum):
     MISSING_REFERENCE = auto()
     CYCLIC_REFERENCE = auto()
     MIXED_TEXT = auto()
-    NESTED_SVG = auto()
+    VIEWPORT_OVERFLOW = auto()
     UNKNOWN_ELEMENT = auto()
     COMPOSITE_UNREADABLE = auto()
     COMPOSITE_EDITED = auto()
@@ -89,9 +89,11 @@ def _message(note: Note, count: int) -> str:
                 "{count} text lines with mixed styles now use one style each",
                 count,
             )
-        case Note.NESTED_SVG:
+        case Note.VIEWPORT_OVERFLOW:
             text = ngettext(
-                "{count} embedded SVG document was left out", "{count} embedded SVG documents were left out", count
+                "{count} viewport would clip its content; it is shown unclipped",
+                "{count} viewports would clip their content; it is shown unclipped",
+                count,
             )
         case Note.UNKNOWN_ELEMENT:
             text = ngettext("{count} other element was left out", "{count} other elements were left out", count)

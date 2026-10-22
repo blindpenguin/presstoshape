@@ -221,6 +221,124 @@ def test_symbol_with_aspect_ratio_none_stretches():
     assert (rect.width, rect.height) == (40, 20)
 
 
+# --- nested viewports -----------------------------------------------------------------------------
+
+
+def _nested(body: str):
+    return leaves(_shapes(body))
+
+
+def test_nested_svg_is_translated_by_x_and_y():
+    (rect,) = _nested('<svg x="10" y="20" width="50" height="50"><rect width="5" height="5"/></svg>')
+    assert (rect.x, rect.y, rect.width, rect.height) == (10, 20, 5, 5)
+
+
+def test_nested_svg_view_box_scales_and_centres():
+    body = '<svg x="5" width="40" height="20" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
+    (rect,) = _nested(body)
+    assert (rect.x, rect.y, rect.width, rect.height) == (15, 0, 20, 20)
+
+
+def test_nested_svg_slice_and_none():
+    inner = '<rect width="10" height="10"/>'
+    slice_svg = f'<svg width="40" height="20" viewBox="0 0 10 10" preserveAspectRatio="xMinYMin slice">{inner}</svg>'
+    (sliced,) = _nested(slice_svg)
+    assert (sliced.x, sliced.y, sliced.width, sliced.height) == (0, 0, 40, 40)
+    none_svg = f'<svg width="40" height="20" viewBox="0 0 10 10" preserveAspectRatio="none">{inner}</svg>'
+    (stretched,) = _nested(none_svg)
+    assert (stretched.width, stretched.height) == (40, 20)
+
+
+def test_nested_svg_inside_nested_svg_composes():
+    body = (
+        '<svg x="10" y="10" width="80" height="80"><svg x="5" y="5" width="20" height="20" viewBox="0 0 10 10">'
+        '<rect width="10" height="10"/></svg></svg>'
+    )
+    (rect,) = _nested(body)
+    assert (rect.x, rect.y, rect.width, rect.height) == (15, 15, 20, 20)
+
+
+def test_percentages_inside_a_nested_viewport_use_that_viewport():
+    body = '<svg width="40" height="20"><rect width="50%" height="50%"/></svg>'
+    (rect,) = _nested(body)
+    assert (rect.width, rect.height) == (20, 10)
+
+
+def test_nested_svg_without_size_fills_the_parent_viewport():
+    (rect,) = _nested('<svg><rect width="100%" height="100%"/></svg>')
+    assert (rect.width, rect.height) == (100, 100)
+
+
+def test_nested_svg_transform_applies_before_the_viewport():
+    (rect,) = _nested('<svg transform="translate(7 0)" width="50" height="50"><rect width="5" height="5"/></svg>')
+    assert rect.x == 7
+
+
+def test_nested_svg_without_extent_draws_nothing():
+    for attributes in ('width="0" height="10"', 'width="10" height="-1"', 'width="10" height="10" viewBox="0 0 0 5"'):
+        assert _shapes(f"<svg {attributes}><rect width='5' height='5'/></svg>") == []
+
+
+def test_invalid_view_box_and_aspect_are_ignored_and_counted():
+    body = '<svg width="20" height="20" viewBox="1 2 3" preserveAspectRatio="bogus"><rect width="5" height="5"/></svg>'
+    assert [rect.width for rect in _nested(body)] == [5]
+    assert _notes(body) == ["2 invalid values were ignored"]
+
+
+def test_nested_svg_keeps_opacity_conditions_and_display():
+    (group,) = _shapes('<svg width="50" height="50" opacity="0.5"><rect width="5" height="5"/></svg>')
+    assert isinstance(group, GroupShape) and group.opacity == 0.5
+    assert _shapes('<svg width="50" height="50" systemLanguage="xx"><rect width="5" height="5"/></svg>') == []
+    (hidden,) = _shapes('<svg width="50" height="50" display="none"><rect width="5" height="5"/></svg>')
+    assert hidden.hidden
+
+
+def test_use_of_svg_takes_its_size_from_the_use():
+    body = (
+        '<defs><svg id="s" viewBox="0 0 10 10"><rect width="10" height="10"/></svg></defs>'
+        '<use href="#s" x="5" width="40" height="20"/>'
+    )
+    (rect,) = _nested(body)
+    assert (rect.x, rect.y, rect.width, rect.height) == (15, 0, 20, 20)
+
+
+def test_extreme_viewport_values_never_raise():
+    body = '<svg width="1e308in" height="1e308in" viewBox="0 0 1e-300 1e-300"><rect width="5" height="5"/></svg>'
+    _shapes(body)
+
+
+@pytest.mark.parametrize(
+    ("body", "noted"),
+    [
+        ('<svg width="10" height="10"><rect width="5" height="5"/></svg>', False),
+        ('<svg width="10" height="10"><rect x="8" width="5" height="5"/></svg>', True),
+        ('<svg width="10" height="10" overflow="visible"><rect x="8" width="5" height="5"/></svg>', False),
+        ('<svg width="10" height="10" overflow="auto"><rect x="8" width="5" height="5"/></svg>', False),
+        (
+            '<svg width="10" height="10" viewBox="0 0 10 10" preserveAspectRatio="xMidYMid slice">'
+            '<rect width="5" height="5"/></svg>',
+            False,
+        ),
+        (
+            '<svg width="20" height="10" viewBox="0 0 10 10" preserveAspectRatio="xMidYMid slice">'
+            '<rect width="10" height="10"/></svg>',
+            True,
+        ),
+        ('<symbol id="s" width="10" height="10"><rect x="8" width="5" height="5"/></symbol><use href="#s"/>', True),
+    ],
+)
+def test_viewport_overflow_is_noted_not_clipped(body, noted):
+    messages = _notes(body)
+    clipped = [m for m in messages if "viewport" in m]
+    assert bool(clipped) == noted
+
+
+def test_overflowing_content_is_kept():
+    body = '<svg width="10" height="10"><rect x="8" width="50" height="5"/></svg>'
+    (rect,) = _nested(body)
+    assert rect.width == 50
+
+
 def test_definitions_are_only_drawn_where_used():
     body = (
         '<defs><rect id="a" width="1" height="1"/></defs><symbol id="b"><rect width="2" height="2"/></symbol>'
@@ -286,7 +404,6 @@ def test_text_anchor_is_kept():
         ('<image href="a.png" width="5" height="5"/>', "1 image was left out"),
         ('<rect width="5" height="5" style="filter:url(#f)"/>', "1 filter effect (blur, shadow, …) was left out"),
         ('<path d="M0 0 L1 1" marker-end="url(#m)"/>', "1 line with markers (arrowheads) lost them"),
-        ('<svg x="5"><rect width="5" height="5"/></svg>', "1 embedded SVG document was left out"),
         ('<foreignObject width="5" height="5"/>', "1 other element was left out"),
         (
             '<rect width="5" height="5" fill="url(#g)"/><rect width="5" height="5" stroke="url(#g)"/>',
@@ -728,3 +845,56 @@ SKEW = "1 skewed text lost its skew"
 )
 def test_approximations_under_transforms_are_noted(body, expected):
     assert _notes(body) == expected
+
+
+# --- root viewport ------------------------------------------------------------------------------------
+
+
+def _root_rect(attrs: str):
+    document, notes = read_svg_with_notes(_svg('<rect width="100" height="100"/>', attrs))
+    (rect,) = leaves(document.layers[0].shapes)
+    return document, rect, notes
+
+
+def test_root_with_other_proportions_keeps_its_size_and_centres_the_content():
+    document, rect, _ = _root_rect('width="200" height="100" viewBox="0 0 100 100"')
+    assert (document.width, document.height) == (200, 100)
+    assert (rect.x, rect.y, rect.width, rect.height) == (50, 0, 100, 100)
+
+
+def test_root_aspect_none_stretches_and_slice_covers():
+    _, stretched, _ = _root_rect('width="200" height="100" viewBox="0 0 100 100" preserveAspectRatio="none"')
+    assert (stretched.x, stretched.width, stretched.height) == (0, 200, 100)
+    _, sliced, _ = _root_rect('width="200" height="100" viewBox="0 0 100 100" preserveAspectRatio="xMinYMin slice"')
+    assert (sliced.x, sliced.y, sliced.width, sliced.height) == (0, 0, 200, 200)
+
+
+def test_root_with_the_same_proportions_or_percentages_is_unchanged():
+    document, rect, _ = _root_rect('width="200" height="200" viewBox="0 0 100 100"')
+    assert (document.width, document.height, rect.width) == (100, 100, 100)
+    document, rect, _ = _root_rect('width="100%" height="50%" viewBox="0 0 100 100"')
+    assert (document.width, document.height, rect.width) == (100, 100, 100)
+
+
+def test_root_preserve_aspect_ratio_is_ignored_without_a_view_box():
+    document, rect, _ = _root_rect('width="200" height="100" preserveAspectRatio="none"')
+    assert (document.width, document.height, rect.x, rect.width) == (200, 100, 0, 100)
+
+
+def test_root_in_physical_units_keeps_the_unit():
+    document, _, _ = _root_rect('width="50mm" height="25mm" viewBox="0 0 100 100"')
+    assert document.unit == "mm"
+    assert document.width == pytest.approx(50 / 25.4 * 96)
+
+
+def test_invalid_root_aspect_ratio_is_counted():
+    _, _, notes = _root_rect('width="200" height="100" viewBox="0 0 100 100" preserveAspectRatio="centre"')
+    assert notes == ["1 invalid value was ignored"]
+
+
+def test_own_files_are_never_fitted():
+    document = Document(layers=[Layer("a", shapes=[RectShape(1, 0, 0, 10, 10, Style())])], next_id=2)
+    document.width, document.height, document.unit = 960.0, 480.0, "in"
+    first = write_svg(document)
+    reopened = read_svg(first)
+    assert write_svg(reopened) == first

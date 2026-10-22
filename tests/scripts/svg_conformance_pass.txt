@@ -34,6 +34,7 @@ coords-transformattr-04-f
 coords-transformattr-05-f
 coords-units-02-b
 coords-units-03-b
+coords-viewattr-03-b
 linking-a-04-t
 linking-a-05-t
 linking-a-07-t
@@ -117,7 +118,9 @@ struct-cond-03-t
 struct-defs-01-t
 struct-frag-05-t
 struct-frag-06-t
+struct-group-02-b
 struct-group-01-t
+struct-svg-03-f
 struct-use-03-t
 struct-use-10-f
 struct-use-11-f
@@ -128,6 +131,7 @@ styling-css-02-b
 styling-css-03-b
 styling-css-04-f
 styling-css-07-f
+styling-css-08-f
 styling-elem-01-b
 styling-pres-01-t
 text-align-01-b
@@ -138,6 +142,7 @@ text-text-11-t
 text-tselect-01-b
 types-basic-01-f
 ~styling-pres-03-f  # the suite's image is blank (outdated); resvg draws the green rectangle the test asks for
+~struct-use-09-b  # the suite's image shows thin red lines (an old failing state); resvg draws the five coloured rectangles the test asks for
 ~text-ws-01-t  # the suite's image lacks the draft banner (outdated reference); resvg draws it, text matches
 ~text-ws-02-t  # the suite's image lacks the draft banner (outdated reference); resvg draws it, text matches
 
@@ -157,14 +162,13 @@ types-basic-01-f
 !struct-group-03-t  # colours right now; font family, style and weight columns still plain (Level 7)
 !struct-image-10-t  # images left out (Level 5)
 !struct-image-18-f  # red instead of green (Level 5)
-!struct-svg-01-f  # nested <svg> left out, test shows FAIL (Level 2)
-!struct-svg-02-f  # matches only because the nested <svg> is left out (Level 2)
+!struct-svg-01-f  # script-driven: the reference shows values the script writes, which we don't run
+!struct-svg-02-f  # script-driven: empty without the script, so a match proves nothing
 !struct-use-01-t  # <image> through <use> left out (Level 5)
-!struct-use-08-b  # <use> of <svg> and <image> drawn wrongly (Levels 2, 5)
+!struct-use-08-b  # references into another file and <image> (Level 5)
 !struct-use-14-f  # script-driven; the reference shows the failing state
 !struct-use-15-f  # script-driven; the reference shows the failing state
 !styling-css-05-b  # colours right now; the italic word is upright (Level 7)
-!styling-css-08-f  # the circle inside the nested <svg> is left out (Level 2)
 !styling-css-10-f  # ours is right (orange, orange, orange, blue); the suite's image and resvg disagree
 !text-align-04-b  # tref and textPath lines missing (Level 7)
 !text-align-05-b  # vertical text (Level 7)

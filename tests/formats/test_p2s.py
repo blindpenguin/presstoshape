@@ -18,6 +18,7 @@ from presstoshape.formats.p2s import (
     write_p2s,
 )
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION
+from presstoshape.formats.svg import read_svg
 from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
@@ -455,3 +456,11 @@ def test_flags_are_written_only_when_set():
     assert "hidden" not in top["shapes"][1] and "locked" not in top["shapes"][1]
     assert top["shapes"][0]["parts"][0]["hidden"] is True
     assert json.dumps(encode_document(_round_trip(_flagged_document()))) == json.dumps(encoded)
+
+
+def test_document_read_from_nested_viewports_round_trips():
+    document = read_svg(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+        '<svg x="5" y="5" width="20" height="20" viewBox="0 0 10 10"><rect width="10" height="10"/></svg></svg>'
+    )
+    assert _round_trip(document) == document

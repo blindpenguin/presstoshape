@@ -11,13 +11,13 @@ approximated and counted as a note (formats/svg_notes.py). svgelements' own docu
 
 import math
 import xml.etree.ElementTree as ET
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 import svgelements as se
 
 from presstoshape.formats import css
 from presstoshape.formats.svg_conditions import is_drawable, passes, switch_choice
-from presstoshape.formats.svg_lengths import Axis, length, resolve, root_viewport
+from presstoshape.formats.svg_lengths import Axis, Viewport, length, resolve, root_viewport
 from presstoshape.formats.svg_lengths import parse as parse_length_text
 from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_names import (
@@ -37,7 +37,6 @@ from presstoshape.formats.svg_notes import Note, NoteCollector
 from presstoshape.formats.svg_page import Page, read_page
 from presstoshape.formats.svg_properties import normalize
 from presstoshape.formats.svg_values import (
-    NUMBER,
     Whitespace,
     corner_radii,
     first_token,
@@ -48,6 +47,16 @@ from presstoshape.formats.svg_values import (
     parse_path_data,
     parse_points,
     parse_transform,
+)
+from presstoshape.formats.svg_viewport import (
+    DEFAULT,
+    INVALID,
+    Aspect,
+    escapes,
+    fit,
+    is_finite,
+    parse_aspect,
+    parse_view_box,
 )
 from presstoshape.geometry import booleans
 from presstoshape.geometry.affine import IDENTITY, Affine, apply, compose, scaling, translation
@@ -97,7 +106,7 @@ _INHERITED_KEYS = frozenset(
 )
 _MARKER_KEYS = ("marker", "marker-start", "marker-mid", "marker-end")
 _EFFECT_NOTES = (("clip-path", Note.CLIP), ("mask", Note.MASK), ("filter", Note.FILTER))
-_STYLE_KEYS = _INHERITED_KEYS | {"display", "opacity", "clip-path", "mask", "filter", *_MARKER_KEYS}
+_STYLE_KEYS = _INHERITED_KEYS | {"display", "opacity", "overflow", "clip-path", "mask", "filter", *_MARKER_KEYS}
 # Compared between a text line and its tspans to notice mixed styles.
 _TEXT_LOOK_KEYS = ("fill", "stroke", "font-size", "fill-opacity")
 _DEFAULT_STYLE = {"color": "black", "fill": "black", "stroke": "none", "stroke-width": "1", "font-size": "16"}
@@ -148,7 +157,7 @@ def read_svg_with_notes(text: str, languages: tuple[str, ...] = ("en",)) -> tupl
     first, for `systemLanguage` and `<switch>`."""
     root = _parse_root(text)
     page = read_page(root)
-    base_matrix = compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
+    base_matrix = page.view or compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
     document, notes = _read_layers(root, base_matrix, languages, page)
     document.width, document.height = page.width, page.height
     document.unit, document.dpi = page.unit, page.dpi
@@ -179,6 +188,7 @@ def _read_layers(
     reader = _Reader(root, languages)
     base_style = reader.style(_DEFAULT_STYLE, root)
     base_opacity = parse_fraction(base_style.get("opacity"))
+    reader.notes.add(Note.INVALID_VALUE, parse_aspect(root.get("preserveAspectRatio")) is INVALID)
 
     layers: list[Layer] = []
     loose: Layer | None = None
@@ -228,6 +238,16 @@ def _local_name(element: ET.Element) -> str | None:
     if not isinstance(tag, str) or not tag.startswith(SVG_PREFIX):
         return None
     return tag[len(SVG_PREFIX) :]
+
+
+@dataclass(frozen=True)
+class _View:
+    """Where a viewport puts its content: viewBox to parent space, the viewport rectangle (parent space) and what
+    percentages inside refer to."""
+
+    matrix: Affine
+    rect: tuple[float, float, float, float]
+    inner: Viewport
 
 
 class _Reader:
@@ -350,6 +370,7 @@ class _Reader:
         out: list[Shape],
         opacity: float = 1.0,
         uses: tuple[str, ...] = (),
+        use: ET.Element | None = None,
     ) -> None:
         tag = _local_name(element)
         if tag is None or tag in _NOT_RENDERED:
@@ -363,7 +384,7 @@ class _Reader:
         if hidden and uses:
             return
         before = len(out)
-        self._visit_shown(tag, element, style, matrix, out, opacity, uses)
+        self._visit_shown(tag, element, style, matrix, out, opacity, uses, use)
         locked = _locked(element)
         if hidden or locked:
             out[before:] = [replace(shape, hidden=hidden, locked=locked) for shape in out[before:]]
@@ -377,9 +398,12 @@ class _Reader:
         out: list[Shape],
         opacity: float,
         uses: tuple[str, ...],
+        use: ET.Element | None = None,
     ) -> None:
         if tag == "svg":
-            self.notes.add(Note.NESTED_SVG)
+            self._note_effects(style)
+            matrix = compose(matrix, parse_transform(element.get("transform")))
+            self._viewport_content(element, style, matrix, out, opacity, uses, use)
             return
         if tag == "image":
             self.notes.add(Note.IMAGE)
@@ -508,10 +532,9 @@ class _Reader:
             symbol_style = self.style(style, target)
             if symbol_style.get("display") == "none":
                 return
-            matrix = compose(matrix, self._symbol_matrix(target, element, symbol_style))
-            self._group(target, symbol_style, matrix, out, opacity, uses)
+            self._viewport_content(target, symbol_style, matrix, out, opacity, uses, element)
         else:
-            self.visit(target, style, matrix, out, opacity, uses)
+            self.visit(target, style, matrix, out, opacity, uses, element if _local_name(target) == "svg" else None)
 
     def _read(self, tag: str, el: ET.Element, style: dict[str, str], m: Affine, opacity: float) -> Shape | None:
         """One element as a shape; a path carrying a Composite definition becomes that Composite."""
@@ -711,23 +734,77 @@ class _Reader:
             if child.tail:
                 runs[-1].add(child.tail, style, self.notes, preserve)
 
-    def _symbol_matrix(self, symbol: ET.Element, use: ET.Element, style: dict[str, str]) -> Affine:
-        """Maps the symbol's viewBox into the use's width × height (default: the viewBox size), centred and
-        uniformly scaled unless preserveAspectRatio is "none"."""
-        values = [float(v) for v in NUMBER.findall(symbol.get("viewBox", ""))]
-        if len(values) != 4 or values[2] <= 0 or values[3] <= 0:
-            return IDENTITY
-        min_x, min_y, box_width, box_height = values
-        width = self._length(use.get("width") or symbol.get("width"), "x", style, box_width)
-        height = self._length(use.get("height") or symbol.get("height"), "y", style, box_height)
+    @staticmethod
+    def _attribute(name: str, element: ET.Element, use: ET.Element | None) -> str | None:
+        """A viewport attribute; the `<use>` that instantiates the viewport overrides the element's own."""
+        if use is not None and use.get(name) is not None:
+            return use.get(name)
+        return element.get(name)
+
+    def _viewport(
+        self, element: ET.Element, use: ET.Element | None, style: dict[str, str], positioned: bool
+    ) -> _View | None:
+        """Where an `<svg>` or `<symbol>` puts its content, None when it isn't rendered (no size, or a viewBox
+        without extent). A symbol's position comes from its `<use>`, so only `<svg>` reads `x` and `y`."""
+        x = self._length(element.get("x"), "x", style) if positioned else 0.0
+        y = self._length(element.get("y"), "y", style) if positioned else 0.0
+        width = self._length(self._attribute("width", element, use), "x", style, self.viewport.width)
+        height = self._length(self._attribute("height", element, use), "y", style, self.viewport.height)
+        view_box = parse_view_box(element.get("viewBox"))
+        aspect = parse_aspect(self._attribute("preserveAspectRatio", element, use))
+        self.notes.add(Note.INVALID_VALUE, (view_box is INVALID) + (aspect is INVALID))
         if width <= 0 or height <= 0:
-            return IDENTITY
-        scale_x, scale_y = width / box_width, height / box_height
-        if (use.get("preserveAspectRatio") or symbol.get("preserveAspectRatio", "")).strip() != "none":
-            scale_x = scale_y = min(scale_x, scale_y)
-        offset_x = (width - box_width * scale_x) / 2 - min_x * scale_x
-        offset_y = (height - box_height * scale_y) / 2 - min_y * scale_y
-        return compose(translation(offset_x, offset_y), scaling(scale_x, scale_y))
+            return None
+        aspect = aspect if isinstance(aspect, Aspect) else DEFAULT
+        if isinstance(view_box, tuple):
+            if view_box[2] <= 0 or view_box[3] <= 0:
+                return None
+            matrix = compose(translation(x, y), fit(view_box, width, height, aspect))
+            inner = Viewport(view_box[2], view_box[3])
+        else:
+            matrix = translation(x, y)
+            inner = Viewport(width, height)
+        if not is_finite(matrix):
+            self.notes.add(Note.INVALID_VALUE)
+            return None
+        return _View(matrix, (x, y, width, height), inner)
+
+    def _viewport_content(
+        self,
+        element: ET.Element,
+        style: dict[str, str],
+        matrix: Affine,
+        out: list[Shape],
+        opacity: float,
+        uses: tuple[str, ...],
+        use: ET.Element | None,
+    ) -> None:
+        """The content of an `<svg>` or `<symbol>` as one group, mapped into its viewport; percentages inside
+        refer to that viewport."""
+        view = self._viewport(element, use, style, _local_name(element) == "svg")
+        if view is None:
+            return
+        outer = self.viewport
+        self.viewport = view.inner
+        before = len(out)
+        try:
+            self._group(element, style, compose(matrix, view.matrix), out, opacity, uses)
+        finally:
+            self.viewport = outer
+        if len(out) > before and style.get("overflow") not in ("visible", "auto"):
+            self._check_overflow(out[before:], view.rect, matrix)
+
+    def _check_overflow(self, shapes: list[Shape], rect: tuple[float, float, float, float], matrix: Affine) -> None:
+        """Content is read in document space, so the viewport rectangle is taken there too (the bounding box of
+        its corners when the matrix turns it). Nothing is clipped before there are clip objects; this only counts."""
+        x, y, width, height = rect
+        corners = [
+            apply(matrix, cx, cy) for cx, cy in ((x, y), (x + width, y), (x, y + height), (x + width, y + height))
+        ]
+        left, right = min(cx for cx, _ in corners), max(cx for cx, _ in corners)
+        top, bottom = min(cy for _, cy in corners), max(cy for _, cy in corners)
+        if escapes(shapes, left, top, right - left, bottom - top):
+            self.notes.add(Note.VIEWPORT_OVERFLOW)
 
     def _transformed(self, shape: Shape, m: Affine) -> Shape | None:
         try:

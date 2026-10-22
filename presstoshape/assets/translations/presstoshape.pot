@@ -1231,8 +1231,8 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} embedded SVG document was left out"
-msgid_plural "{count} embedded SVG documents were left out"
+msgid "{count} viewport would clip its content; it is shown unclipped"
+msgid_plural "{count} viewports would clip their content; it is shown unclipped"
 msgstr[0] ""
 msgstr[1] ""
 

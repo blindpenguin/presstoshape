@@ -20,6 +20,7 @@ _ENUMS = {
     "stroke-linejoin": ("miter", "round", "bevel", "miter-clip", "arcs"),
     "text-anchor": ("start", "middle", "end"),
     "visibility": ("visible", "hidden", "collapse"),
+    "overflow": ("visible", "hidden", "scroll", "auto"),
     "display": (
         "inline",
         "block",

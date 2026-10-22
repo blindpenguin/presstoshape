@@ -1232,10 +1232,10 @@ msgstr[0] "{count} Textzeile mit gemischten Stilen hat jetzt einen Stil"
 msgstr[1] "{count} Textzeilen mit gemischten Stilen haben jetzt je einen Stil"
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} embedded SVG document was left out"
-msgid_plural "{count} embedded SVG documents were left out"
-msgstr[0] "{count} eingebettetes SVG-Dokument wurde weggelassen"
-msgstr[1] "{count} eingebettete SVG-Dokumente wurden weggelassen"
+msgid "{count} viewport would clip its content; it is shown unclipped"
+msgid_plural "{count} viewports would clip their content; it is shown unclipped"
+msgstr[0] "{count} Ansichtsbereich würde seinen Inhalt beschneiden; er wird unbeschnitten gezeigt"
+msgstr[1] "{count} Ansichtsbereiche würden ihren Inhalt beschneiden; er wird unbeschnitten gezeigt"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} other element was left out"
