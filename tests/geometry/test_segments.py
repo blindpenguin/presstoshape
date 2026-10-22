@@ -10,10 +10,8 @@ def test_box_from_drag_normalizes_any_direction():
     assert box_from_drag((10, 10), (0, 4)) == (0, 4, 10, 6)
 
 
-
 def test_box_from_drag_square_keeps_drag_direction():
     assert box_from_drag((10, 10), (0, 4), square=True) == (0, 0, 10, 10)
-
 
 
 def test_smooth_segments_passes_through_points():

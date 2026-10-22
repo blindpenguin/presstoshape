@@ -16,11 +16,10 @@ from dataclasses import replace
 import svgelements as se
 
 from presstoshape.formats import css
-from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_conditions import is_drawable, passes, switch_choice
 from presstoshape.formats.svg_lengths import Axis, length, resolve, root_viewport
 from presstoshape.formats.svg_lengths import parse as parse_length_text
-from presstoshape.formats.svg_nodes import Nodes
+from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_names import (
     COMPOSITE,
     GROUPMODE,
@@ -33,9 +32,10 @@ from presstoshape.formats.svg_names import (
     XML_SPACE,
     q,
 )
+from presstoshape.formats.svg_nodes import Nodes
 from presstoshape.formats.svg_notes import Note, NoteCollector
-from presstoshape.formats.svg_properties import normalize
 from presstoshape.formats.svg_page import Page, read_page
+from presstoshape.formats.svg_properties import normalize
 from presstoshape.formats.svg_values import (
     NUMBER,
     Whitespace,

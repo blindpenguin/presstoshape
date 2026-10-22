@@ -239,7 +239,9 @@ def _parse_compound(text: str, position: int) -> tuple[Compound | None, int]:
             break
     if position == start:
         return None, position
-    return Compound(tag, frozenset(ids), frozenset(classes), tuple(attributes), tuple(pseudo), tuple(specificity)), position  # type: ignore[arg-type]
+    return Compound(
+        tag, frozenset(ids), frozenset(classes), tuple(attributes), tuple(pseudo), tuple(specificity)
+    ), position  # type: ignore[arg-type]
 
 
 def _parse_pseudo(text: str, position: int) -> tuple[PseudoClass, int] | None:

@@ -190,7 +190,6 @@ def test_inkscape_style_transforms_import_as_primitives():
 # --- composites ---------------------------------------------------------------------------
 
 
-
 def _nested_composite() -> CompositeShape:
     red = Style(fill="#ff0000", stroke=None)
     inner = CompositeShape(

@@ -1,8 +1,6 @@
 import time
 import xml.etree.ElementTree as ET
 
-import pytest
-
 from presstoshape.formats.css import parse, parse_declarations
 from presstoshape.formats.svg_nodes import Nodes
 
@@ -126,7 +124,9 @@ def test_rules_inside_media_keep_source_order():
 
 
 def test_combinators_apply():
-    root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><g class="icon"><path id="in"/></g><path id="out"/></svg>')
+    root = ET.fromstring(
+        '<svg xmlns="http://www.w3.org/2000/svg"><g class="icon"><path id="in"/></g><path id="out"/></svg>'
+    )
     nodes = Nodes(root)
     sheet = parse("g.icon > path { fill: red }")
     inside, outside = root[0][0], root[1]

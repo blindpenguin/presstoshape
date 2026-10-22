@@ -313,10 +313,14 @@ def test_check_suite_uses_each_tests_reference(tmp_path):
 
 def test_report_shows_the_reason_for_resvg_checked_tests(tmp_path):
     suite = _fake_suite(tmp_path)
-    listed = {"shapes-rect-01-t": svg_conformance.PassEntry("shapes-rect-01-t", 0.03, "reference is outdated", True, "resvg")}
+    listed = {
+        "shapes-rect-01-t": svg_conformance.PassEntry("shapes-rect-01-t", 0.03, "reference is outdated", True, "resvg")
+    }
     folder = tmp_path / "report"
     (folder / "sheets").mkdir(parents=True)
-    page = svg_conformance.write_report([_result("shapes-rect-01-t")], suite, listed, folder).read_text(encoding="utf-8")
+    page = svg_conformance.write_report([_result("shapes-rect-01-t")], suite, listed, folder).read_text(
+        encoding="utf-8"
+    )
     assert "checked against resvg: reference is outdated" in page
 
 

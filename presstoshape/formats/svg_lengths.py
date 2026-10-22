@@ -6,9 +6,9 @@ case-sensitive (`10PX` is invalid), CSS values are not.
 
 import math
 import re
-from functools import lru_cache
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Literal
 
 Axis = Literal["x", "y", "other"]

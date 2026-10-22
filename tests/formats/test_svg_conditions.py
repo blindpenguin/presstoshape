@@ -47,14 +47,14 @@ def _switch(body: str) -> ET.Element:
 
 
 def test_switch_chooses_the_first_passing_drawable_child():
-    switch = _switch(
-        '<title/><text systemLanguage="de" id="de"/><text systemLanguage="en" id="en"/><text id="any"/>'
-    )
+    switch = _switch('<title/><text systemLanguage="de" id="de"/><text systemLanguage="en" id="en"/><text id="any"/>')
     assert switch_choice(switch, ("de", "en")).get("id") == "de"
     assert switch_choice(switch, ("en",)).get("id") == "en"
     assert switch_choice(switch, ("fr",)).get("id") == "any"
 
 
 def test_switch_skips_non_drawable_and_failing_children_and_may_choose_nothing():
-    switch = _switch('<desc/><linearGradient/><rect systemLanguage="de" id="x"/><foreignObject requiredExtensions="e"/>')
+    switch = _switch(
+        '<desc/><linearGradient/><rect systemLanguage="de" id="x"/><foreignObject requiredExtensions="e"/>'
+    )
     assert switch_choice(switch, ("en",)) is None

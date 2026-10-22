@@ -50,7 +50,7 @@ def test_smooth_control_keeps_opposite_collinear_with_own_length():
     moved = nodes.move_control(SMOOTH, (1, 2), (20, 30))
     assert (moved[1].c2x, moved[1].c2y) == (20, 30)
     # Anchor (20, 0); opposite was (30, -10), length sqrt(200), now straight down from the anchor.
-    assert (moved[2].c1x, moved[2].c1y) == pytest.approx((20, -200**0.5))
+    assert (moved[2].c1x, moved[2].c1y) == pytest.approx((20, -(200**0.5)))
 
 
 def test_alt_control_drag_breaks_smoothness():

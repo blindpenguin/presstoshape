@@ -1,5 +1,3 @@
-
-
 from presstoshape.editing.operations import shapes
 from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import PathShape, RectShape

@@ -99,6 +99,8 @@ def test_undo_past_the_group_trims_the_edit_path():
     edit_mode.enter(session, 1)
     session.undo()
     assert containers.valid_edit_path(session.state) == ()
+
+
 def test_pasting_a_group_into_a_composite_adds_its_shapes_as_parts():
     session = _session()
     selection.set_selection(session, {10})

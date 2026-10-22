@@ -1,6 +1,5 @@
 """Boolean commands on the selection: union, difference, intersection, exclude and divide. All destructive."""
 
-
 import pathops
 
 from presstoshape.editing import queries

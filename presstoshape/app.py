@@ -16,8 +16,7 @@ from presstoshape.editing.session import Session
 from presstoshape.i18n import languages
 from presstoshape.models.shapes import CompositeShape
 from presstoshape.version import app_version
-from presstoshape.views import theme, window_placement
-from presstoshape.views import app_settings
+from presstoshape.views import app_settings, theme, window_placement
 from presstoshape.views.app_settings import open_settings
 from presstoshape.views.icon_engine import icon
 from presstoshape.views.main_window import MainWindow

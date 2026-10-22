@@ -1,9 +1,8 @@
 """The app version: stamped into packaged builds, read from pyproject.toml when running from source."""
 
 import importlib
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 

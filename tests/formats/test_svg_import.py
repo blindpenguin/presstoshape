@@ -557,7 +557,9 @@ def test_color_inherit_and_current_color_take_the_parents_colour():
 
 
 def test_current_color_alpha_multiplies_like_other_colours():
-    (rect,) = leaves(_shapes('<rect color="rgba(0,0,255,.5)" fill="currentColor" fill-opacity=".5" width="5" height="5"/>'))
+    (rect,) = leaves(
+        _shapes('<rect color="rgba(0,0,255,.5)" fill="currentColor" fill-opacity=".5" width="5" height="5"/>')
+    )
     assert rect.style.fill == "#0000ff"
     assert rect.style.fill_opacity == pytest.approx(0.25, abs=0.01)
 
@@ -618,7 +620,10 @@ def _texts(body: str, languages: tuple[str, ...]) -> tuple[list[str], list[str]]
 
 
 def test_switch_draws_only_the_choice_for_the_users_language():
-    assert _texts(_MULTILINGUAL, ("de", "en")) == (["Hallo"], ["2 elements meant for another language or viewer were left out"])
+    assert _texts(_MULTILINGUAL, ("de", "en")) == (
+        ["Hallo"],
+        ["2 elements meant for another language or viewer were left out"],
+    )
     assert _texts(_MULTILINGUAL, ("en",))[0] == ["Hello"]
     assert _texts(_MULTILINGUAL, ("fr", "en"))[0] == ["Hello"]
     assert _texts(_MULTILINGUAL, ("fr",))[0] == ["Hi"]
@@ -631,9 +636,7 @@ def test_conditions_outside_a_switch_hide_elements():
 
 
 def test_required_extensions_false_and_features_ignored():
-    body = (
-        '<rect requiredExtensions="x" width="5" height="5"/><rect requiredFeatures="y" width="6" height="6"/>'
-    )
+    body = '<rect requiredExtensions="x" width="5" height="5"/><rect requiredFeatures="y" width="6" height="6"/>'
     assert [shape.width for shape in leaves(_shapes(body))] == [6]
 
 

@@ -117,7 +117,7 @@ presstoshape/
 2. Third-party (`PySide6`, `skia-pathops`, `svgelements`, …)
 3. Internal `presstoshape.*` modules
 
-Groups separated by a blank line (ruff `I` / isort order once ruff is added).
+Groups separated by a blank line (ruff `I` / isort order, enforced by `ruff check`).
 
 ### Module/Package Organization
 - Absolute imports with the `presstoshape.` prefix everywhere (`from presstoshape.models.app_state import AppState`); no relative imports.

@@ -13,7 +13,7 @@ from presstoshape.views.settings.pages import SettingsContext
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-FRENCH = '''msgid ""
+FRENCH = """msgid ""
 msgstr ""
 "Language: fr\\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\\n"
@@ -23,7 +23,7 @@ msgstr "&Fichier"
 
 msgid "Layer {number}"
 msgstr "Calque {numero}"
-'''
+"""
 
 
 @pytest.fixture

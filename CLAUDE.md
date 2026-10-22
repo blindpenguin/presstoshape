@@ -145,6 +145,7 @@ Rules:
 
 ## Testing
 
+- Lint and format with ruff (config in `pyproject.toml`: line length 120, rules `E`/`F`/`I`, `.spec-workflow/` excluded): `uv run ruff check .` and `uv run ruff format .`. Run both before finishing a change; the formatter owns line wrapping, so don't hand-wrap.
 - Everything below `views/` is tested with `pytest`: `uv run pytest`. Tests mirror the package layout (`tests/editing/test_layers.py`, `tests/tools/test_select.py`, …); shared helpers live in `tests/helpers.py` (`ToolDriver`, `all_shapes`), the `session` fixture in `tests/conftest.py`. New logic goes there with tests. Pixel assertions are fine on `render/` CPU-surface output.
 - **Visual checks**: `uv run python scripts/screenshot_app.py` renders the window offscreen (`QT_QPA_PLATFORM=offscreen`) with demo shapes (`--empty` for none) and saves `dev-screenshots/app.png` (gitignored). Read the PNG; crop/zoom small regions with Pillow (dev dep via pytablericons) before reading when checking fine detail. Delete scratch crops after use.
 - For interaction checks, drive the real window headless with `PySide6.QtTest.QTest` (mouse press/move/release on `canvas.viewport()`, doc → screen via `canvas._vp.to_screen`) in a scratch script; run once offscreen (raster) and once on the desktop (GL). Don't add whole-window pixel assertions to the pytest suite.
