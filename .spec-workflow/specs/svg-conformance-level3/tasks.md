@@ -1,0 +1,65 @@
+# Tasks Document
+
+Every task that adds an import note or UI text runs `uv run python scripts/update_translations.py` and translates the new entries in `de.po` (tests fail otherwise). Every task ends with `uv run ruff check .`, `uv run ruff format .` and the full `uv run pytest` green with the W3C suite fetched, so no pass-list entry regresses. Until task 6 the reader still paints gradients grey; tasks 1–5 must not change what any existing file looks like.
+
+- [x] 1. Gradient model and sanitising
+  - Files: presstoshape/models/shapes.py, tests/models/test_shapes.py
+  - `GradientStop`, `LinearGradient`, `RadialGradient`, `GradientUnits`, `SpreadMethod`, `Gradient`, `Paint`, `MAX_STOPS`, `flat_color`; `Style.fill` / `Style.stroke` typed `Paint`; `sanitized` fixes gradients (stops clamped/monotonic/capped, empty stops or `r < 0` → `None`, enums, non-finite, focal point onto the circle, non-invertible transform → identity)
+  - Purpose: the paint values every later task builds on (Req 1)
+  - _Leverage: existing `sanitized`, `_unit`, `IDENTITY_TRANSFORM`_
+  - _Requirements: 1.1, 1.2, 1.4, 1.5, 1.6_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement design.md component 1 with the unit tests listed under "Unit Testing" for models (construction, equality/hash, each sanitising rule, `flat_color`); fix type annotations of direct consumers (`editing/operations/style.py`) without behaviour change | Restrictions: frozen dataclasses, no Qt/skia, no new fields on `Style`, existing tests unchanged | Success: tests green, nothing else changes behaviour. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 2. Gradient shaders and drawing
+  - Files: presstoshape/render/gradients.py (new), presstoshape/render/paths.py, presstoshape/render/scene.py, tests/render/test_gradients.py (new)
+  - `gradient_shader(paint, bounds)`, local-bounds helper per shape type, `PathCache.shaders(shape)` (cached, pruned), `_paints` takes the shaders; audit `hit_test.py`, `_bounds`, `_filled`/`_stroked` for gradient values
+  - Purpose: gradients draw on canvas and in PNG export, cached per shape (Req 3)
+  - _Leverage: PathCache entry-validity scheme, `to_skia_matrix`, `render/text.py`_
+  - _Requirements: 3.1–3.8_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer with Skia experience | Task: Implement design.md component 4 with CPU-surface pixel tests per "Unit Testing" (linear, radial, focal, pad/reflect/repeat, objectBoundingBox on a non-square rect, userSpaceOnUse after a rotated shape, gradientTransform, stroke gradient, stop opacity × fill_opacity, zero-size box draws nothing, shader cache identity and invalidation, text, hit-testing a gradient shape); before changing anything run `scripts/bench_canvas.py` (flat fills) and record the baseline in this task's log | Restrictions: no shader creation per frame; flat-colour shapes cost exactly what they do today; no layer for gradients alone; only skia in render, no Qt | Success: tests green, benchmark with flat fills unchanged. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 3. `.p2s` version 8
+  - Files: presstoshape/formats/p2s.py, presstoshape/formats/p2s_migrations.py, tests/formats/test_p2s.py, tests/formats/samples/v8.p2s (new), docs/file-format.md
+  - `encode_paint` / `decode_paint` used for `fill` and `stroke` in `encode_style` / `decode_style`; `CURRENT_VERSION` 8; `MIGRATIONS[7] = _unchanged` (docstring extended); sample file; `docs/file-format.md` row and gradient object description
+  - Purpose: gradients survive save/open and copy/paste (Req 4.4, 4.5)
+  - _Leverage: `_field`, `_optional_number`, `_optional_choice`, existing sample/migration tests_
+  - _Requirements: 4.4, 4.5_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement design.md component 6 with tests: round trip of each gradient type/units/spread/transform/stop opacity, defaults omitted, bad field types and non-finite values (rejected or sanitised as the design says), v7 sample still opens, v8 sample opens, tool styles carry gradients, clipboard payload round trip keeps gradients | Restrictions: explicit encoders/decoders per type, never generic over dataclass fields; files without gradients byte-identical to today's output apart from the version number | Success: tests green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 4. SVG writer
+  - Files: presstoshape/formats/svg_paint.py (new), presstoshape/formats/svg.py, tests/formats/test_svg_paint.py (new), tests/formats/test_svg_generator.py
+  - `PaintDefs` (attribute, dedupe, ids `grad1…`, `<defs>` element), threaded through `_shape_element` / `_style_attributes` / Composite parts, `<defs>` inserted before the layers; resvg generator check for gradients
+  - Purpose: saved SVG contains the gradients and renders like the canvas (Req 4.1–4.3)
+  - _Leverage: `svg_page.number_text`, `transform_attr`, existing generator-check helpers_
+  - _Requirements: 4.1, 4.2, 4.3_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement design.md component 5 with tests per "Unit Testing" (dedupe, id stability between saves, defaults omitted, defs position, stroke gradients, Composite parts) and extend the resvg generator check with built gradient documents (linear, radial, focal, spread, both units, rotated rect, stroke); text excluded as documented | Restrictions: files without gradients byte-identical to today's output; no change to element order otherwise | Success: tests green incl. resvg comparison. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 5. Reader resolver
+  - Files: presstoshape/formats/svg_gradients.py (new), presstoshape/formats/svg_values.py, tests/formats/test_svg_gradients.py (new)
+  - `resolve_gradient(element, ids, stop_style, length)` with `href` chain, defaults, stop parsing and the error rules; colour parsing moved to `svg_values` for reuse
+  - Purpose: pure, tested gradient resolution (Req 2.1–2.6, 2.10)
+  - _Leverage: svg_values (`parse_transform`, number/percentage parsing), svg_lengths, existing colour code in svg_reader_
+  - _Requirements: 2.1–2.6, 2.10_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement design.md component 2 with the resolver unit tests listed under "Unit Testing"; before changing anything write a scratch benchmark (scratchpad, not committed) timing `read_svg_with_notes` on a generated 10,000-shape SVG with and without a shared gradient and record the baseline in this task's log | Restrictions: no reader import, no Qt/skia, depth limit 16 with cycle detection, stop cap `MAX_STOPS`, results always finite, hostile input never raises | Success: tests green. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 6. Reader integration, matrix rule and notes
+  - Files: presstoshape/formats/svg_reader.py, presstoshape/formats/svg_notes.py, presstoshape/assets/translations/*, tests/formats/test_svg_import.py, tests/formats/test_svg_reader_gradients.py (new)
+  - `_color` returns `Paint`; `_place_paint` applies the Matrix rule after the shape is built; `Note.GRADIENT` → `Note.PATTERN` (wording), new `Note.COLOR_INTERPOLATION`; ancestors' cascade for stops; memoised per (id, viewport)
+  - Purpose: files open with real gradients (Req 2.1–2.9, 2.11)
+  - _Leverage: `_Reader.style`, `_Reader.ids`, `_transformed`, `_path`, `geometry` bounds for the converted case_
+  - _Requirements: 2.1–2.9, 2.11_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer | Task: Implement design.md component 3 with reader tests per "Unit Testing" (Matrix rule for translate-only rect, rotated rect, path with scale/rotation/mirror, userSpaceOnUse under group transform and nested viewport, shared gradient same object, fallback colour, pattern still grey with its note, linearRGB note, zero-size bbox keeps paint); re-run the task 5 scratch benchmark and record before/after | Restrictions: patterns unchanged apart from the note wording; no behaviour change for files without gradients; run update_translations.py and translate de.po | Success: tests green; `pservers-grad-*` open with gradients (checked in task 8). Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 7. Style editor keeps and shows gradients
+  - Files: presstoshape/views/style_editor.py, presstoshape/views/widgets.py, presstoshape/editing/operations/style.py, tests/editing/test_style.py
+  - `ColorButton.set_gradient`, `_PaintRow.set_paint(Paint, …)`, tooltip; operations typed for `Paint`; tests for keep/replace/paste/undo
+  - Purpose: no gradient is destroyed by an unrelated edit (Req 5)
+  - _Leverage: `_PaintRow`, `set_style`, `display_style`, `restyle_shape`_
+  - _Requirements: 5.1–5.6_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer with Qt Widgets experience | Task: Implement design.md component 7; operation tests (width/opacity/cap edits keep the gradient, flat colour replaces and undo restores, paste style copies, group restyle); check the swatch once with `scripts/screenshot_app.py` and a headless QTest drive (select gradient shape, change width, pick colour, undo) offscreen | Restrictions: views stay small, `blockSignals` while writing back, `refresh` idempotent, no gradient creation UI, run update_translations.py and translate de.po | Success: tests green, screenshot read and described in the log, scratch scripts and crops deleted. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 8. Round trips, generator check, pass list and baseline
+  - Files: tests/scripts/svg_conformance_pass.txt, tests/formats/test_svg_generator.py, docs/svg-conformance.md, FEATURE_GAPS.md (not committed)
+  - Purpose: curate and record (Req 4.3, 4.6, 6)
+  - _Requirements: 4.3, 4.6, 6.1–6.3_
+  - _Prompt: Implement the task for spec svg-conformance-level3, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Test engineer with an eye for rendering detail | Task: Run `svg_conformance.py report`, compare every `pservers-grad-*`, `pservers-grad-stops-01-f` and gradient-using test by eye (score alone is not enough; look at side-by-side sheets), add the correct ones to the pass list, record wrong ones as `!name # reason` and re-annotate pattern and linearRGB entries; verify SVG → p2s → SVG equivalence and the resvg generator check for every gradient test in the suite; run the 10k gradient benchmark vs flat and record both; regenerate `docs/svg-conformance.md` with `--write-summary`; tick Level 3 gradient items in FEATURE_GAPS.md (patterns and editor items stay open with pointers to future specs) | Restrictions: do not change presstoshape/ in this task — a bug found here is recorded as a reviewed exception and reported; no pass-list entry from before this level may leave | Success: full pytest green with the suite fetched, report shows no regressions, before/after in-scope numbers reported. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._

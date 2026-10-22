@@ -1,7 +1,7 @@
 import pytest
 
 from presstoshape.geometry.boxes import box_from_drag
-from presstoshape.geometry.segments import rect_segments, smooth_segments
+from presstoshape.geometry.segments import ellipse_segments, rect_segments, segments_bounds, smooth_segments
 from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo
 from tests.helpers import bbox
 
@@ -44,3 +44,19 @@ def test_rect_radii_are_clamped_to_half_the_size():
 
 def test_rect_with_one_zero_radius_is_sharp():
     assert rect_segments(0, 0, 10, 10, 3, 0) == rect_segments(0, 0, 10, 10)
+
+
+def test_segments_bounds_of_a_polyline_and_empty():
+    assert segments_bounds((MoveTo(1, 2), LineTo(5, 4), LineTo(3, 9), Close())) == (1, 2, 4, 7)
+    assert segments_bounds(()) is None
+
+
+def test_segments_bounds_reach_the_curve_not_the_control_points():
+    bounds = segments_bounds((MoveTo(0, 0), CubicTo(0, 10, 10, 10, 10, 0)))
+    assert bounds[:2] == (0, 0) and bounds[2] == 10
+    assert abs(bounds[3] - 7.5) < 1e-9
+
+
+def test_segments_bounds_of_an_ellipse_are_exact():
+    x, y, w, h = segments_bounds(ellipse_segments(10, 20, 5, 3))
+    assert all(abs(a - b) < 0.01 for a, b in zip((x, y, w, h), (5, 17, 10, 6)))

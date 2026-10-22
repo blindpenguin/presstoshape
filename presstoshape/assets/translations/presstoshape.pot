@@ -1165,8 +1165,14 @@ msgid "made with a newer PressToShape (file format {version}, this version reads
 msgstr ""
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} gradient or pattern was painted grey"
-msgid_plural "{count} gradients or patterns were painted grey"
+msgid "{count} pattern was painted grey"
+msgid_plural "{count} patterns were painted grey"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} gradient asks for linearRGB colour mixing, sRGB is used"
+msgid_plural "{count} gradients ask for linearRGB colour mixing, sRGB is used"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -2244,4 +2250,8 @@ msgstr ""
 
 #: presstoshape/views/toolbar_view.py
 msgid "Main toolbar"
+msgstr ""
+
+#: presstoshape/views/widgets.py
+msgid "Gradient: pick a colour to replace it"
 msgstr ""

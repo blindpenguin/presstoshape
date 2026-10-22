@@ -12,10 +12,13 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GradientStop,
     GroupShape,
+    LinearGradient,
     LineTo,
     MoveTo,
     PathShape,
+    RadialGradient,
     RectShape,
     Style,
     TextShape,
@@ -55,6 +58,14 @@ def _rotation(degrees: float, cx: float, cy: float) -> tuple:
 
 def _doc(*shapes, layers: list[Layer] | None = None) -> Document:
     return Document(width=400, height=300, layers=layers or [Layer("Layer 1", shapes=list(shapes))])
+
+
+_RGB = (GradientStop(0, "#d03030"), GradientStop(0.5, "#30a050"), GradientStop(1, "#2f6fd0"))
+_FADE = (GradientStop(0, "#2f6fd0"), GradientStop(1, "#2f6fd0", 0.1))
+
+
+def _gradient(**options) -> Style:
+    return Style(fill=LinearGradient(0, 0, 1, 0, _RGB, **options), stroke=None)
 
 
 DOCUMENTS = {
@@ -116,6 +127,55 @@ DOCUMENTS = {
         PathShape(5, (MoveTo(40, 280), LineTo(100, 200), LineTo(160, 280)), _stroked(stroke_width=14, miter_limit=2)),
         PathShape(
             6, (MoveTo(220, 240), LineTo(380, 240)), _stroked(stroke_width=10, dashes=(24, 12, 6, 12), dash_offset=8)
+        ),
+    ),
+    "linear gradients": _doc(
+        RectShape(1, 20, 20, 160, 100, _gradient()),
+        RectShape(
+            2, 220, 20, 160, 100, Style(fill=LinearGradient(0, 0, 0.3, 0.6, _RGB, spread="reflect"), stroke=None)
+        ),
+        RectShape(3, 20, 160, 160, 100, Style(fill=LinearGradient(0, 0, 0.25, 0, _RGB, spread="repeat"), stroke=None)),
+        RectShape(4, 220, 160, 160, 100, Style(fill=LinearGradient(0.2, 0, 0.8, 0, _FADE), stroke=None)),
+    ),
+    "radial gradients": _doc(
+        EllipseShape(1, 100, 100, 80, 60, Style(fill=RadialGradient(0.5, 0.5, 0.5, 0.5, 0.5, _RGB), stroke=None)),
+        EllipseShape(2, 300, 100, 80, 60, Style(fill=RadialGradient(0.5, 0.5, 0.5, 0.25, 0.4, _RGB), stroke=None)),
+        RectShape(
+            3,
+            20,
+            180,
+            160,
+            100,
+            Style(fill=RadialGradient(0.5, 0.5, 0.25, 0.5, 0.5, _RGB, spread="repeat"), stroke=None),
+        ),
+    ),
+    "gradient units and transforms": _doc(
+        RectShape(1, 20, 20, 160, 100, _gradient(units="userSpaceOnUse")),
+        RectShape(
+            2,
+            220,
+            20,
+            160,
+            100,
+            Style(fill=LinearGradient(20, 0, 160, 0, _RGB, "userSpaceOnUse", "pad", (1, 0, 0, 1, 220, 0)), stroke=None),
+        ),
+        RectShape(3, 40, 160, 140, 80, _gradient(transform=(1, 0.5, 0, 1, 0, 0))),
+        RectShape(
+            4,
+            220,
+            160,
+            140,
+            80,
+            Style(fill=LinearGradient(0, 0, 1, 0, _RGB), stroke=None),
+            transform=_rotation(20, 290, 200),
+        ),
+    ),
+    "gradient strokes": _doc(
+        RectShape(1, 40, 40, 140, 100, Style(fill=None, stroke=LinearGradient(0, 0, 1, 0, _RGB), stroke_width=20)),
+        PathShape(
+            2,
+            (MoveTo(220, 60), LineTo(380, 60), LineTo(380, 200)),
+            Style(fill=None, stroke=LinearGradient(220, 0, 380, 0, _RGB, "userSpaceOnUse"), stroke_width=16),
         ),
     ),
     "hidden content": _doc(

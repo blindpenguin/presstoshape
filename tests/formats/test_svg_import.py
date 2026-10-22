@@ -9,7 +9,18 @@ from presstoshape.formats.svg import read_shapes_svg, read_svg, read_svg_with_no
 from presstoshape.geometry import units
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.layout import GridSettings, Guide
-from presstoshape.models.shapes import EllipseShape, GroupShape, LineTo, MoveTo, PathShape, RectShape, Style, TextShape
+from presstoshape.models.shapes import (
+    EllipseShape,
+    GradientStop,
+    GroupShape,
+    LinearGradient,
+    LineTo,
+    MoveTo,
+    PathShape,
+    RectShape,
+    Style,
+    TextShape,
+)
 from tests.helpers import leaves
 
 SAMPLES = Path(__file__).resolve().parent / "samples" / "svg"
@@ -142,7 +153,13 @@ def test_colour_alpha_becomes_paint_opacity(fill, opacity):
 
 def test_gradient_fallback_colour_is_used():
     assert _style('<rect width="5" height="5" fill="url(#missing) #00ff00"/>').fill == "#00ff00"
-    assert _style('<rect width="5" height="5" fill="url(#missing)"/>').fill == "#808080"
+    assert _style('<rect width="5" height="5" fill="url(#missing)"/>').fill is None
+
+
+def test_pattern_paint_is_grey_unless_a_fallback_is_named():
+    pattern = '<pattern id="p" width="2" height="2"/>'
+    assert _style(pattern + '<rect width="5" height="5" fill="url(#p)"/>').fill == "#808080"
+    assert _style(pattern + '<rect width="5" height="5" fill="url(#p) #00ff00"/>').fill == "#00ff00"
 
 
 def test_stroke_options_are_read_and_scaled_with_the_transform():
@@ -406,8 +423,9 @@ def test_text_anchor_is_kept():
         ('<path d="M0 0 L1 1" marker-end="url(#m)"/>', "1 line with markers (arrowheads) lost them"),
         ('<foreignObject width="5" height="5"/>', "1 other element was left out"),
         (
-            '<rect width="5" height="5" fill="url(#g)"/><rect width="5" height="5" stroke="url(#g)"/>',
-            "2 gradients or patterns were painted grey",
+            '<pattern id="g" width="2" height="2"/><rect width="5" height="5" fill="url(#g)"/>'
+            '<rect width="5" height="5" stroke="url(#g)"/>',
+            "2 patterns were painted grey",
         ),
     ],
 )
@@ -522,11 +540,10 @@ def test_figma_frame_export():
     assert (card.rx, card.style.fill_opacity) == (8, 0.25)
     assert (circle.style.fill, circle.style.stroke_opacity) == (None, 0.5)
     assert translucent.style.fill_opacity == pytest.approx(0.5, abs=0.01)
-    assert gradient.style.fill == "#808080"
-    assert notes == [
-        "1 gradient or pattern was painted grey",
-        "1 clip path was ignored, its content is shown unclipped",
-    ]
+    assert gradient.style.fill == LinearGradient(
+        60, 72, 110, 77, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff")), units="userSpaceOnUse"
+    )
+    assert notes == ["1 clip path was ignored, its content is shown unclipped"]
 
 
 def test_icon_sprite_with_symbols_and_uses():

@@ -6,7 +6,7 @@ from typing import Any
 from presstoshape.editing.operations._document import map_selected
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
-from presstoshape.models.shapes import GroupShape, Shape, Style, sanitized
+from presstoshape.models.shapes import GroupShape, Paint, Shape, Style, sanitized
 
 # Undo label per style field.
 _LABELS = {
@@ -28,11 +28,11 @@ _MERGED = frozenset({"stroke_width", "opacity", "fill_opacity", "stroke_opacity"
 _FIELDS = frozenset(field.name for field in fields(Style))
 
 
-def set_fill(session: Session, color: str | None) -> None:
+def set_fill(session: Session, color: Paint) -> None:
     set_style(session, fill=color)
 
 
-def set_stroke(session: Session, color: str | None) -> None:
+def set_stroke(session: Session, color: Paint) -> None:
     set_style(session, stroke=color)
 
 

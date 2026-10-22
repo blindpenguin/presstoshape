@@ -11,6 +11,8 @@ from presstoshape.models.shapes import (
     CompositeShape,
     CubicTo,
     EllipseShape,
+    GradientStop,
+    LinearGradient,
     LineTo,
     MoveTo,
     PathShape,
@@ -82,3 +84,11 @@ def test_rejects_oversized_data(monkeypatch):
     monkeypatch.setattr(clipboard, "MAX_BYTES", 10)
     with pytest.raises(ClipboardError, match="too large"):
         decode_shapes(encode_shapes(_sample_shapes()))
+
+
+def test_gradients_survive_copy_and_paste():
+    gradient = LinearGradient(
+        0, 0, 1, 0, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff", 0.5)), spread="repeat"
+    )
+    shapes = [RectShape(1, 0, 0, 10, 10, Style(fill=gradient, stroke=gradient))]
+    assert decode_shapes(encode_shapes(shapes)) == shapes

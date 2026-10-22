@@ -9,6 +9,7 @@
 # happens not to show, or from a reference image of a failing renderer.
 # Never remove an entry to make a change pass without saying so.
 
+color-prop-01-b
 color-prop-02-f
 color-prop-03-t
 coords-coord-01-t
@@ -85,7 +86,26 @@ paths-data-16-t
 paths-data-17-f
 paths-data-19-f
 paths-data-20-f
+pservers-grad-01-b
+pservers-grad-02-b
+pservers-grad-04-b
+pservers-grad-05-b
+pservers-grad-09-b
+pservers-grad-10-b
+pservers-grad-11-b
+pservers-grad-12-b
+pservers-grad-13-b
+pservers-grad-14-b
+pservers-grad-15-b
+pservers-grad-16-b
+pservers-grad-17-b
+pservers-grad-18-b
+pservers-grad-20-b
+pservers-grad-21-b
+pservers-grad-22-b
+pservers-grad-23-f
 pservers-grad-24-f  # nothing to draw: gradients are neither rendered directly nor through <use>
+pservers-grad-stops-01-f
 pservers-pattern-06-f  # nothing to draw: patterns are neither rendered directly nor through <use>
 render-elems-01-t
 render-elems-02-t
@@ -133,6 +153,7 @@ styling-css-04-f
 styling-css-07-f
 styling-css-08-f
 styling-elem-01-b
+styling-inherit-01-b
 styling-pres-01-t
 text-align-01-b
 text-align-03-b
@@ -150,15 +171,21 @@ types-basic-01-f
 !color-prop-04-t  # black: system colours (the platform palette) are not supported
 !color-prop-05-t  # red: `color` on the element wins (SVG 2, as resvg); the SVG 1.1 reference shows the inherited lime
 !conform-viewers-03-f  # image left out (Level 5)
+!coords-units-01-b  # first two groups right; the width/height group uses patterns (pattern spec)
 !filters-gauss-03-f  # matches only because the filter is dropped (Level 8)
 !masking-path-12-f  # red square instead of green: clip path ignored (Level 4)
 !painting-marker-01-f  # markers missing (Level 6)
 !painting-marker-03-f  # markers missing (Level 6)
 !painting-marker-04-f  # markers missing (Level 6)
 !painting-marker-06-f  # markers missing (Level 6)
-!painting-render-02-b  # "light" cells as dark as the "dark" ones (color-interpolation, Level 3)
+!painting-render-01-b  # linearRGB row mixes in sRGB (color-interpolation: linearRGB not implemented)
+!painting-render-02-b  # "light" cells as dark as the "dark" ones (color-interpolation: linearRGB not implemented)
 !paths-data-18-f  # strokes under scale(8,2) are drawn with one average width (noted on import), covering the gold bars
-!pservers-pattern-03-f  # patterns painted grey, covered by other shapes (Level 3)
+!pservers-grad-03-b  # patterns painted grey (pattern spec)
+!pservers-grad-06-b  # gradient cells right; the pattern cell is painted grey (pattern spec)
+!pservers-grad-07-b  # gradients right; the suite's SVG font makes the text differ
+!pservers-grad-08-b  # gradients right; the suite's SVG font makes the text differ
+!pservers-pattern-03-f  # patterns painted grey, covered by other shapes (pattern spec)
 !struct-group-03-t  # colours right now; font family, style and weight columns still plain (Level 7)
 !struct-image-10-t  # images left out (Level 5)
 !struct-image-18-f  # red instead of green (Level 5)

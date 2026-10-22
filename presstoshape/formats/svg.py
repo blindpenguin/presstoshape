@@ -11,6 +11,7 @@ from presstoshape.formats.svg_namedview import namedview_element
 from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, XML_SPACE, q
 from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
+from presstoshape.formats.svg_paint import PaintDefs
 from presstoshape.formats.svg_reader import read_shapes_svg, read_svg, read_svg_with_notes
 from presstoshape.geometry.affine import Affine, as_rotation, is_identity
 from presstoshape.geometry.boxes import Rect
@@ -73,6 +74,8 @@ def write_svg(doc: Document) -> str:
     root = ET.Element(q("svg"), page_attributes(doc))
     if doc.guides or doc.grid is not None:
         root.append(namedview_element(doc))
+    defs = PaintDefs()
+    defs_slot = len(root)
     for i, layer in enumerate(doc.layers, 1):
         attrs = {"id": f"layer{i}", GROUPMODE: "layer", LABEL: layer.name}
         if not layer.visible:
@@ -81,8 +84,15 @@ def write_svg(doc: Document) -> str:
             attrs[INSENSITIVE] = "true"
         group = ET.SubElement(root, q("g"), attrs)
         for shape in layer.shapes:
-            group.append(_shape_element(shape))
+            group.append(_shape_element(shape, defs))
+    _insert_defs(root, defs, defs_slot)
     return _serialize(root)
+
+
+def _insert_defs(root: ET.Element, defs: PaintDefs, index: int) -> None:
+    element = defs.element()
+    if element is not None:
+        root.insert(index, element)
 
 
 def write_shapes_svg(shapes: Sequence[Shape], bounds: Rect) -> str:
@@ -90,8 +100,10 @@ def write_shapes_svg(shapes: Sequence[Shape], bounds: Rect) -> str:
     apps see a tight drawing and reading it back with read_shapes_svg keeps the shapes where they were."""
     x, y, w, h = (_num(value) for value in bounds)
     root = ET.Element(q("svg"), {"width": w, "height": h, "viewBox": f"{x} {y} {w} {h}"})
+    defs = PaintDefs()
     for shape in shapes:
-        root.append(_shape_element(shape))
+        root.append(_shape_element(shape, defs))
+    _insert_defs(root, defs, 0)
     return _serialize(root)
 
 
@@ -100,8 +112,8 @@ def _serialize(root: ET.Element) -> str:
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"
 
 
-def _shape_element(shape: Shape) -> ET.Element:
-    element = _untransformed_element(shape)
+def _shape_element(shape: Shape, defs: PaintDefs) -> ET.Element:
+    element = _untransformed_element(shape, defs)
     transform = transform_attr(shape.transform)
     if transform is not None:
         element.set("transform", transform)
@@ -115,11 +127,11 @@ def _shape_element(shape: Shape) -> ET.Element:
 _WRITER_DEFAULTS = Style()
 
 
-def _style_attributes(style: Style) -> dict[str, str]:
+def _style_attributes(style: Style, defs: PaintDefs) -> dict[str, str]:
     """Presentation attributes; everything past fill, stroke and width only when it isn't SVG's default."""
     attrs = {
-        "fill": style.fill or "none",
-        "stroke": style.stroke or "none",
+        "fill": defs.attribute(style.fill),
+        "stroke": defs.attribute(style.stroke),
         "stroke-width": _num(style.stroke_width),
     }
     for key, attribute in (
@@ -139,13 +151,13 @@ def _style_attributes(style: Style) -> dict[str, str]:
     return attrs
 
 
-def _untransformed_element(shape: Shape) -> ET.Element:
+def _untransformed_element(shape: Shape, defs: PaintDefs) -> ET.Element:
     if isinstance(shape, GroupShape):
         element = ET.Element(q("g"), {"opacity": _num(shape.opacity)} if shape.opacity != 1 else {})
         for child in shape.children:
-            element.append(_shape_element(child))
+            element.append(_shape_element(child, defs))
         return element
-    style = _style_attributes(shape.style)
+    style = _style_attributes(shape.style, defs)
     match shape:
         case RectShape(x=x, y=y, width=w, height=h, rx=rx, ry=ry):
             attrs = {"x": _num(x), "y": _num(y), "width": _num(w), "height": _num(h)}
@@ -161,7 +173,7 @@ def _untransformed_element(shape: Shape) -> ET.Element:
             element = ET.Element(q("path"), {"d": path_d(outline(shape) or ())} | style)
             definition = ET.SubElement(ET.SubElement(element, q("metadata")), COMPOSITE)
             for part, mode in zip(parts, modes):
-                child = _shape_element(part)
+                child = _shape_element(part, defs)
                 child.set(MODE, mode)
                 definition.append(child)
             return element

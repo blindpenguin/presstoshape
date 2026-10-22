@@ -15,6 +15,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     ContainerShape,
     EllipseShape,
+    Gradient,
     GroupShape,
     PathShape,
     RectShape,
@@ -24,6 +25,7 @@ from presstoshape.models.shapes import (
     Transform,
     children_of,
 )
+from presstoshape.render.gradients import gradient_shader
 from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache, stroke_paint, to_skia_matrix, to_skia_path
@@ -75,23 +77,39 @@ def _stroked(style: Style) -> bool:
     return bool(style.stroke) and style.stroke_width > 0
 
 
-def _paints(style: Style, opacity: float = 1.0) -> Iterator[skia.Paint]:
-    """Fill then stroke paint, each with its paint opacity times `opacity`."""
+def _paints(style: Style, opacity: float = 1.0, shaders: tuple = (None, None)) -> Iterator[skia.Paint]:
+    """Fill then stroke paint, each with its paint opacity times `opacity`. `shaders` are the (fill, stroke)
+    shaders of the style's gradients (`PathCache.shaders`); a gradient without one draws nothing."""
     if _filled(style):
-        paint = skia.Paint(Color=parse_color(style.fill), AntiAlias=True)
-        if style.fill_opacity * opacity < 1:
-            paint.setAlphaf(style.fill_opacity * opacity)
-        yield paint
+        if isinstance(style.fill, str):
+            paint = skia.Paint(Color=parse_color(style.fill), AntiAlias=True)
+        elif shaders[0] is not None:
+            paint = skia.Paint(AntiAlias=True)
+            paint.setShader(shaders[0])
+        else:
+            paint = None
+        if paint is not None:
+            if style.fill_opacity * opacity < 1:
+                paint.setAlphaf(style.fill_opacity * opacity)
+            yield paint
     if _stroked(style):
         paint = stroke_paint(style)
-        paint.setColor(parse_color(style.stroke))
+        if isinstance(style.stroke, str):
+            paint.setColor(parse_color(style.stroke))
+        elif shaders[1] is not None:
+            paint.setShader(shaders[1])
+        else:
+            return
         if style.stroke_opacity * opacity < 1:
             paint.setAlphaf(style.stroke_opacity * opacity)
         yield paint
 
 
 def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
-    for paint in _paints(style, style.opacity):
+    """Previews: a path in document coordinates, so a gradient is fitted to the path's own box."""
+    bounds = path.computeTightBounds()
+    shaders = tuple(gradient_shader(p, bounds) if isinstance(p, Gradient) else None for p in (style.fill, style.stroke))
+    for paint in _paints(style, style.opacity, shaders):
         canvas.drawPath(path, paint)
 
 
@@ -136,29 +154,30 @@ def _draw_group(canvas: skia.Canvas, group: GroupShape, cache: PathCache) -> Non
 def _draw_local(canvas: skia.Canvas, shape: Shape, cache: PathCache, opacity: float) -> None:
     """Untransformed geometry; cached paths are world space, so paths are drawn as they are."""
     # Rects, ovals and text have analytic / glyph-cache GPU fast paths; generic paths are far slower to draw.
+    shaders = cache.shaders(shape)
     match shape:
         case RectShape(x=x, y=y, width=w, height=h, rx=rx, ry=ry):
             rect = skia.Rect.MakeXYWH(x, y, w, h)
             # SVG clamps each radius on its own; skia would shrink both together.
             rx, ry = min(rx, w / 2), min(ry, h / 2)
             rounded = skia.RRect.MakeRectXY(rect, rx, ry) if rx > 0 and ry > 0 else None
-            for paint in _paints(shape.style, opacity):
+            for paint in _paints(shape.style, opacity, shaders):
                 if rounded is None:
                     canvas.drawRect(rect, paint)
                 else:
                     canvas.drawRRect(rounded, paint)
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
             oval = skia.Rect.MakeLTRB(cx - rx, cy - ry, cx + rx, cy + ry)
-            for paint in _paints(shape.style, opacity):
+            for paint in _paints(shape.style, opacity, shaders):
                 canvas.drawOval(oval, paint)
         case TextShape():
             blob = text_blob(shape)
             if blob is not None:
                 x = shape.x + anchor_offset(shape)
-                for paint in _paints(shape.style, opacity):
+                for paint in _paints(shape.style, opacity, shaders):
                     canvas.drawTextBlob(blob, x, shape.y, paint)
         case _:
-            for paint in _paints(shape.style, opacity):
+            for paint in _paints(shape.style, opacity, shaders):
                 canvas.drawPath(cache.get(shape), paint)
 
 

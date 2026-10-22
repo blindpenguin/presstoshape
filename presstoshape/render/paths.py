@@ -12,15 +12,19 @@ from presstoshape.models.shapes import (
     Close,
     CompositeShape,
     CubicTo,
+    EllipseShape,
+    Gradient,
     GroupShape,
     LineTo,
     MoveTo,
+    RectShape,
     Segment,
     Shape,
     Style,
     TextShape,
     Transform,
 )
+from presstoshape.render.gradients import gradient_shader
 from presstoshape.render.text import text_path
 
 _FILL_TYPES = {"nonzero": skia.PathFillType.kWinding, "evenodd": skia.PathFillType.kEvenOdd}
@@ -123,6 +127,7 @@ class PathCache:
     def __init__(self) -> None:
         self._paths: dict[int, tuple[Shape, skia.Path, skia.Rect]] = {}
         self._strokes: dict[int, tuple[Shape, float, skia.Path]] = {}
+        self._shaders: dict[int, tuple[Shape, tuple[skia.Shader | None, skia.Shader | None]]] = {}
 
     def _entry(self, shape: Shape) -> tuple[Shape, skia.Path, skia.Rect]:
         entry = self._paths.get(shape.id)
@@ -162,6 +167,37 @@ class PathCache:
             self._strokes[shape.id] = entry
         return entry[2]
 
+    def shaders(self, shape: Shape) -> tuple[skia.Shader | None, skia.Shader | None]:
+        """Fill and stroke shaders of the shape's gradients (None for flat or missing paint). Built in the
+        shape's own coordinates, where it is drawn."""
+        entry = self._shaders.get(shape.id)
+        if entry is None or (entry[0] is not shape and entry[0] != shape):
+            style = shape.style
+            bounds = (
+                self._local_bounds(shape)
+                if isinstance(style.fill, Gradient) or isinstance(style.stroke, Gradient)
+                else None
+            )
+            shaders = tuple(
+                gradient_shader(paint, bounds) if isinstance(paint, Gradient) else None
+                for paint in (style.fill, style.stroke)
+            )
+            entry = (shape, shaders)
+            self._shaders[shape.id] = entry
+        return entry[1]
+
+    def _local_bounds(self, shape: Shape) -> skia.Rect:
+        """Geometry box before the shape's transform. Paths and Composites keep an identity transform."""
+        match shape:
+            case RectShape(x=x, y=y, width=w, height=h):
+                return skia.Rect.MakeXYWH(x, y, w, h)
+            case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
+                return skia.Rect.MakeLTRB(cx - rx, cy - ry, cx + rx, cy + ry)
+            case TextShape():
+                return text_path(shape).computeTightBounds()
+            case _:
+                return self.get(shape).computeTightBounds()
+
     def bounds(self, shape: Shape) -> skia.Rect:
         """Geometry bounds grown by half the stroke width when stroked (like Qt's item boundingRect)."""
         return self._entry(shape)[2]
@@ -178,6 +214,6 @@ class PathCache:
 
     def prune(self, live_ids: Iterable[int]) -> None:
         live = set(live_ids)
-        for cache in (self._paths, self._strokes):
+        for cache in (self._paths, self._strokes, self._shaders):
             for shape_id in [i for i in cache if i not in live]:
                 del cache[shape_id]

@@ -380,3 +380,15 @@ def test_listed_test_still_matches(suite, entry):
 def test_listed_test_saves_for_other_viewers(suite, entry):
     _result, doc = svg_conformance.check_test(suite, entry.name, entry.threshold, entry.reference)
     assert svg_conformance.check_generator(doc) < svg_conformance.THRESHOLD
+
+
+@pytest.mark.parametrize("entry", PASS_LIST.values(), ids=list(PASS_LIST))
+def test_listed_test_survives_p2s_and_svg_round_trips(suite, entry):
+    from presstoshape.formats.p2s import SavedState, read_p2s, write_p2s
+    from presstoshape.formats.svg import write_svg
+
+    _result, doc = svg_conformance.check_test(suite, entry.name, entry.threshold, entry.reference)
+    reopened, _state = read_p2s(write_p2s(doc, SavedState(), None, "test"))
+    assert reopened == doc
+    assert write_svg(reopened) == write_svg(doc)
+    assert write_svg(read_svg(write_svg(doc))) == write_svg(read_svg(write_svg(reopened)))

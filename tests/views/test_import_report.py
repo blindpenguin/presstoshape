@@ -31,7 +31,7 @@ def test_opening_a_lossy_file_shows_its_notes_once(window):
     assert window.reports == [
         (
             "figma_frame.svg",
-            ["1 gradient or pattern was painted grey", "1 clip path was ignored, its content is shown unclipped"],
+            ["1 clip path was ignored, its content is shown unclipped"],
         )
     ]
     assert window._session.state.import_notes == []

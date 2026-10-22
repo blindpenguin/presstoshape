@@ -102,6 +102,20 @@ def first_token(value: str | None) -> str | None:
     return items[0] if items else None
 
 
+def parse_color(value: str) -> tuple[str | None, float]:
+    """`#rrggbb` (None for `none` and `transparent`) and the colour's own alpha; unreadable text is opaque black."""
+    value = value.strip()
+    if value in ("none", "transparent"):
+        return None, 1.0
+    try:
+        color = se.Color(value)
+    except (ValueError, TypeError):
+        return "#000000", 1.0
+    if color.value is None:
+        return "#000000", 1.0
+    return color.hexrgb, round(color.opacity, 3)
+
+
 def parse_transform(value: str | None) -> Affine:
     if not value:
         return IDENTITY

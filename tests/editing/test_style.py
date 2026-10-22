@@ -3,6 +3,7 @@ import pytest
 from presstoshape.editing.operations import shapes, style
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import GradientStop, GroupShape, LinearGradient, RadialGradient
 from tests.helpers import all_shapes
 
 
@@ -83,3 +84,66 @@ def test_values_are_brought_into_range():
 def test_unknown_fields_are_refused():
     with pytest.raises(ValueError):
         style.set_style(Session(), sparkle=True)
+
+
+GRADIENT = LinearGradient(0, 0, 1, 0, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff", 0.5)))
+
+
+def _gradient_rectangle() -> Session:
+    session = Session()
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    style.set_fill(session, GRADIENT)
+    style.set_stroke(session, GRADIENT)
+    return session
+
+
+def test_gradients_can_be_set_and_undone():
+    session = _gradient_rectangle()
+    assert all_shapes(session)[0].style.fill == GRADIENT
+    session.undo()
+    assert all_shapes(session)[0].style.stroke != GRADIENT
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"stroke_width": 9.0},
+        {"opacity": 0.4},
+        {"fill_opacity": 0.2, "stroke_opacity": 0.3},
+        {"cap": "round", "join": "bevel", "miter_limit": 2.0},
+        {"dashes": (4, 2), "dash_offset": 1.0},
+        {"fill_rule": "evenodd"},
+    ],
+)
+def test_unrelated_style_changes_keep_gradients(changes):
+    session = _gradient_rectangle()
+    style.set_style(session, **changes)
+    shape = all_shapes(session)[0]
+    assert shape.style.fill == GRADIENT and shape.style.stroke == GRADIENT
+
+
+def test_a_flat_colour_replaces_a_gradient_and_undo_brings_it_back():
+    session = _gradient_rectangle()
+    style.set_fill(session, "#00ff00")
+    style.set_stroke(session, None)
+    shape = all_shapes(session)[0]
+    assert (shape.style.fill, shape.style.stroke) == ("#00ff00", None)
+    session.undo()
+    session.undo()
+    assert all_shapes(session)[0].style.fill == GRADIENT
+
+
+def test_gradient_is_handed_to_every_shape_in_a_group_and_shown_for_it():
+    session = Session()
+    shapes.add_rectangle(session, (0, 0), (10, 10))
+    shapes.add_rectangle(session, (20, 0), (30, 10))
+    from presstoshape.editing.operations import groups, selection
+
+    selection.select_all(session)
+    groups.group(session)
+    radial = RadialGradient(0.5, 0.5, 0.5, 0.5, 0.5, GRADIENT.stops)
+    style.set_fill(session, radial)
+    (group,) = session.state.document.layers[0].shapes
+    assert isinstance(group, GroupShape)
+    assert all(child.style.fill == radial for child in group.children)
+    assert style.display_style(group).fill == radial

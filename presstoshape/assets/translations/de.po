@@ -1166,10 +1166,16 @@ msgid "made with a newer PressToShape (file format {version}, this version reads
 msgstr "mit einer neueren PressToShape-Version erstellt (Dateiformat {version}, diese Version liest bis {supported}); bitte PressToShape aktualisieren"
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} gradient or pattern was painted grey"
-msgid_plural "{count} gradients or patterns were painted grey"
-msgstr[0] "{count} Verlauf oder Muster wurde grau gefüllt"
-msgstr[1] "{count} Verläufe oder Muster wurden grau gefüllt"
+msgid "{count} pattern was painted grey"
+msgid_plural "{count} patterns were painted grey"
+msgstr[0] "{count} Muster wurde grau gefüllt"
+msgstr[1] "{count} Muster wurden grau gefüllt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} gradient asks for linearRGB colour mixing, sRGB is used"
+msgid_plural "{count} gradients ask for linearRGB colour mixing, sRGB is used"
+msgstr[0] "{count} Verlauf verlangt linearRGB-Farbmischung, es wird sRGB verwendet"
+msgstr[1] "{count} Verläufe verlangen linearRGB-Farbmischung, es wird sRGB verwendet"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} clip path was ignored, its content is shown unclipped"
@@ -2246,3 +2252,7 @@ msgstr "Glättung"
 #: presstoshape/views/toolbar_view.py
 msgid "Main toolbar"
 msgstr "Hauptwerkzeugleiste"
+
+#: presstoshape/views/widgets.py
+msgid "Gradient: pick a colour to replace it"
+msgstr "Verlauf: Farbe wählen, um ihn zu ersetzen"

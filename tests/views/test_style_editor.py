@@ -174,3 +174,29 @@ def test_selected_group_shows_heading_bounds_and_its_opacity():
     (group,) = all_shapes(session)
     assert group.opacity == pytest.approx(0.4) and group.children[0].style.opacity == 1
     assert panel._style._opacity.slider.value() == 40
+
+
+def test_a_gradient_shows_as_a_gradient_and_refresh_stays_silent(editor):
+    from presstoshape.models.shapes import GradientStop, LinearGradient
+
+    widget, changes = editor
+    gradient = LinearGradient(0, 0, 1, 0, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff", 0.5)))
+    widget.refresh(Style(fill=gradient, stroke=gradient, fill_opacity=0.5))
+    assert changes == []
+    for row in (widget._fill, widget._stroke):
+        assert row.check.isChecked() and row.button.isEnabled()
+        assert "qlineargradient" in row.button.styleSheet() and "rgba(0, 0, 255, 128)" in row.button.styleSheet()
+        assert row.button.color == "#ff0000" and row.button.toolTip()
+    widget.refresh(Style(fill="#00ff00"))
+    assert "qlineargradient" not in widget._fill.button.styleSheet() and widget._fill.button.toolTip() == ""
+    assert changes == []
+
+
+def test_picking_a_colour_on_a_gradient_swatch_reports_the_flat_colour(editor):
+    from presstoshape.models.shapes import GradientStop, LinearGradient
+
+    widget, changes = editor
+    widget.refresh(Style(fill=LinearGradient(0, 0, 1, 0, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff")))))
+    widget._fill.button.color_picked.emit("#123456")
+    widget._fill.check.setChecked(False)
+    assert changes == [{"fill": "#123456"}, {"fill": None}]

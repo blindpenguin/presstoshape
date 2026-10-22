@@ -7,7 +7,8 @@ from presstoshape.i18n import ngettext
 
 
 class Note(Enum):
-    GRADIENT = auto()
+    PATTERN = auto()
+    COLOR_INTERPOLATION = auto()
     CLIP = auto()
     MASK = auto()
     IMAGE = auto()
@@ -33,9 +34,13 @@ class Note(Enum):
 
 def _message(note: Note, count: int) -> str:
     match note:
-        case Note.GRADIENT:
+        case Note.PATTERN:
+            text = ngettext("{count} pattern was painted grey", "{count} patterns were painted grey", count)
+        case Note.COLOR_INTERPOLATION:
             text = ngettext(
-                "{count} gradient or pattern was painted grey", "{count} gradients or patterns were painted grey", count
+                "{count} gradient asks for linearRGB colour mixing, sRGB is used",
+                "{count} gradients ask for linearRGB colour mixing, sRGB is used",
+                count,
             )
         case Note.CLIP:
             text = ngettext(

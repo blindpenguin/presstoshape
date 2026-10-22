@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from presstoshape.geometry import units
 from presstoshape.i18n import _, pgettext
 from presstoshape.models.app_state import Unit
-from presstoshape.models.shapes import Style
+from presstoshape.models.shapes import Paint, Style
 from presstoshape.views.unit_fields import LengthSpinBox
 from presstoshape.views.widgets import ColorButton
 
@@ -73,16 +73,18 @@ class _PaintRow(QWidget):
         self.button.color_picked.connect(on_color)
         self.opacity.valueChanged.connect(lambda value: on_opacity(value / 100))
 
-    def set_paint(self, color: str | None, opacity: float) -> None:
+    def set_paint(self, paint: Paint, opacity: float) -> None:
         self.check.blockSignals(True)
-        self.check.setChecked(color is not None)
+        self.check.setChecked(paint is not None)
         self.check.blockSignals(False)
-        self.button.setEnabled(color is not None)
-        self.opacity.setEnabled(color is not None)
+        self.button.setEnabled(paint is not None)
+        self.opacity.setEnabled(paint is not None)
         _show_value(self.opacity, round(opacity * 100))
         # Keep the last swatch color when paint is off, so re-enabling restores it.
-        if color is not None:
-            self.button.set_color(color)
+        if isinstance(paint, str):
+            self.button.set_color(paint)
+        elif paint is not None:
+            self.button.set_gradient(paint)
 
 
 class _OpacityRow(QWidget):

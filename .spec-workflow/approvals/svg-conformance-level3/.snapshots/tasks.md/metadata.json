@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-level3/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-22T18:48:11.437Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792694891412_zj8w22rfp",
+      "approvalTitle": "SVG conformance Level 3: tasks"
+    }
+  ]
+}
