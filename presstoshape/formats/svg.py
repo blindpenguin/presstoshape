@@ -7,6 +7,7 @@ formats/svg_reader.py and is re-exported here, so callers import both directions
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 
+from presstoshape.formats.svg_mask_defs import masked_group_element
 from presstoshape.formats.svg_namedview import namedview_element
 from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, XML_SPACE, q
 from presstoshape.formats.svg_page import number_text as _num
@@ -74,7 +75,7 @@ def write_svg(doc: Document) -> str:
     root = ET.Element(q("svg"), page_attributes(doc))
     if doc.guides or doc.grid is not None:
         root.append(namedview_element(doc))
-    defs = PaintDefs()
+    defs = PaintDefs((0.0, 0.0, doc.width, doc.height))
     defs_slot = len(root)
     for i, layer in enumerate(doc.layers, 1):
         attrs = {"id": f"layer{i}", GROUPMODE: "layer", LABEL: layer.name}
@@ -100,7 +101,7 @@ def write_shapes_svg(shapes: Sequence[Shape], bounds: Rect) -> str:
     apps see a tight drawing and reading it back with read_shapes_svg keeps the shapes where they were."""
     x, y, w, h = (_num(value) for value in bounds)
     root = ET.Element(q("svg"), {"width": w, "height": h, "viewBox": f"{x} {y} {w} {h}"})
-    defs = PaintDefs()
+    defs = PaintDefs(bounds)
     for shape in shapes:
         root.append(_shape_element(shape, defs))
     _insert_defs(root, defs, 0)
@@ -152,6 +153,8 @@ def _style_attributes(style: Style, defs: PaintDefs) -> dict[str, str]:
 
 
 def _untransformed_element(shape: Shape, defs: PaintDefs) -> ET.Element:
+    if isinstance(shape, GroupShape) and shape.masking is not None:
+        return masked_group_element(shape, defs, _shape_element, path_d)
     if isinstance(shape, GroupShape):
         element = ET.Element(q("g"), {"opacity": _num(shape.opacity)} if shape.opacity != 1 else {})
         for child in shape.children:
