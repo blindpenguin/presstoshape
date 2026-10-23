@@ -61,6 +61,7 @@ presstoshape/
 │   ├── affine.py             # 2D affine tuples (SVG matrix order)
 │   ├── boxes.py              # Point, Rect, drag boxes
 │   ├── align.py / snapping.py / rulers.py   # align/distribute offsets, snap targets and queries, ruler ticks
+│   ├── aspect.py         # preserveAspectRatio: align/meet/slice for the SVG viewport and pictures (`fitted_rect`, `visible_box`)
 │   ├── segments.py           # building/mapping path segments
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
@@ -68,10 +69,12 @@ presstoshape/
 │   └── fitting.py            # freehand strokes → cubic beziers (Pencil)
 ├── formats/                  # svg.py (SVG write + public read API), svg_reader.py (cascade, <use>, text lines), css.py (<style> subset),
 │                             # svg_values.py / svg_names.py / svg_page.py / svg_notes.py (import notes for the report dialog),
+│                             # image_info.py (picture header probe: type, size, limits, digest) + svg_images.py (`<image>` sources, never the network),
 │                             # p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
 │                             # clipboard.py (shape payload for copy/paste, not migrated: falls back to SVG)
 ├── render/                   # Skia drawing: model -> skia.Canvas
 │   ├── scene.py / picture.py # document, overlays; recorded-picture replay
+│   ├── images.py             # picture decode cache (LRU, mip levels for huge ones) and drawing; `PathCache.images`
 │   ├── paths.py / text.py    # cached shape paths, text outlines
 │   ├── hit_test.py / handles.py   # picking: shapes, selection frame, handles, nodes
 │   ├── viewport.py           # doc <-> screen mapping, zoom anchoring, scroll model
@@ -111,6 +114,7 @@ Rules:
 - Native format `.p2s` (ZIP + JSON, `formats/p2s.py`): encoders/decoders are explicit per type, never generic over dataclass fields. Any change to what files store bumps `CURRENT_VERSION` in `formats/p2s_migrations.py`, adds a migration from the previous version, a `tests/formats/samples/v<N>.p2s` sample, and a row in `docs/file-format.md`. Everything the app can save must open again (tested round trips). Saves are atomic (`documents.write_atomically`) and can keep one backup of the previous file (`name.backup.ext`).
 - Crash recovery (`editing/operations/recovery.py`, `views/recovery_keeper.py`): one rule, while the document is dirty its snapshot is at most one interval old, otherwise there is none. Snapshots live only in the app's recovery folder, never in user folders. Anything that replaces or saves the document just has to clear `dirty` (and bump `Session.revision` through `edit()`/`replace_document`); the keeper does the rest. Tests and scripts that build a `MainWindow` with settings pass their own `recovery_folder`.
 - Groups and Composites are containers (`children_of`): `AppState.edit_path` holds the ids of the entered ones (outer to inner). Operations reach "the shapes being edited" only through `editing/containers.py` (`pickable_shapes`, `change_container`), never `layer.shapes` directly, so they work the same on layer shapes, group children and parts; rules that only hold for Composite parts (outlines, part modes, no text) check `edited_composite`. Part modes stay keyed by part id when lists are rebuilt; an entered container left empty is removed. Enter/leave (`operations/edit_mode.py`) are not undo steps; `Session` trims a stale `edit_path` after undo.
+- `ImageShape` is a leaf with a shared `ImageData` blob (original file bytes, equality by digest; decoded lazily in `render/images.py`). It has no `style` either (only `opacity`), so code that reads `shape.style` handles images too; booleans, Composites and clip objects refuse them. Reference images (`reference=True`) are dimmed, locked, left out of exports and saved SVG; `PathCache.drawing(zoom, references)` carries the zoom and the show-references switch into recorded pictures. `.p2s` keeps the bytes as `media/<digest>.<ext>`, written once per distinct blob.
 - `GroupShape` has no `style` and an identity transform: code that reads `shape.style` or recurses into shapes handles groups first (drawing, hit-testing, bounds, styling through `style.restyle_shape`, encoders).
 - Shapes are frozen; change them with `dataclasses.replace`. Undo snapshots copy layer lists only and share shape objects.
 - Coordinates are document pixels (1/`Document.dpi` inch) everywhere below the views. `Document.unit` only changes how lengths are shown and entered: convert at the widget boundary (`views/unit_fields.LengthSpinBox`, `geometry/units`), never in operations, geometry or rendering.

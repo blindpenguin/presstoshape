@@ -101,3 +101,48 @@ def test_masked_groups_survive_the_clipboard():
         5, (RectShape(1, 0, 0, 10, 10, RED), EllipseShape(2, 5, 5, 3, 3, RED)), masking=Masking("clip", (2,), True)
     )
     assert decode_shapes(encode_shapes([group])) == [group]
+
+
+def test_pictures_travel_with_the_shapes_and_share_one_blob():
+    from presstoshape.formats.clipboard import decode_shapes_with_notes
+    from presstoshape.models.shapes import GroupShape, ImageShape
+    from tests.helpers import tiny_image
+
+    picture = tiny_image()
+    shapes = [
+        ImageShape(1, 0.0, 0.0, 20.0, 10.0, picture),
+        GroupShape(3, (ImageShape(2, 5.0, 5.0, 8.0, 8.0, picture, opacity=0.5),)),
+    ]
+    data = encode_shapes(shapes)
+    assert len(json.loads(data)["media"]) == 1
+    restored, notes = decode_shapes_with_notes(data)
+    assert restored == shapes and notes == []
+    assert restored[0].data is restored[1].children[0].data
+    assert restored[0].data.data == picture.data
+
+
+def test_pictures_over_the_size_cap_paste_as_placeholders_with_a_note(monkeypatch):
+    from presstoshape.formats import clipboard
+    from presstoshape.formats.clipboard import decode_shapes_with_notes
+    from presstoshape.formats.p2s import MISSING_MIME
+    from presstoshape.models.shapes import ImageShape
+    from tests.helpers import tiny_image
+
+    monkeypatch.setattr(clipboard, "MAX_MEDIA_BYTES", 10)
+    data = encode_shapes([ImageShape(1, 0.0, 0.0, 20.0, 10.0, tiny_image())])
+    assert "media" not in json.loads(data)
+    (shape,), notes = decode_shapes_with_notes(data)
+    assert shape.data.mime == MISSING_MIME and len(notes) == 1
+
+
+def test_a_picture_that_is_not_what_its_digest_says_pastes_as_a_placeholder():
+    from presstoshape.formats.clipboard import decode_shapes_with_notes
+    from presstoshape.formats.p2s import MISSING_MIME
+    from presstoshape.models.shapes import ImageShape
+    from tests.helpers import tiny_image
+
+    payload = json.loads(encode_shapes([ImageShape(1, 0.0, 0.0, 20.0, 10.0, tiny_image())]))
+    (digest,) = payload["media"]
+    payload["media"][digest] = "AAAA"
+    (shape,), notes = decode_shapes_with_notes(json.dumps(payload).encode())
+    assert shape.data.mime == MISSING_MIME and notes

@@ -67,6 +67,10 @@ ICONS = {
     "object_composite": "layers-union",
     "object_clip": "crop",
     "object_mask": "mask",
+    "object_image": "photo",
+    "image_place": "photo-plus",
+    "image_replace": "replace",
+    "image_references_hidden": "photo-off",
 }
 
 

@@ -9,7 +9,7 @@ from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _, ngettext, pgettext
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import GroupShape, Shape, sanitized
+from presstoshape.models.shapes import GroupShape, ImageShape, Shape, sanitized
 
 
 def _can_group(session: Session) -> bool:
@@ -82,5 +82,7 @@ def with_opacity(shape: Shape, factor: float) -> Shape:
     if factor >= 1:
         return shape
     if isinstance(shape, GroupShape):
+        return replace(shape, opacity=min(1.0, max(0.0, shape.opacity * factor)))
+    if isinstance(shape, ImageShape):
         return replace(shape, opacity=min(1.0, max(0.0, shape.opacity * factor)))
     return replace(shape, style=sanitized(replace(shape.style, opacity=shape.style.opacity * factor)))

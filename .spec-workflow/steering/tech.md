@@ -36,12 +36,12 @@ Session / operations / tools / views, as in professional editors (Blender's oper
 
 ### Data Storage (if applicable)
 - **Primary storage**: local files.
-- **Native format `.p2s`**: ZIP with an uncompressed `mimetype` entry, `document.json` (document + working state: view, tool settings, selection, edit path) and a preview PNG; `resources/` reserved for embedded images/fonts/brushes. Integer format version with step-by-step migrations and a sample file per version; newer versions refused with a message. Explicit per-type encoders, exact numbers, atomic saves. Documented in `docs/file-format.md`. Default for Save; SVG via Save As.
+- **Native format `.p2s`**: ZIP with an uncompressed `mimetype` entry, `document.json` (document + working state: view, tool settings, selection, edit path) and a preview PNG; `media/<digest>.<ext>` entries hold the pictures of image shapes (stored once per distinct picture, checked against their digest); `resources/` reserved for fonts/brushes. Integer format version with step-by-step migrations and a sample file per version; newer versions refused with a message. Explicit per-type encoders, exact numbers, atomic saves. Documented in `docs/file-format.md`. Default for Save; SVG via Save As.
 - **Units**: geometry is in document pixels; a document's `unit` (px, mm, cm, in, pt) and `dpi` only affect display/entry (`geometry/units.py`, `views/unit_fields.py`), SVG page size and PNG export resolution.
 - **SVG**: import/export for exchange. Writes SVG with Inkscape layer groups (`inkscape:groupmode="layer"`, `inkscape:label`). Reads general SVG; rect/ellipse/text keep rotate/scale/skew transforms as a per-shape `transform` (written back as `rotate(...)` or `matrix(...)`), paths get transforms applied to their points; unsupported paint is approximated.
 - **Crash recovery**: per-run `.p2s` snapshots plus JSON metadata in the app data `recovery/` folder, written while the document is dirty (interval setting, default 5 min); a `QLockFile` per run tells crashed runs from running ones; recovered documents open unsaved and save via Save As. Saving over a file can keep one `name.backup.ext`.
 - **Raster export**: PNG, rendered by the same renderer as the canvas (transparent background, any scale up to 16384 px per side).
-- **Caching**: in-memory only (Skia path cache and recorded document pictures in the canvas).
+- **Caching**: in-memory only (Skia path cache, recorded document pictures in the canvas, and a decode cache for pictures with a 256 MiB budget; huge pictures get halved copies when drawn small).
 
 ### External Integrations (if applicable)
 None. PressToShape is offline; no network access, accounts or telemetry. Interop is file-based (SVG, raster export, later PDF/AI-compatible import).
@@ -120,7 +120,7 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 - **Renderer**: Skia renders shapes with solid paint only so far; gradients, blend modes and effects are future specs. Continuous zoom on documents with many text objects re-rasterizes glyphs at each scale (~20 ms/frame at 10k shapes on an integrated GPU); pan and drag stay under 16 ms. The CPU fallback is ~25–30 ms/frame at 10k shapes.
 - **Undo scaling**: snapshot undo copies every layer's shape list per step — fine now, may need structural sharing or command-based undo for very large documents (a change inside `Session`, operations stay as they are).
 - **Full-state notify**: every change refreshes every view; views must keep diffing cheap, and finer-grained change notification may be needed as the UI grows.
-- **SVG import gaps**: patterns, images, filters and markers are skipped or approximated; skew on text is dropped. Gradients, clip paths, masks, `<use>` and CSS stylesheets are read.
+- **SVG import gaps**: patterns, filters and markers are skipped or approximated; skew on text is dropped. `<image>` is read for PNG, JPEG, WebP and GIF (data URIs and local files, nothing fetched from the network); SVG files as images are left out. Gradients, clip paths, masks, `<use>` and CSS stylesheets are read.
 - **Text**: single-line, single font; rendered with Skia using a generic sans-serif font.
 - **Shape model**: no groups. Each shape has an affine `transform`, kept canonical: rect/ellipse/text store unrotated geometry plus a rotation about their center (a full matrix only when skewed); paths always have the transform baked into their segments. Handle scaling changes geometry, so strokes don't scale.
 - **CI covers nightlies only** (no per-push checks, no code signing, no macOS/ARM builds, no Linux formats besides AppImage).

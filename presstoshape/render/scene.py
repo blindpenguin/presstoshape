@@ -17,6 +17,7 @@ from presstoshape.models.shapes import (
     EllipseShape,
     Gradient,
     GroupShape,
+    ImageShape,
     PathShape,
     RectShape,
     Shape,
@@ -29,11 +30,13 @@ from presstoshape.models.shapes import (
 )
 from presstoshape.render.gradients import gradient_shader
 from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
+from presstoshape.render.images import device_scale, draw_image, pixel_scale
 from presstoshape.render.masks import mask_filter, shape_area
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache, stroke_paint, to_skia_matrix, to_skia_path
 from presstoshape.render.text import anchor_offset, text_blob, typeface
 
+REFERENCE_OPACITY = 0.4
 _DASH_PX = 4.0
 _RUBBER_BAND_ALPHA = 0x33
 # Edit mode: how strongly everything around the edited Composite is dimmed, and how its parts are outlined.
@@ -116,11 +119,28 @@ def _draw_path(canvas: skia.Canvas, path: skia.Path, style: Style) -> None:
         canvas.drawPath(path, paint)
 
 
+def _draw_image(canvas: skia.Canvas, shape: ImageShape, cache: PathCache) -> None:
+    if shape.reference and not cache.references:
+        return
+    opacity = shape.opacity * REFERENCE_OPACITY if shape.reference else shape.opacity
+    transformed = shape.transform != IDENTITY_TRANSFORM
+    if transformed:
+        canvas.save()
+        canvas.concat(to_skia_matrix(shape.transform))
+    scale = device_scale(canvas) * cache.zoom
+    draw_image(canvas, shape, cache.images.get(shape.data, pixel_scale(shape, scale)), opacity, cache.zoom)
+    if transformed:
+        canvas.restore()
+
+
 def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
     if shape.hidden:
         return
     if isinstance(shape, GroupShape):
         _draw_group(canvas, shape, cache)
+        return
+    if isinstance(shape, ImageShape):
+        _draw_image(canvas, shape, cache)
         return
     style = shape.style
     if style.opacity <= 0:
@@ -237,20 +257,23 @@ def draw_document(
     moving: frozenset[int] = frozenset(),
     matrix: Transform = IDENTITY_TRANSFORM,
     live: tuple[Shape, ...] = (),
+    references: bool = True,
 ) -> None:
-    """Draws every visible shape; shapes in `moving` go through `matrix`, or are replaced by `live` (live drag)."""
+    """Draws every visible shape; shapes in `moving` go through `matrix`, or are replaced by `live` (live drag).
+    Reference images are left out when `references` is False (export, hidden references)."""
     replacements = {s.id: s for s in live}
-    for shape in visible_shapes(doc):
-        if shape.id not in moving:
-            draw_shape(canvas, shape, cache)
-        elif replacements:
-            if shape.id in replacements:
-                draw_shape(canvas, replacements[shape.id], cache)
-        else:
-            canvas.save()
-            canvas.concat(to_skia_matrix(matrix))
-            draw_shape(canvas, shape, cache)
-            canvas.restore()
+    with cache.drawing(cache.zoom, references):
+        for shape in visible_shapes(doc):
+            if shape.id not in moving:
+                draw_shape(canvas, shape, cache)
+            elif replacements:
+                if shape.id in replacements:
+                    draw_shape(canvas, replacements[shape.id], cache)
+            else:
+                canvas.save()
+                canvas.concat(to_skia_matrix(matrix))
+                draw_shape(canvas, shape, cache)
+                canvas.restore()
 
 
 def _hairline(color: int, dash: float = 0.0, phase: float = 0.0) -> skia.Paint:

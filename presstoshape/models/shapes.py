@@ -1,8 +1,9 @@
 """Immutable shape/geometry data. Frozen so undo snapshots can share shapes and views can diff by equality."""
 
 import math
+import re
 from collections.abc import Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import Literal, get_args
 
@@ -204,6 +205,13 @@ def sanitized(style: Style) -> Style:
 
 
 @dataclass(frozen=True)
+class Aspect:
+    # "none" or one of xMinYMin … xMaxYMax.
+    align: str
+    slice: bool = False
+
+
+@dataclass(frozen=True)
 class RectShape:
     id: int
     x: float
@@ -310,7 +318,64 @@ class GroupShape:
     masking: Masking | None = None
 
 
-Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape | GroupShape
+@dataclass(frozen=True)
+class ImageData:
+    """An encoded image file, shared by every shape that shows it. Identity is the digest (lowercase hex SHA-256
+    of `data`); `width` and `height` are the displayed pixel size, EXIF orientation applied."""
+
+    data: bytes = field(repr=False, compare=False)
+    width: int
+    height: int
+    mime: str
+    digest: str
+
+
+IMAGE_ALIGNS = frozenset(f"x{x}Y{y}" for x in ("Min", "Mid", "Max") for y in ("Min", "Mid", "Max")) | {"none"}
+_DIGEST = re.compile(r"[0-9a-f]{64}")
+
+
+@dataclass(frozen=True)
+class ImageShape:
+    """A picture in the viewport rectangle (x, y, width, height) as SVG `<image>`: `aspect` decides how it fits.
+    A reference image is dimmed, locked and never exported."""
+
+    id: int
+    x: float
+    y: float
+    width: float
+    height: float
+    data: ImageData
+    aspect: Aspect = Aspect("xMidYMid")
+    opacity: float = 1.0
+    transform: Transform = IDENTITY_TRANSFORM
+    reference: bool = False
+    hidden: bool = False
+    locked: bool = False
+
+
+def sanitized_image(shape: ImageShape) -> ImageShape:
+    """`shape` with a finite, non-negative size and position, opacity in 0..1 and a known alignment."""
+
+    def finite(value: float, fallback: float = 0.0) -> float:
+        return value if math.isfinite(value) else fallback
+
+    aspect = shape.aspect if shape.aspect.align in IMAGE_ALIGNS else Aspect("xMidYMid")
+    return replace(
+        shape,
+        x=finite(shape.x),
+        y=finite(shape.y),
+        width=max(0.0, finite(shape.width)),
+        height=max(0.0, finite(shape.height)),
+        opacity=_unit(shape.opacity),
+        aspect=Aspect(aspect.align, bool(aspect.slice) and aspect.align != "none"),
+    )
+
+
+def valid_digest(digest: str) -> bool:
+    return _DIGEST.fullmatch(digest) is not None
+
+
+Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape | GroupShape | ImageShape
 # Shapes that can be entered to work on the shapes inside them.
 ContainerShape = CompositeShape | GroupShape
 

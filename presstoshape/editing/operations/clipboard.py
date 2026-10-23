@@ -9,12 +9,12 @@ from presstoshape.editing.operations._document import add_on_top, delete_selecte
 from presstoshape.editing.operations.paths import to_path
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
-from presstoshape.formats.clipboard import ClipboardError, decode_shapes, encode_shapes
+from presstoshape.formats.clipboard import ClipboardError, decode_shapes_with_notes, encode_shapes
 from presstoshape.formats.svg import read_shapes_svg, write_shapes_svg
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, Rect
 from presstoshape.i18n import N_, _, ngettext, user_languages
-from presstoshape.models.shapes import GroupShape, PartMode, Shape, TextShape, content_children
+from presstoshape.models.shapes import GroupShape, ImageShape, PartMode, Shape, TextShape, content_children
 from presstoshape.render.paths import PathCache
 
 
@@ -73,7 +73,7 @@ def _decode(native: bytes | None, svg: str | None) -> tuple[list[Shape], list[st
     """Shapes from the native data, else from the SVG; a reason for the status bar if neither works."""
     if native is not None:
         try:
-            return decode_shapes(native), []
+            return decode_shapes_with_notes(native)
         except ClipboardError:
             pass
     if svg is None:
@@ -102,6 +102,13 @@ def paste(session: Session, native: bytes | None, svg: str | None, center: Point
     if in_composite and any(isinstance(shape, GroupShape) for shape in shapes):
         # Composite parts are outlines: a group's shapes become parts of their own.
         shapes = _ungrouped(shapes)
+    if in_composite and any(isinstance(shape, ImageShape) for shape in shapes):
+        shapes = [shape for shape in shapes if not isinstance(shape, ImageShape)]
+        notes = [*notes, _("images can't be Composite parts")]
+        if not shapes:
+            state.status_message = _("Nothing to paste: {reason}").format(reason=notes[-1])
+            session.notify()
+            return False
     if in_composite and any(isinstance(shape, TextShape) for shape in shapes):
         shapes = [to_path(shape) if isinstance(shape, TextShape) else shape for shape in shapes]
         notes = [*notes, _("text became a path inside the Composite")]

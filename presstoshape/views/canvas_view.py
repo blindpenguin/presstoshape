@@ -216,7 +216,9 @@ class CanvasView(QAbstractScrollArea):
         chain = containers.edit_chain(state)
         hidden = frozenset({chain[0].id}) if chain else frozenset()
         draw_background(canvas, state.document, _COLORS)
-        self._picture.draw(canvas, state.document, overlay.moving, overlay.matrix, overlay.live, hidden)
+        self._picture.draw(
+            canvas, state.document, overlay.moving, overlay.matrix, overlay.live, hidden, state.view.show_references
+        )
         self._picture.draw_copies(canvas, overlay.copies, overlay.matrix)
         if chain:
             self._edit_mode.draw(canvas, chain, overlay, self._vp.zoom, _COLORS)
@@ -336,6 +338,10 @@ class CanvasView(QAbstractScrollArea):
     def view_center(self) -> tuple[float, float]:
         """Doc point at the middle of the viewport (stored in .p2s files)."""
         return self._vp.to_doc((self._vp.width / 2, self._vp.height / 2))
+
+    def to_doc(self, x: float, y: float) -> tuple[float, float]:
+        """Doc point under viewport pixel (x, y)."""
+        return self._vp.to_doc((x, y))
 
     def center_on(self, point: tuple[float, float]) -> None:
         center_x, center_y = self.view_center()

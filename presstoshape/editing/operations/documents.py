@@ -91,7 +91,7 @@ def new_document(session: Session, setup: DocumentSetup = DEFAULT_SETUP) -> None
 def apply_saved_state(state: AppState, saved: SavedState) -> None:
     """Working state from a .p2s file; ids that no longer match the document are dropped, not trusted."""
     state.tool_styles.update(saved.tool_styles)
-    shown = {key: getattr(saved, key) for key in ("show_grid", "show_guides", "lock_guides")}
+    shown = {key: getattr(saved, key) for key in ("show_grid", "show_guides", "lock_guides", "show_references")}
     state.view = replace(state.view, **{key: value for key, value in shown.items() if value is not None})
     if saved.font_size is not None:
         state.font_size = saved.font_size
@@ -114,10 +114,11 @@ def open_file(session: Session, path: str) -> bool:
     name = Path(path).name
     try:
         if is_native(path):
-            document, saved = p2s.read_p2s(Path(path).read_bytes())
-            notes: list[str] = []
+            document, saved, notes = p2s.read_p2s_with_notes(Path(path).read_bytes())
         else:
-            document, notes = svg.read_svg_with_notes(Path(path).read_text(encoding="utf-8"), user_languages())
+            document, notes = svg.read_svg_with_notes(
+                Path(path).read_text(encoding="utf-8"), user_languages(), Path(path).resolve().parent
+            )
             saved = None
     except (OSError, ValueError, ET.ParseError) as error:
         # P2sError is a ValueError, with a message written for this status line.
@@ -152,6 +153,7 @@ def saved_state(state: AppState, view_center: tuple[float, float] | None) -> Sav
         show_grid=state.view.show_grid,
         show_guides=state.view.show_guides,
         lock_guides=state.view.lock_guides,
+        show_references=None if state.view.show_references else False,
     )
 
 
@@ -223,6 +225,12 @@ def save_file(
         state.status_message = _("Saved {name} (view, tool settings and selection are only kept in .p2s files)").format(
             name=name
         )
+    references = 0 if native else sum(svg.count_references(layer.shapes) for layer in state.document.layers)
+    if references:
+        note = ngettext(
+            "{count} reference image was not saved to SVG", "{count} reference images were not saved to SVG", references
+        ).format(count=references)
+        state.status_message = _("{message} ({note})").format(message=state.status_message, note=note)
     if not backed_up:
         state.status_message = _("{message} (no backup of the previous version could be made)").format(
             message=state.status_message

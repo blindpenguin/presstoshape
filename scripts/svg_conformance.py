@@ -245,7 +245,7 @@ def check_test(
     # Test files are foreign input: a reader or writer failure is a result to report, not a crash of the run.
     try:
         original = (suite / "svg" / f"{name}.svg").read_text(encoding="utf-8")
-        doc, notes = read_svg_with_notes(original)
+        doc, notes = read_svg_with_notes(original, base_folder=suite / "svg")
     except Exception as error:
         return CheckResult(name, scope, "error", None, error=f"{type(error).__name__}: {error}"), None
     try:
@@ -302,7 +302,7 @@ def sheet(suite: Path, name: str) -> bytes:
     panels: list[skia.Image | None] = [None, reference, None]
     # Foreign input again: the report shows what each renderer makes of it, failures included.
     try:
-        panels[0] = decoded(render_ours(read_svg(svg_text), width))
+        panels[0] = decoded(render_ours(read_svg_with_notes(svg_text, base_folder=suite / "svg")[0], width))
     except Exception:
         pass
     try:

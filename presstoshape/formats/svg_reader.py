@@ -12,10 +12,13 @@ approximated and counted as a note (formats/svg_notes.py). svgelements' own docu
 import math
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, replace
+from pathlib import Path
+from urllib.parse import unquote
 
 from presstoshape.formats import css
 from presstoshape.formats.svg_conditions import is_drawable, passes, switch_choice
 from presstoshape.formats.svg_gradients import Resolved, resolve_gradient
+from presstoshape.formats.svg_images import ImageBudget, box_size, load_image
 from presstoshape.formats.svg_lengths import Axis, Viewport, length, resolve, root_viewport
 from presstoshape.formats.svg_lengths import parse as parse_length_text
 from presstoshape.formats.svg_masks import (
@@ -39,6 +42,7 @@ from presstoshape.formats.svg_names import (
     PART_MODES,
     SVG_PREFIX,
     XLINK_HREF,
+    XML_BASE,
     XML_SPACE,
     q,
 )
@@ -81,6 +85,7 @@ from presstoshape.models.shapes import (
     EllipseShape,
     Gradient,
     GroupShape,
+    ImageShape,
     LineTo,
     Masking,
     MoveTo,
@@ -179,26 +184,31 @@ def read_svg(text: str) -> Document:
     return read_svg_with_notes(text)[0]
 
 
-def read_svg_with_notes(text: str, languages: tuple[str, ...] = ("en",)) -> tuple[Document, list[str]]:
+def read_svg_with_notes(
+    text: str, languages: tuple[str, ...] = ("en",), base_folder: Path | None = None
+) -> tuple[Document, list[str]]:
     """Like read_svg, plus notes about what couldn't be imported or was approximated (gradients, clip paths,
     Composites edited elsewhere, …), one per kind with a count. `languages` are the user's, most preferred
-    first, for `systemLanguage` and `<switch>`."""
+    first, for `systemLanguage` and `<switch>`. `base_folder` is where relative image files are looked for;
+    without it only data URIs and absolute paths can be read."""
     root = _parse_root(text)
     page = read_page(root)
     base_matrix = page.view or compose(scaling(page.scale, page.scale), translation(-page.origin[0], -page.origin[1]))
-    document, notes = _read_layers(root, base_matrix, languages, page)
+    document, notes = _read_layers(root, base_matrix, languages, base_folder, page)
     document.width, document.height = page.width, page.height
     document.unit, document.dpi = page.unit, page.dpi
     return document, notes
 
 
-def read_shapes_svg(text: str, languages: tuple[str, ...] = ("en",)) -> tuple[list[Shape], list[str]]:
+def read_shapes_svg(
+    text: str, languages: tuple[str, ...] = ("en",), base_folder: Path | None = None
+) -> tuple[list[Shape], list[str]]:
     """Shapes of every layer in document order (clipboard paste), in the SVG's own user space: unlike read_svg
     the viewBox origin is not moved to 0,0. Coarse physical user units (mm-based files) are scaled like on open.
     Raises like read_svg."""
     root = _parse_root(text)
     page = read_page(root)
-    document, notes = _read_layers(root, scaling(page.scale, page.scale), languages)
+    document, notes = _read_layers(root, scaling(page.scale, page.scale), languages, base_folder)
     return [shape for layer in document.layers for shape in layer.shapes], notes
 
 
@@ -210,10 +220,14 @@ def _parse_root(text: str) -> ET.Element:
 
 
 def _read_layers(
-    root: ET.Element, base_matrix: Affine, languages: tuple[str, ...], page: Page | None = None
+    root: ET.Element,
+    base_matrix: Affine,
+    languages: tuple[str, ...],
+    base_folder: Path | None,
+    page: Page | None = None,
 ) -> tuple[Document, list[str]]:
     """Layers and shapes; with `page` (opening a file, not pasting) also guides and the grid."""
-    reader = _Reader(root, languages)
+    reader = _Reader(root, languages, base_folder)
     base_style = reader.style(_DEFAULT_STYLE, root)
     base_opacity = parse_fraction(base_style.get("opacity"))
     reader.notes.add(Note.INVALID_VALUE, parse_aspect(root.get("preserveAspectRatio")) is INVALID)
@@ -279,8 +293,12 @@ class _View:
 
 
 class _Reader:
-    def __init__(self, root: ET.Element, languages: tuple[str, ...]) -> None:
+    def __init__(self, root: ET.Element, languages: tuple[str, ...], base_folder: Path | None = None) -> None:
         self.languages = languages
+        self.base_folder = base_folder
+        self.images = ImageBudget()
+        # `xml:base` of the elements being read, outer to inner: where relative image files are looked for.
+        self._bases: list[str] = []
         self.viewport = root_viewport(root)
         self.next_id = 1
         self._depth = 0
@@ -403,6 +421,26 @@ class _Reader:
         uses: tuple[str, ...] = (),
         use: ET.Element | None = None,
     ) -> None:
+        base = element.get(XML_BASE)
+        if base is None:
+            self._visit(element, inherited, matrix, out, opacity, uses, use)
+            return
+        self._bases.append(base)
+        try:
+            self._visit(element, inherited, matrix, out, opacity, uses, use)
+        finally:
+            self._bases.pop()
+
+    def _visit(
+        self,
+        element: ET.Element,
+        inherited: dict[str, str],
+        matrix: Affine,
+        out: list[Shape],
+        opacity: float = 1.0,
+        uses: tuple[str, ...] = (),
+        use: ET.Element | None = None,
+    ) -> None:
         tag = _local_name(element)
         if tag is None or tag in _NOT_RENDERED:
             return
@@ -440,9 +478,6 @@ class _Reader:
             matrix = compose(matrix, parse_transform(element.get("transform")))
             self._viewport_content(element, style, matrix, out, opacity, uses, use)
             return
-        if tag == "image":
-            self.notes.add(Note.IMAGE)
-            return
         matrix = compose(matrix, parse_transform(element.get("transform")))
         self._note_effects(style)
         if tag in ("g", "a"):
@@ -453,6 +488,12 @@ class _Reader:
             self._switch(element, style, matrix, out, opacity, uses)
             return
         opacity *= parse_fraction(style.get("opacity"))
+        if tag == "image":
+            if style.get("visibility") not in _HIDDEN:
+                image = self._image(element, style, matrix, opacity)
+                if image is not None:
+                    out.append(image)
+            return
         if tag == "use":
             self._use(element, style, matrix, out, opacity, uses)
             return
@@ -467,6 +508,45 @@ class _Reader:
         shape = self._read(tag, element, style, matrix, opacity)
         if shape is not None:
             out.append(shape)
+
+    def _image(self, el: ET.Element, style: dict[str, str], m: Affine, opacity: float) -> Shape | None:
+        data = load_image(el.get("href") or el.get(XLINK_HREF), self._image_folder(), self.images, self.notes)
+        if data is None:
+            return None
+        size = box_size(
+            self._image_side(el.get("width"), "x", style), self._image_side(el.get("height"), "y", style), data
+        )
+        if size is None:
+            return None
+        aspect = parse_aspect(el.get("preserveAspectRatio"))
+        self.notes.add(Note.INVALID_VALUE, aspect is INVALID)
+        shape = ImageShape(
+            self.new_id(),
+            self._length(el.get("x"), "x", style),
+            self._length(el.get("y"), "y", style),
+            *size,
+            data,
+            aspect if isinstance(aspect, Aspect) else DEFAULT,
+            min(1.0, opacity),
+        )
+        return self._transformed(shape, m)
+
+    def _image_folder(self) -> Path | None:
+        """Where relative image files are looked for: the opened file's folder moved by each `xml:base`."""
+        folder = self.base_folder
+        for base in self._bases:
+            path = Path(unquote(base))
+            if path.is_absolute():
+                folder = path
+            elif folder is not None:
+                folder = folder / path
+        return folder
+
+    def _image_side(self, text: str | None, axis: Axis, style: dict[str, str]) -> float | None:
+        """`width` or `height` of an image: None when missing or `auto`."""
+        if text is None or text.strip() == "auto":
+            return None
+        return self._length(text, axis, style)
 
     def _switch(
         self,

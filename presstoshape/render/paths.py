@@ -1,7 +1,8 @@
 """Model shapes as cached Skia paths, rebuilt only when the frozen shape changes."""
 
 import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 
 import skia
 
@@ -15,6 +16,7 @@ from presstoshape.models.shapes import (
     EllipseShape,
     Gradient,
     GroupShape,
+    ImageShape,
     LineTo,
     MoveTo,
     RectShape,
@@ -26,6 +28,7 @@ from presstoshape.models.shapes import (
     content_children,
 )
 from presstoshape.render.gradients import gradient_shader
+from presstoshape.render.images import ImageCache
 from presstoshape.render.masks import build_clip
 from presstoshape.render.text import text_path
 
@@ -103,11 +106,14 @@ def _build(shape: Shape) -> skia.Path:
         if shape.transform != IDENTITY_TRANSFORM:
             path.transform(to_skia_matrix(shape.transform))
         return path
-    return to_skia_path(transforms.outline(shape) or (), shape.style.fill_rule)
+    fill_rule = "nonzero" if isinstance(shape, ImageShape) else shape.style.fill_rule
+    return to_skia_path(transforms.outline(shape) or (), fill_rule)
 
 
 def _bounds(shape: Shape, path: skia.Path) -> skia.Rect:
     rect = path.computeTightBounds()
+    if isinstance(shape, ImageShape):
+        return rect
     style = shape.style
     if style.stroke and style.stroke_width > 0:
         # Square caps reach past the end point diagonally; miter tips are left out, as before.
@@ -127,10 +133,24 @@ class PathCache:
     """Keyed by shape id; an entry is valid while its stored shape equals the current one."""
 
     def __init__(self) -> None:
+        self.images = ImageCache()
+        # Drawing context, set by `drawing` while a frame or a recording runs: the zoom the canvas matrix lacks
+        # (pictures are recorded in document units) and whether reference images are drawn.
+        self.zoom = 1.0
+        self.references = True
         self._paths: dict[int, tuple[Shape, skia.Path, skia.Rect]] = {}
         self._strokes: dict[int, tuple[Shape, float, skia.Path]] = {}
         self._shaders: dict[int, tuple[Shape, tuple[skia.Shader | None, skia.Shader | None]]] = {}
         self._clips: dict[int, tuple[Shape, skia.Path]] = {}
+
+    @contextmanager
+    def drawing(self, zoom: float = 1.0, references: bool = True) -> Iterator[None]:
+        before = self.zoom, self.references
+        self.zoom, self.references = zoom, references
+        try:
+            yield
+        finally:
+            self.zoom, self.references = before
 
     def _entry(self, shape: Shape) -> tuple[Shape, skia.Path, skia.Rect]:
         entry = self._paths.get(shape.id)
@@ -200,6 +220,8 @@ class PathCache:
         """Fill and stroke shaders of the shape's gradients (None for flat or missing paint). Built in the
         shape's own coordinates, where it is drawn."""
         entry = self._shaders.get(shape.id)
+        if isinstance(shape, ImageShape):
+            return None, None
         if entry is None or (entry[0] is not shape and entry[0] != shape):
             style = shape.style
             bounds = (

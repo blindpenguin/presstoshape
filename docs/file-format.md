@@ -1,6 +1,6 @@
 # The PressToShape file format (`.p2s`)
 
-PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **7**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
+PressToShape's own files use the extension `.p2s`. They store everything PressToShape can do, plus the working state SVG can't hold (view, tool settings, selection, entered Composite). This page describes format version **10**. Sample files of every version live in [`tests/formats/samples/`](../tests/formats/samples/).
 
 ## The archive
 
@@ -11,7 +11,8 @@ A `.p2s` file is a ZIP archive with these entries:
 | `mimetype` | `application/x-presstoshape`. Always the first entry, stored uncompressed, so the type can be recognized from the file's first bytes (the OpenDocument/OpenRaster convention). |
 | `document.json` | The document and working state as UTF-8 JSON (described below). Deflate-compressed. |
 | `preview.png` | Optional. The artboard rendered like PNG export, at most 256 px on the longer side. |
-| `resources/` | Reserved for embedded images, fonts and brushes. Not written by version 1. |
+| `media/<digest>.<ext>` | The pictures of `image` shapes (see [Media](#media)), one entry per distinct picture. Stored uncompressed, after `document.json`. Written from version 10. |
+| `resources/` | Reserved for fonts and brushes. Not written yet. |
 
 Readers ignore entries they don't know. To look inside:
 
@@ -63,9 +64,9 @@ Every shape has:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `type` | string | `"rect"`, `"ellipse"`, `"path"`, `"text"`, `"composite"` or `"group"`. |
+| `type` | string | `"rect"`, `"ellipse"`, `"path"`, `"text"`, `"composite"`, `"group"` or `"image"`. |
 | `id` | integer ≥ 0 | Unique in the whole document, Composite parts included. |
-| `style` | object | `{"fill": paint, "stroke": paint, "stroke_width": number ≥ 0}`, plus the optional fields below; a paint is a colour string, `null` (none) or a gradient object (see below). Groups have none. |
+| `style` | object | `{"fill": paint, "stroke": paint, "stroke_width": number ≥ 0}`, plus the optional fields below; a paint is a colour string, `null` (none) or a gradient object (see below). Groups and images have none. |
 | `transform` | list of 6 numbers | Optional. Affine `[a, b, c, d, e, f]` as in SVG's `matrix()`, applied on top of the geometry. Left out when it's the identity. |
 | `hidden` | bool | Optional, written only as `true`. The shape isn't drawn or exported; inside a group or Composite it hides just that child or part (a hidden part is left out of the Composite's result). |
 | `locked` | bool | Optional, written only as `true`. The shape is drawn but can't be selected; a locked group or Composite can't be entered. |
@@ -102,6 +103,7 @@ Geometry per type:
 | `path` | `segments`: list of `["M", x, y]` (move), `["L", x, y]` (line), `["C", c1x, c1y, c2x, c2y, x, y]` (cubic bezier), `["Z"]` (close). Paths keep an identity transform: transforms are applied to the points. |
 | `text` | `x`, `y` (the anchor point on the baseline), `text` (single line), `font_size` > 0; optional `anchor`: `"start"` (default), `"middle"` or `"end"`, which point of the line sits at `x`, as SVG's `text-anchor` |
 | `composite` | `parts`: list of shapes, bottom to top (may include Composites); `modes`: one per part, each `"add"`, `"subtract"`, `"intersect"` or `"exclude"`. The first part is the base, so its mode is ignored. Composites keep an identity transform; their parts carry the transforms. |
+| `image` | `x`, `y`, `width` ≥ 0, `height` ≥ 0 (the viewport box, as SVG's `<image>`), `media` (digest of the picture, see [Media](#media)); optional `aspect`: an alignment `"none"` or `"xMinYMin"` … `"xMaxYMax"`, optionally followed by `" slice"` (default `"xMidYMid"`, meet), as SVG's `preserveAspectRatio`; optional `opacity` 0 to 1 (default 1); optional `reference`, written only as `true`: a dimmed guide picture that is never exported. Images have no `style`; their `transform` is stored like any shape's. |
 | `group` | `children`: list of shapes, bottom to top (any type, including groups and Composites), at least one; optional `opacity`, a number from 0 to 1 (default 1), applied to the children flattened together. Groups have no `style` and no `transform`: each child keeps its own, and transforms are applied to the children. Optional `masking` (see below) turns the group into a clipping or opacity mask. |
 
 `masking` on a group (all keys but `mask` optional):
@@ -128,6 +130,10 @@ Example (from the sample file):
   "style": {"fill": "#ff0000", "stroke": null, "stroke_width": 0.0}
 }
 ```
+
+### Media
+
+The bytes of a picture are the original PNG, JPEG, WebP or GIF file, stored as the archive entry `media/<digest>.<ext>` where `<digest>` is the lowercase hex SHA-256 of the bytes and `<ext>` is `png`, `jpg`, `webp` or `gif`. Shapes name the picture by `media` (the digest), so a picture used many times is stored once, and pictures no shape uses are not written. Readers never use entry names as file paths, check each picture against its digest, and refuse more than 10 000 entries, 64 MiB for one picture or 1 GiB of pictures in total. A picture that is missing, damaged or doesn't match its digest is shown as a placeholder (a box with a cross) and reported when the file is opened; the rest of the file opens normally, and saving keeps the shape.
 
 ### `state`
 
@@ -159,6 +165,7 @@ Working state. Everything here is optional. Readers drop values that don't match
 | `selected_layer` | Index of the active layer. |
 | `edit_path` | Ids of the entered Composites and groups, outer to inner; empty when none is entered. |
 | `view.show_grid`, `view.show_guides`, `view.lock_guides` | Whether the grid and guides were shown and the guides locked. |
+| `view.show_references` | Whether reference images were shown. Optional (default shown). |
 
 Undo history and the active tool are not stored.
 
@@ -175,6 +182,7 @@ Undo history and the active tool are not stored.
 | 7 | nightlies from October 2026 | Optional `hidden` and `locked` on shapes, optional `locked` on layers. Version 6 files need no change (everything shown and unlocked). |
 | 8 | nightlies from October 2026 | `style.fill` and `style.stroke` may be a gradient object (`linear` or `radial`) instead of a colour. Version 7 files need no change. |
 | 9 | nightlies from October 2026 | Optional `masking` on groups: the group is a clipping or opacity mask. Version 8 files need no change. |
+| 10 | nightlies from October 2026 | Shape type `image` and the `media/` entries holding its pictures. Version 9 files need no change. |
 
 Rules for changing the format:
 

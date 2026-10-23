@@ -2,13 +2,13 @@ from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, QSize, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import QPoint, QSettings, QSize, Qt
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QGuiApplication
 from PySide6.QtWidgets import QDialog, QDockWidget, QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from presstoshape import i18n
 from presstoshape.editing.operations import clipboard as clipboard_ops
-from presstoshape.editing.operations import documents, guides, recovery, view
+from presstoshape.editing.operations import documents, guides, images, recovery, view
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
 from presstoshape.i18n import N_, _
@@ -36,6 +36,8 @@ from presstoshape.views.toolbar_view import MainToolbar
 _NATIVE_FILTER = N_("PressToShape (*.p2s)")
 _SVG_FILTER = N_("SVG (*.svg)")
 _PNG_FILTER = N_("PNG image (*.png)")
+_IMAGE_FILTER = N_("Images (*.png *.jpg *.jpeg *.webp *.gif)")
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 _DOCK_WIDTH = 240
 _TOOL_DOCK_WIDTH = 200
 
@@ -53,6 +55,7 @@ class MainWindow(QMainWindow):
         self._state = session.state
         self._session = session
         self._force_close = False
+        self.setAcceptDrops(True)
         # The Settings window reopens on the last category and size during a session.
         self._settings_page = 0
         self._settings_size: QSize | None = None
@@ -142,6 +145,7 @@ class MainWindow(QMainWindow):
         self._remember_view()
         # Screenshots and the self-test run without user settings, so there is nothing to change.
         self._actions.set_enabled("edit.settings", self._settings is not None)
+        self._actions.set_enabled("image.replace", len(images.selected_images(state)) == 1)
 
     def _remember_view(self) -> None:
         """Rulers and snapping are app preferences: kept for the next start when they change."""
@@ -164,6 +168,9 @@ class MainWindow(QMainWindow):
             "file.save": self.save_document,
             "file.save_as": self.save_document_as,
             "file.export_png": self.export_png,
+            "file.place_image": self.place_image,
+            "file.place_reference": self.place_reference,
+            "image.replace": self.replace_image,
             "file.quit": self.close,
             "edit.cut": self.cut,
             "edit.copy": self.copy,
@@ -362,10 +369,104 @@ class MainWindow(QMainWindow):
             clipboard.put(content)
 
     def paste(self) -> None:
-        clipboard_ops.paste(self._session, *clipboard.read(), self.canvas.view_center())
+        native, svg = clipboard.read()
+        if native is None and svg is None and self._paste_bitmap():
+            return
+        clipboard_ops.paste(self._session, native, svg, self.canvas.view_center())
 
     def paste_in_place(self) -> None:
-        clipboard_ops.paste(self._session, *clipboard.read(), None)
+        native, svg = clipboard.read()
+        if native is None and svg is None and self._paste_bitmap():
+            return
+        clipboard_ops.paste(self._session, native, svg, None)
+
+    def _paste_bitmap(self) -> bool:
+        """A bitmap on the clipboard (screenshot, copied picture) becomes an image in the middle of the view."""
+        png = clipboard.read_bitmap()
+        if png is None:
+            return False
+        images.place_images(self._session, [(_("Clipboard"), png)], self.canvas.view_center())
+        return True
+
+    # --- pictures -------------------------------------------------------------
+
+    def place_image(self) -> None:
+        self._place_images(reference=False)
+
+    def place_reference(self) -> None:
+        self._place_images(reference=True)
+
+    def _image_dialog_folder(self) -> str:
+        return str(Path(self._state.file_path).parent) if self._state.file_path else ""
+
+    def _place_images(self, reference: bool) -> None:
+        title = _("Place as Reference") if reference else _("Place Image")
+        paths, _chosen = QFileDialog.getOpenFileNames(self, title, self._image_dialog_folder(), self._image_filters())
+        if paths:
+            self.place_files([Path(path) for path in paths], self.canvas.view_center(), reference)
+
+    @staticmethod
+    def _image_filters() -> str:
+        return ";;".join([_(_IMAGE_FILTER), _("All files (*)")])
+
+    def place_files(self, paths: list[Path], center: tuple[float, float], reference: bool = False) -> None:
+        """Reads the files (the I/O boundary) and places them; what can't be used is listed in one message."""
+        files: list[tuple[str, bytes]] = []
+        problems: list[str] = []
+        for path in paths:
+            try:
+                files.append((path.name, path.read_bytes()))
+            except OSError as error:
+                problems.append(_("{name}: {error}").format(name=path.name, error=error.strerror or error))
+        result = images.place_images(self._session, files, center, reference)
+        problems.extend(message for _name, message in result.refused)
+        self._report_image_problems(problems)
+
+    def _report_image_problems(self, problems: list[str]) -> None:
+        if problems:
+            QMessageBox.warning(self, _("Images not placed"), "\n".join(problems))
+
+    def replace_image(self) -> None:
+        selected = images.selected_images(self._state)
+        if len(selected) != 1:
+            return
+        path, _chosen = QFileDialog.getOpenFileName(
+            self, _("Replace Image"), self._image_dialog_folder(), self._image_filters()
+        )
+        if not path:
+            return
+        try:
+            raw = Path(path).read_bytes()
+        except OSError as error:
+            self._report_image_problems(
+                [_("{name}: {error}").format(name=Path(path).name, error=error.strerror or error)]
+            )
+            return
+        result = images.replace_image(self._session, selected[0].id, Path(path).name, raw)
+        self._report_image_problems([message for _name, message in result.refused])
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        mime = event.mimeData()
+        if mime.hasUrls() or mime.hasImage():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        """Image files dropped on the window are placed where they landed; anything else is ignored."""
+        mime = event.mimeData()
+        position = event.position()
+        spot = self.canvas.viewport().mapFrom(self, QPoint(round(position.x()), round(position.y())))
+        center = self.canvas.to_doc(spot.x(), spot.y())
+        paths = [Path(url.toLocalFile()) for url in mime.urls() if url.isLocalFile()]
+        pictures = [path for path in paths if path.suffix.lower() in IMAGE_SUFFIXES]
+        if pictures:
+            event.acceptProposedAction()
+            self.place_files(pictures, center)
+        elif not paths and (png := clipboard.png_of(mime)) is not None:
+            event.acceptProposedAction()
+            images.place_images(self._session, [(_("Dropped image"), png)], center)
+        else:
+            self._state.status_message = _("Only PNG, JPEG, WebP and GIF images can be dropped here")
+            self._session.notify()
 
     def open_settings(self) -> None:
         if self._settings is None:

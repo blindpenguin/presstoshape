@@ -66,3 +66,64 @@ def test_row_by_row_updates_match_a_fresh_model():
     index = model.shape_index(first)
     assert model.node(index).shape.id == first and model.node(model.parent(index)).shape.id == group
     assert not model.shape_index(9999).isValid()
+
+
+def _image_session(reference=False):
+    from presstoshape.editing.operations import images
+    from tests.helpers import quadrant_picture
+
+    session = Session()
+    images.place_images(session, [("a.png", quadrant_picture(80, 40).data)], (100.0, 100.0), reference)
+    model = ObjectTreeModel()
+    model.set_content(session.state)
+    return session, model
+
+
+def _image_row(model, layer_row=0):
+    layer = model.index(layer_row, 0)
+    return model.index(0, 0, layer)
+
+
+def test_image_rows_show_a_thumbnail_made_once_per_picture(monkeypatch):
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QIcon
+
+    from presstoshape.views import object_tree_model
+
+    QApplication.instance() or QApplication([])
+    session, model = _image_session()
+    made = []
+    real = object_tree_model.thumbnail
+    monkeypatch.setattr(object_tree_model, "thumbnail", lambda data, side: made.append(side) or real(data, side))
+    assert made == []
+    row = _image_row(model)
+    icon = model.data(row, Qt.ItemDataRole.DecorationRole)
+    assert isinstance(icon, QIcon) and not icon.isNull()
+    assert icon.pixmap(48, 48).width() == 48
+    model.data(row, Qt.ItemDataRole.DecorationRole)
+    model.set_content(session.state)
+    model.data(row, Qt.ItemDataRole.DecorationRole)
+    assert made == [48]
+
+
+def test_an_undecodable_picture_falls_back_to_the_type_icon():
+    from PySide6.QtCore import Qt
+
+    from presstoshape.models.shapes import ImageData, ImageShape
+
+    QApplication.instance() or QApplication([])
+    session, model = _image_session()
+    layer = session.state.document.layers[0]
+    shape = layer.shapes[0]
+    layer.shapes[0] = ImageShape(shape.id, 0.0, 0.0, 5.0, 5.0, ImageData(b"", 2, 2, "application/x-missing", "0" * 64))
+    model.set_content(session.state)
+    icon = model.data(_image_row(model), Qt.ItemDataRole.DecorationRole)
+    assert not icon.isNull()
+
+
+def test_reference_rows_are_marked():
+    from PySide6.QtCore import Qt
+
+    QApplication.instance() or QApplication([])
+    session, model = _image_session(reference=True)
+    assert model.data(_image_row(model, layer_row=1), Qt.ItemDataRole.DisplayRole) == "Image (reference)"

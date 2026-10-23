@@ -4,17 +4,20 @@ Writing emits plain SVG with Inkscape-style layer groups and presentation attrib
 formats/svg_reader.py and is re-exported here, so callers import both directions from this module.
 """
 
+import base64
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
+from dataclasses import replace
 
 from presstoshape.formats.svg_mask_defs import masked_group_element
 from presstoshape.formats.svg_namedview import namedview_element
-from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, XML_SPACE, q
+from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, XLINK_HREF, XML_SPACE, q
 from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
 from presstoshape.formats.svg_paint import PaintDefs
 from presstoshape.formats.svg_reader import read_shapes_svg, read_svg, read_svg_with_notes
 from presstoshape.geometry.affine import Affine, as_rotation, is_identity
+from presstoshape.geometry.aspect import DEFAULT
 from presstoshape.geometry.boxes import Rect
 from presstoshape.geometry.transforms import outline
 from presstoshape.models.app_state import Document
@@ -24,6 +27,7 @@ from presstoshape.models.shapes import (
     CubicTo,
     EllipseShape,
     GroupShape,
+    ImageShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -32,9 +36,11 @@ from presstoshape.models.shapes import (
     Shape,
     Style,
     TextShape,
+    children_of,
 )
 
 __all__ = [
+    "count_references",
     "path_d",
     "read_shapes_svg",
     "read_svg",
@@ -71,6 +77,33 @@ def path_d(segments: tuple[Segment, ...]) -> str:
     return " ".join(parts)
 
 
+def count_references(shapes: Sequence[Shape]) -> int:
+    """How many reference images `shapes` hold, nested ones included: they are not written to SVG."""
+    return sum(
+        1 if isinstance(shape, ImageShape) and shape.reference else count_references(children_of(shape))
+        for shape in shapes
+    )
+
+
+def _without_references(shapes: Sequence[Shape]) -> list[Shape]:
+    """`shapes` without reference images (groups emptied by that go too); untouched shapes are shared."""
+    kept: list[Shape] = []
+    for shape in shapes:
+        if isinstance(shape, ImageShape) and (shape.reference or not shape.data.data):
+            continue
+        if isinstance(shape, GroupShape) and count_references(shape.children):
+            children = _without_references(shape.children)
+            if not children:
+                continue
+            ids = {child.id for child in children}
+            masking = shape.masking
+            if masking is not None:
+                masking = replace(masking, mask_ids=tuple(i for i in masking.mask_ids if i in ids))
+            shape = replace(shape, children=tuple(children), masking=masking)
+        kept.append(shape)
+    return kept
+
+
 def write_svg(doc: Document) -> str:
     root = ET.Element(q("svg"), page_attributes(doc))
     if doc.guides or doc.grid is not None:
@@ -84,7 +117,7 @@ def write_svg(doc: Document) -> str:
         if layer.locked:
             attrs[INSENSITIVE] = "true"
         group = ET.SubElement(root, q("g"), attrs)
-        for shape in layer.shapes:
+        for shape in _without_references(layer.shapes):
             group.append(_shape_element(shape, defs))
     _insert_defs(root, defs, defs_slot)
     return _serialize(root)
@@ -102,7 +135,7 @@ def write_shapes_svg(shapes: Sequence[Shape], bounds: Rect) -> str:
     x, y, w, h = (_num(value) for value in bounds)
     root = ET.Element(q("svg"), {"width": w, "height": h, "viewBox": f"{x} {y} {w} {h}"})
     defs = PaintDefs(bounds)
-    for shape in shapes:
+    for shape in _without_references(shapes):
         root.append(_shape_element(shape, defs))
     _insert_defs(root, defs, 0)
     return _serialize(root)
@@ -152,6 +185,17 @@ def _style_attributes(style: Style, defs: PaintDefs) -> dict[str, str]:
     return attrs
 
 
+def _image_element(shape: ImageShape) -> ET.Element:
+    attrs = {"x": _num(shape.x), "y": _num(shape.y), "width": _num(shape.width), "height": _num(shape.height)}
+    if shape.aspect != DEFAULT:
+        attrs["preserveAspectRatio"] = f"{shape.aspect.align} slice" if shape.aspect.slice else shape.aspect.align
+    if shape.opacity != 1:
+        attrs["opacity"] = _num(shape.opacity)
+    # xlink:href alone: every renderer that matters reads it, and `href` as well would double the data.
+    attrs[XLINK_HREF] = f"data:{shape.data.mime};base64,{base64.b64encode(shape.data.data).decode('ascii')}"
+    return ET.Element(q("image"), attrs)
+
+
 def _untransformed_element(shape: Shape, defs: PaintDefs) -> ET.Element:
     if isinstance(shape, GroupShape) and shape.masking is not None:
         return masked_group_element(shape, defs, _shape_element, path_d)
@@ -160,6 +204,8 @@ def _untransformed_element(shape: Shape, defs: PaintDefs) -> ET.Element:
         for child in shape.children:
             element.append(_shape_element(child, defs))
         return element
+    if isinstance(shape, ImageShape):
+        return _image_element(shape)
     style = _style_attributes(shape.style, defs)
     match shape:
         case RectShape(x=x, y=y, width=w, height=h, rx=rx, ry=ry):

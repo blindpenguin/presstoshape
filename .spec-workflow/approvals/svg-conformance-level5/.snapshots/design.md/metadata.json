@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-level5/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-23T12:51:44.712Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792759904683_ct3uakhu0",
+      "approvalTitle": "Level 5: images design"
+    }
+  ]
+}

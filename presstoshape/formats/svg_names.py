@@ -14,6 +14,7 @@ ET.register_namespace("", SVG_NS)
 ET.register_namespace("inkscape", INKSCAPE_NS)
 ET.register_namespace("presstoshape", PRESSTOSHAPE_NS)
 ET.register_namespace("sodipodi", SODIPODI_NS)
+ET.register_namespace("xlink", XLINK_NS)
 COMPOSITE = f"{{{PRESSTOSHAPE_NS}}}composite"
 MODE = f"{{{PRESSTOSHAPE_NS}}}mode"
 PART_MODES = ("add", "subtract", "intersect", "exclude")
@@ -22,6 +23,7 @@ LABEL = f"{{{INKSCAPE_NS}}}label"
 # Inkscape marks locked objects and layers with sodipodi:insensitive="true".
 INSENSITIVE = f"{{{SODIPODI_NS}}}insensitive"
 XLINK_HREF = f"{{{XLINK_NS}}}href"
+XML_BASE = "{http://www.w3.org/XML/1998/namespace}base"
 XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
 SVG_PREFIX = f"{{{SVG_NS}}}"
 

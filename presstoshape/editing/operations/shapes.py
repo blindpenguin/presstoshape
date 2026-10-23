@@ -12,13 +12,23 @@ from presstoshape.geometry.boxes import Point, box_from_drag
 from presstoshape.geometry.segments import smooth_segments
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Tool
-from presstoshape.models.shapes import EllipseShape, PathShape, RectShape, Segment, Shape, TextAnchor, TextShape
+from presstoshape.models.shapes import (
+    EllipseShape,
+    ImageShape,
+    PathShape,
+    RectShape,
+    Segment,
+    Shape,
+    TextAnchor,
+    TextShape,
+)
 
 # Shape fields the selection panel may edit directly, with their minimum value (None = unbounded).
 EDITABLE_FIELDS: dict[type, dict[str, float | None]] = {
     RectShape: {"x": None, "y": None, "width": 0.1, "height": 0.1},
     EllipseShape: {"cx": None, "cy": None, "rx": 0.1, "ry": 0.1},
     TextShape: {"x": None, "y": None, "font_size": 1.0, "text": None},
+    ImageShape: {"x": None, "y": None, "width": 0.1, "height": 0.1},
 }
 
 

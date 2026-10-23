@@ -5,7 +5,15 @@ from collections.abc import Iterator
 from presstoshape.editing import containers
 from presstoshape.geometry import transforms
 from presstoshape.models.app_state import AppState, Layer
-from presstoshape.models.shapes import CompositeShape, EllipseShape, RectShape, Shape, TextShape, children_of
+from presstoshape.models.shapes import (
+    CompositeShape,
+    EllipseShape,
+    ImageShape,
+    RectShape,
+    Shape,
+    TextShape,
+    children_of,
+)
 
 
 def active_layer(state: AppState) -> Layer:
@@ -51,8 +59,21 @@ def find_shape(state: AppState, shape_id: int) -> Shape | None:
     return None
 
 
+def combinable_shapes(state: AppState) -> list[Shape]:
+    """Selected shapes with a vector outline that booleans and Composites can work on (pictures have none)."""
+    return [
+        shape
+        for shape in selected_shapes(state)
+        if not isinstance(shape, ImageShape) and transforms.outline(shape) is not None
+    ]
+
+
+def selection_has_image(state: AppState) -> bool:
+    return any(isinstance(shape, ImageShape) for shape in selected_shapes(state))
+
+
 def can_combine(state: AppState) -> bool:
-    return sum(transforms.outline(shape) is not None for shape in selected_shapes(state)) >= 2
+    return len(combinable_shapes(state)) >= 2
 
 
 def can_object_to_path(state: AppState) -> bool:

@@ -32,6 +32,8 @@ WINDOW_COMMANDS = {
     "file.open": N_("&Open…"),
     "file.save": N_("&Save"),
     "file.save_as": N_("Save &As…"),
+    "file.place_image": N_("&Place Image…"),
+    "file.place_reference": N_("Place as Re&ference…"),
     "file.export_png": N_("&Export PNG…"),
     "file.quit": N_("&Quit"),
     "edit.cut": N_("Cu&t"),
@@ -40,6 +42,7 @@ WINDOW_COMMANDS = {
     "edit.paste_in_place": N_("Paste &in Place"),
     "view.zoom_fit": N_("Zoom to &Fit"),
     "edit.settings": N_("&Settings…"),
+    "image.replace": N_("Re&place Image…"),
     "view.grid_settings": N_("Grid Se&ttings…"),
     "help.about": N_("&About PressToShape"),
 }
@@ -49,6 +52,9 @@ KEYMAP: dict[str, Binding] = {
     "file.open": Binding(Keys.Open, icons.OPEN),
     "file.save": Binding(Keys.Save, icons.SAVE),
     "file.save_as": Binding(Keys.SaveAs),
+    "file.place_image": Binding(icon=icons.IMAGE_PLACE),
+    "image.replace": Binding(icon=icons.IMAGE_REPLACE),
+    "view.show_references": Binding(icon=icons.IMAGE_REFERENCES_HIDDEN),
     "file.export_png": Binding("Ctrl+Shift+E"),
     "file.quit": Binding(Keys.Quit),
     "edit.undo": Binding(Keys.Undo, icons.UNDO),
@@ -131,6 +137,14 @@ MASK_IDS: list[str | None | tuple[str, list[str]]] = [
     "object.mask.type_luminance",
     "object.mask.type_alpha",
 ]
+IMAGE_IDS: list[str | None] = [
+    "image.reset_size",
+    "image.fit_page",
+    "image.replace",
+    None,
+    "image.make_reference",
+    "image.make_artwork",
+]
 ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lower_to_bottom"]
 ALIGN_IDS = [
     "object.align_left",
@@ -156,7 +170,20 @@ RECENT_MENU_TITLE = N_("Open &Recent")
 MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
     (
         N_("&File"),
-        ["file.new", "file.open", RECENT_MENU, "file.save", "file.save_as", None, "file.export_png", None, "file.quit"],
+        [
+            "file.new",
+            "file.open",
+            RECENT_MENU,
+            "file.save",
+            "file.save_as",
+            None,
+            "file.place_image",
+            "file.place_reference",
+            None,
+            "file.export_png",
+            None,
+            "file.quit",
+        ],
     ),
     (
         N_("&Edit"),
@@ -188,6 +215,8 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
             "object.mask.to_mask",
             "object.mask.to_content",
             None,
+            (N_("&Picture"), IMAGE_IDS),
+            None,
             "object.hide",
             "object.show_all",
             "object.lock",
@@ -216,6 +245,7 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
             "view.lock_guides",
             "view.clear_guides",
             "view.grid_settings",
+            "view.show_references",
             None,
             "view.snapping",
             (N_("S&nap To"), SNAP_TARGET_IDS),

@@ -35,6 +35,7 @@ coords-transformattr-04-f
 coords-transformattr-05-f
 coords-units-02-b
 coords-units-03-b
+coords-viewattr-02-b
 coords-viewattr-03-b
 linking-a-04-t
 linking-a-05-t
@@ -54,6 +55,7 @@ masking-path-02-b
 masking-path-05-f
 masking-path-08-b
 masking-path-10-b
+masking-path-11-b
 masking-path-13-f
 masking-path-14-f
 metadata-example-01-t
@@ -150,7 +152,16 @@ struct-frag-05-t
 struct-frag-06-t
 struct-group-02-b
 struct-group-01-t
+struct-image-01-t
+struct-image-02-b
+struct-image-04-t
+struct-image-06-t
+struct-image-07-t
+struct-image-08-t
+struct-image-10-t
 struct-svg-03-f
+struct-symbol-01-b
+struct-use-01-t
 struct-use-03-t
 struct-use-10-f
 struct-use-11-f
@@ -173,6 +184,10 @@ text-text-11-t
 text-tselect-01-b
 types-basic-01-f
 ~masking-mask-01-b  # the suite's image uses an SVG font we don't read; gradient, uniform and text masks match resvg
+~struct-image-03-t  # the suite's image applies the PNG gamma value, which neither we nor resvg do; the grey ramp matches resvg
+~struct-image-09-t  # the suite's image applies the PNG gamma value, which neither we nor resvg do; the toucan matches resvg
+~struct-image-13-f  # the suite's image is one pixel taller than the page; every PNG type is drawn and matches resvg
+~struct-image-15-f  # the suite's image paints the PNG bKGD background hint into the transparent cells; we (like resvg and browsers) leave them transparent
 ~styling-pres-03-f  # the suite's image is blank (outdated); resvg draws the green rectangle the test asks for
 ~struct-use-09-b  # the suite's image shows thin red lines (an old failing state); resvg draws the five coloured rectangles the test asks for
 ~text-ws-01-t  # the suite's image lacks the draft banner (outdated reference); resvg draws it, text matches
@@ -181,9 +196,12 @@ types-basic-01-f
 # Reviewed: they match by score, but not by eye. Remove the "!" line and list the test once it's right.
 !color-prop-04-t  # black: system colours (the platform palette) are not supported
 !color-prop-05-t  # red: `color` on the element wins (SVG 2, as resvg); the SVG 1.1 reference shows the inherited lime
-!conform-viewers-03-f  # image left out (Level 5)
+!conform-viewers-03-f  # script-driven: the reference shows the picture a script adds; without it (as resvg) the page is blank
 !coords-units-01-b  # first two groups right; the width/height group uses patterns (pattern spec)
+!coords-viewattr-04-f  # SVG files as images are left out
+!filters-conv-01-f  # matches only because the filters are dropped, and only just (Level 8)
 !filters-gauss-03-f  # matches only because the filter is dropped (Level 8)
+!masking-path-06-b  # the SVG image is left out and the `clip` property on the raster image is not applied
 !masking-path-09-b  # script-driven: the reference shows the green a script sets; without it (as resvg) the test draws red
 !masking-path-12-f  # script-driven: the reference shows the green a script sets; without it (as resvg) the test draws red
 !painting-marker-01-f  # markers missing (Level 6)
@@ -200,12 +218,17 @@ types-basic-01-f
 !pservers-grad-08-b  # gradients right; the suite's SVG font makes the text differ
 !pservers-pattern-03-f  # patterns painted grey, covered by other shapes (pattern spec)
 !struct-group-03-t  # colours right now; font family, style and weight columns still plain (Level 7)
-!struct-image-10-t  # images left out (Level 5)
-!struct-image-18-f  # red instead of green (Level 5)
+!struct-image-05-b  # an SVG file as image is left out
+!struct-image-11-b  # SVG files as images are left out
+!struct-image-12-b  # SVG files as images are left out
+!struct-image-14-f  # the suite's image is 481 px wide, so it can't be compared; the interlaced PNGs are drawn like the others
+!struct-image-16-f  # an SVG file as image is left out; the test wants green
+!struct-image-17-b  # an SVG file as image is left out
+!struct-image-18-f  # an SVG file as image is left out; the test wants green
+!struct-image-19-f  # SVG files as images are left out
 !struct-svg-01-f  # script-driven: the reference shows values the script writes, which we don't run
 !struct-svg-02-f  # script-driven: empty without the script, so a match proves nothing
-!struct-use-01-t  # <image> through <use> left out (Level 5)
-!struct-use-08-b  # references into another file and <image> (Level 5)
+!struct-use-08-b  # references into another file and svg/image elements through use are not supported
 !struct-use-14-f  # script-driven; the reference shows the failing state
 !struct-use-15-f  # script-driven; the reference shows the failing state
 !styling-css-05-b  # colours right now; the italic word is upright (Level 7)

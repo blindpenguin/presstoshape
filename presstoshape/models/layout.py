@@ -43,3 +43,4 @@ class ViewOptions:
     show_grid: bool = False
     show_guides: bool = True
     lock_guides: bool = False
+    show_references: bool = True

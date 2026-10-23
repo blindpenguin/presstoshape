@@ -7,16 +7,20 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt
-from PySide6.QtGui import QFont, QIcon
+from PySide6.QtGui import QFont, QIcon, QImage, QPainter, QPixmap
 
 from presstoshape import icons
 from presstoshape.editing import object_tree
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState, Layer
-from presstoshape.models.shapes import GroupShape, Shape, children_of
+from presstoshape.models.shapes import GroupShape, ImageShape, Shape, children_of
+from presstoshape.render.images import thumbnail
 from presstoshape.views.icon_engine import icon
 
 NAME_COLUMN, EYE_COLUMN, LOCK_COLUMN = 0, 1, 2
+# Edge of the picture thumbnails made for image rows, in pixels (the view scales them to its icon size).
+_THUMBNAIL_PX = 48
+_DIMMED_OPACITY = 0.4
 
 _TYPE_ICONS = {
     "rect": icons.OBJECT_RECT,
@@ -27,6 +31,8 @@ _TYPE_ICONS = {
     "composite": icons.OBJECT_COMPOSITE,
     "clip": icons.OBJECT_CLIP,
     "mask": icons.OBJECT_MASK,
+    "image": icons.OBJECT_IMAGE,
+    "reference": icons.OBJECT_IMAGE,
 }
 
 Index = QModelIndex | QPersistentModelIndex
@@ -74,6 +80,7 @@ class ObjectTreeModel(QAbstractItemModel):
         # Called with (layer index, new name) when a layer name is edited in the view.
         self.on_rename: Callable[[int, str], None] | None = None
         self._icons: dict[tuple, QIcon] = {}
+        self._thumbnails: dict[tuple[str, int, bool], QIcon | None] = {}
         self._active_layer = 0
         # Set when rows were added, removed or reset; the panel then selects the selected objects' rows again.
         self.rows_replaced = False
@@ -313,6 +320,10 @@ class ObjectTreeModel(QAbstractItemModel):
             if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
                 return node.name if node.shape is None else object_tree.object_label(node.shape, self._role(node))
             if role == Qt.ItemDataRole.DecorationRole and node.shape is not None:
+                if isinstance(node.shape, ImageShape):
+                    found = self._thumbnail(node.shape, node.shown_hidden)
+                    if found is not None:
+                        return found
                 return self._icon(_TYPE_ICONS[object_tree.object_type(node.shape)], node.shown_hidden)
             if role == Qt.ItemDataRole.FontRole and node.shape is None and node.layer_index == self._active_layer:
                 return self._bold
@@ -337,11 +348,34 @@ class ObjectTreeModel(QAbstractItemModel):
         self.on_rename(node.layer_index, str(value))
         return True
 
+    def _thumbnail(self, shape: ImageShape, dimmed: bool) -> QIcon | None:
+        """The picture as a small icon, made the first time its row is shown and kept by digest; None when the
+        picture won't decode (the row then shows the type icon)."""
+        key = (shape.data.digest, _THUMBNAIL_PX, dimmed)
+        if key not in self._thumbnails:
+            made = thumbnail(shape.data, _THUMBNAIL_PX)
+            self._thumbnails[key] = None if made is None else _thumbnail_icon(*made, dimmed)
+        return self._thumbnails[key]
+
     def _icon(self, path, dimmed: bool) -> QIcon:
         key = (path, dimmed)
         if key not in self._icons:
             self._icons[key] = icon(path, dimmed, checkable=False)
         return self._icons[key]
+
+
+def _thumbnail_icon(pixels: bytes, width: int, height: int, dimmed: bool) -> QIcon:
+    image = QImage(pixels, width, height, width * 4, QImage.Format.Format_RGBA8888_Premultiplied).copy()
+    pixmap = QPixmap.fromImage(image)
+    if dimmed:
+        faded = QPixmap(pixmap.size())
+        faded.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(faded)
+        painter.setOpacity(_DIMMED_OPACITY)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+        pixmap = faded
+    return QIcon(pixmap)
 
 
 _FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
