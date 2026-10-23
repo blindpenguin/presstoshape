@@ -45,11 +45,21 @@ linking-frag-01-f
 linking-uri-01-b
 linking-uri-02-b
 linking-uri-03-t
+masking-filter-01-f
+masking-intro-01-f
+masking-mask-02-f
 masking-opacity-01-b
+masking-path-01-b
+masking-path-02-b
+masking-path-05-f
+masking-path-08-b
+masking-path-10-b
 masking-path-13-f
+masking-path-14-f
 metadata-example-01-t
 painting-control-01-f
 painting-control-02-f
+painting-control-05-f
 painting-control-03-f
 painting-control-04-f
 painting-control-06-f
@@ -162,6 +172,7 @@ text-text-10-t
 text-text-11-t
 text-tselect-01-b
 types-basic-01-f
+~masking-mask-01-b  # the suite's image uses an SVG font we don't read; gradient, uniform and text masks match resvg
 ~styling-pres-03-f  # the suite's image is blank (outdated); resvg draws the green rectangle the test asks for
 ~struct-use-09-b  # the suite's image shows thin red lines (an old failing state); resvg draws the five coloured rectangles the test asks for
 ~text-ws-01-t  # the suite's image lacks the draft banner (outdated reference); resvg draws it, text matches
@@ -173,8 +184,10 @@ types-basic-01-f
 !conform-viewers-03-f  # image left out (Level 5)
 !coords-units-01-b  # first two groups right; the width/height group uses patterns (pattern spec)
 !filters-gauss-03-f  # matches only because the filter is dropped (Level 8)
-!masking-path-12-f  # red square instead of green: clip path ignored (Level 4)
+!masking-path-09-b  # script-driven: the reference shows the green a script sets; without it (as resvg) the test draws red
+!masking-path-12-f  # script-driven: the reference shows the green a script sets; without it (as resvg) the test draws red
 !painting-marker-01-f  # markers missing (Level 6)
+!painting-marker-02-f  # markers missing (Level 6)
 !painting-marker-03-f  # markers missing (Level 6)
 !painting-marker-04-f  # markers missing (Level 6)
 !painting-marker-06-f  # markers missing (Level 6)
