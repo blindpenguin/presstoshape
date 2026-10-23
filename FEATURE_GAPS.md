@@ -1,6 +1,6 @@
 # Feature gaps and SVG conformance
 
-Internal notes, not committed (excluded via `.git/info/exclude`). Two tracks in one list:
+For information: where PressToShape stands and what is still missing. Two tracks in one list:
 
 - **Editor features** compared with Inkscape, Illustrator and Affinity Designer (as of 2026-10-18, updated 2026-10-20).
 - **SVG conformance** measured against the W3C SVG 1.1 (Second Edition) test suite (2026-10-21).
