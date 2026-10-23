@@ -30,6 +30,12 @@ def window(tmp_path):
     window.close_without_prompt()
 
 
+@pytest.fixture(autouse=True)
+def empty_clipboard():
+    yield
+    QApplication.clipboard().clear()
+
+
 @pytest.fixture
 def messages(monkeypatch):
     shown = []
