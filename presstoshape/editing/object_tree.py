@@ -10,6 +10,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
     GroupShape,
+    Masking,
     PathShape,
     RectShape,
     Shape,
@@ -17,7 +18,8 @@ from presstoshape.models.shapes import (
     children_of,
 )
 
-ObjectType = Literal["rect", "ellipse", "path", "text", "group", "composite"]
+ObjectType = Literal["rect", "ellipse", "path", "text", "group", "composite", "clip", "mask"]
+ChildRole = Literal["mask", "content"]
 
 _LABEL_LENGTH = 30
 
@@ -32,14 +34,30 @@ def object_type(shape: Shape) -> ObjectType:
             return "path"
         case TextShape():
             return "text"
-        case GroupShape():
+        case GroupShape(masking=None):
             return "group"
+        case GroupShape(masking=Masking(type="clip")):
+            return "clip"
+        case GroupShape():
+            return "mask"
         case CompositeShape():
             return "composite"
 
 
-def object_label(shape: Shape) -> str:
-    """The type's name, or for text its first line, shortened."""
+def child_role(parent: Shape, child_id: int) -> ChildRole | None:
+    """Which side of a masked group a child is on; None for the children of anything else."""
+    if not isinstance(parent, GroupShape) or parent.masking is None:
+        return None
+    return "mask" if parent.masking.is_mask(child_id) else "content"
+
+
+def object_label(shape: Shape, role: ChildRole | None = None) -> str:
+    """The type's name, or for text its first line, shortened; a mask object of a masked group says so."""
+    label = _type_label(shape)
+    return _("{object} (mask)").format(object=label) if role == "mask" else label
+
+
+def _type_label(shape: Shape) -> str:
     match shape:
         case TextShape(text=text):
             line = text.strip().split("\n", 1)[0].strip()
@@ -52,8 +70,12 @@ def object_label(shape: Shape) -> str:
             return _("Ellipse")
         case PathShape():
             return _("Path")
-        case GroupShape():
+        case GroupShape(masking=None):
             return _("Group")
+        case GroupShape(masking=Masking(type="clip")):
+            return _("Clipping Mask")
+        case GroupShape():
+            return _("Opacity Mask")
         case CompositeShape():
             return _("Composite")
 

@@ -13,7 +13,7 @@ from presstoshape import icons
 from presstoshape.editing import object_tree
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState, Layer
-from presstoshape.models.shapes import Shape, children_of
+from presstoshape.models.shapes import GroupShape, Shape, children_of
 from presstoshape.views.icon_engine import icon
 
 NAME_COLUMN, EYE_COLUMN, LOCK_COLUMN = 0, 1, 2
@@ -25,9 +25,15 @@ _TYPE_ICONS = {
     "text": icons.OBJECT_TEXT,
     "group": icons.OBJECT_GROUP,
     "composite": icons.OBJECT_COMPOSITE,
+    "clip": icons.OBJECT_CLIP,
+    "mask": icons.OBJECT_MASK,
 }
 
 Index = QModelIndex | QPersistentModelIndex
+
+
+def _masking_of(shape: Shape):
+    return shape.masking if isinstance(shape, GroupShape) else None
 
 
 @dataclass(eq=False)
@@ -173,11 +179,26 @@ class ObjectTreeModel(QAbstractItemModel):
             inherited_locked,
         ):
             return False
+        previous = node.shape
         node.shape = shape
         node.hidden, node.locked = shape.hidden, shape.locked
         node.inherited_hidden, node.inherited_locked = inherited_hidden, inherited_locked
         self._sync(node, children_of(shape))
+        if previous is not None and _masking_of(previous) != _masking_of(shape) and node.shapes:
+            # Which children are mask objects changed without the children themselves changing.
+            parent_index = self._index_of(node)
+            last_row = len(node.shapes) - 1
+            self.dataChanged.emit(
+                self.index(0, NAME_COLUMN, parent_index), self.index(last_row, NAME_COLUMN, parent_index)
+            )
         return True
+
+    @staticmethod
+    def _role(node: TreeNode) -> object_tree.ChildRole | None:
+        parent = node.parent
+        if parent is None or parent.shape is None or node.shape is None:
+            return None
+        return object_tree.child_role(parent.shape, node.shape.id)
 
     def _changed(self, first: TreeNode, last: TreeNode) -> None:
         """Rows `first` to `last` of one parent changed."""
@@ -290,7 +311,7 @@ class ObjectTreeModel(QAbstractItemModel):
         column = index.column()
         if column == NAME_COLUMN:
             if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
-                return node.name if node.shape is None else object_tree.object_label(node.shape)
+                return node.name if node.shape is None else object_tree.object_label(node.shape, self._role(node))
             if role == Qt.ItemDataRole.DecorationRole and node.shape is not None:
                 return self._icon(_TYPE_ICONS[object_tree.object_type(node.shape)], node.shown_hidden)
             if role == Qt.ItemDataRole.FontRole and node.shape is None and node.layer_index == self._active_layer:

@@ -70,3 +70,22 @@ def test_inherited_flags_come_from_the_layer_and_containers():
     assert inherited_flags(state, locate(state, 10)) == (False, False)
     state.document.layers[0].locked = True
     assert inherited_flags(state, locate(state, 1)) == (False, True)
+
+
+def test_masked_groups_have_their_own_types_labels_and_child_roles():
+    from presstoshape.editing.object_tree import child_role
+    from presstoshape.models.shapes import Masking
+
+    clip = GroupShape(1, (_rect(2), _rect(3)), masking=Masking("clip", (3,)))
+    opacity = GroupShape(4, (_rect(5),), masking=Masking("alpha", ()))
+    plain = GroupShape(6, (_rect(7),))
+    assert [object_type(shape) for shape in (clip, opacity, plain)] == ["clip", "mask", "group"]
+    assert [object_label(shape) for shape in (clip, opacity, plain)] == ["Clipping Mask", "Opacity Mask", "Group"]
+    assert [child_role(clip, 2), child_role(clip, 3), child_role(plain, 7), child_role(_rect(8), 8)] == [
+        "content",
+        "mask",
+        None,
+        None,
+    ]
+    assert object_label(_rect(3), "mask") == "Rectangle (mask)"
+    assert object_label(_rect(2), "content") == "Rectangle"

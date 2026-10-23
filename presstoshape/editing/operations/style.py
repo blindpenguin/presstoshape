@@ -6,7 +6,7 @@ from typing import Any
 from presstoshape.editing.operations._document import map_selected
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
-from presstoshape.models.shapes import GroupShape, Paint, Shape, Style, sanitized
+from presstoshape.models.shapes import GroupShape, Paint, Shape, Style, content_children, sanitized
 
 # Undo label per style field.
 _LABELS = {
@@ -60,7 +60,7 @@ def restyled(style: Style, **changes: Any) -> Style:
 
 def restyle_shape(shape: Shape, **changes: Any) -> Shape:
     """`shape` with style `changes`. A group takes `opacity` as its own and hands every other field to the
-    shapes inside it, as Inkscape and Illustrator do."""
+    shapes inside it, as Inkscape and Illustrator do; the mask objects of a masked group keep their look."""
     if not isinstance(shape, GroupShape):
         return replace(shape, style=restyled(shape.style, **changes))
     updated = shape
@@ -68,7 +68,14 @@ def restyle_shape(shape: Shape, **changes: Any) -> Shape:
         updated = replace(updated, opacity=sanitized(Style(opacity=changes["opacity"])).opacity)
     for_children = {key: value for key, value in changes.items() if key != "opacity"}
     if for_children:
-        updated = replace(updated, children=tuple(restyle_shape(child, **for_children) for child in updated.children))
+        masking = updated.masking
+        updated = replace(
+            updated,
+            children=tuple(
+                child if masking is not None and masking.is_mask(child.id) else restyle_shape(child, **for_children)
+                for child in updated.children
+            ),
+        )
     return updated
 
 
@@ -83,7 +90,7 @@ def display_style(shape: Shape) -> Style:
 
 
 def _first_leaf(group: GroupShape) -> Shape | None:
-    for child in group.children:
+    for child in content_children(group):
         leaf = _first_leaf(child) if isinstance(child, GroupShape) else child
         if leaf is not None:
             return leaf

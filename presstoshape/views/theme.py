@@ -13,6 +13,7 @@ SELECTION = "#2563eb"
 GUIDE = "#06b6d4"
 GRID = "#94a3b8"
 SNAP = "#f97316"
+MASK_OUTLINE = "#a855f7"
 
 
 def apply(app: QApplication) -> None:

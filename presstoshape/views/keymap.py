@@ -122,6 +122,15 @@ COMPOSITE_IDS: list[str | None | tuple[str, list[str]]] = [
     "path.release_composite",
     "path.flatten_composite",
 ]
+CLIP_IDS = ["object.clip.make", "object.clip.release"]
+MASK_IDS: list[str | None | tuple[str, list[str]]] = [
+    "object.mask.make",
+    "object.mask.release",
+    None,
+    "object.mask.invert",
+    "object.mask.type_luminance",
+    "object.mask.type_alpha",
+]
 ARRANGE_IDS = ["object.raise_to_top", "object.raise", "object.lower", "object.lower_to_bottom"]
 ALIGN_IDS = [
     "object.align_left",
@@ -173,6 +182,11 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
         [
             "object.group",
             "object.ungroup",
+            None,
+            (N_("&Clipping Mask"), CLIP_IDS),
+            (N_("Opacity &Mask"), MASK_IDS),
+            "object.mask.to_mask",
+            "object.mask.to_content",
             None,
             "object.hide",
             "object.show_all",
