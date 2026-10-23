@@ -21,6 +21,7 @@ class CanvasColors:
     guide: str = "#06b6d4"
     grid: str = "#64748b"
     snap: str = "#f97316"
+    mask_outline: str = "#a855f7"
 
 
 @dataclass(frozen=True)

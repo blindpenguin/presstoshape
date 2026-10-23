@@ -11,6 +11,7 @@ from presstoshape.render.paths import PathCache, to_skia_matrix
 from presstoshape.render.scene import (
     draw_composite_parts,
     draw_dim,
+    draw_mask_outlines,
     draw_shape,
     edit_mode_outer,
     live_container,
@@ -174,3 +175,5 @@ class EditModeDrawing:
             draw_composite_parts(canvas, live_container(innermost, overlay), zoom, colors)
         else:
             self._inside.draw_shapes(canvas, innermost.children, overlay.moving, overlay.matrix, overlay.live)
+            if innermost.masking is not None:
+                draw_mask_outlines(canvas, live_container(innermost, overlay), zoom, colors, self._cache)

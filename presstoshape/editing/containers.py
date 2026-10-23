@@ -10,7 +10,15 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
 
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import CompositeShape, ContainerShape, GroupShape, PartMode, Shape, children_of
+from presstoshape.models.shapes import (
+    CompositeShape,
+    ContainerShape,
+    GroupShape,
+    PartMode,
+    Shape,
+    children_of,
+    sanitized_masking,
+)
 
 
 def edit_chain(state: AppState) -> list[ContainerShape]:
@@ -170,7 +178,10 @@ def with_children(
     """`container` with new children; in a Composite, existing parts keep their mode and new ones get `modes[id]`
     or `default_mode`."""
     if isinstance(container, GroupShape):
-        return replace(container, children=tuple(children))
+        masking = container.masking
+        if masking is not None:
+            masking = sanitized_masking(masking, (child.id for child in children))
+        return replace(container, children=tuple(children), masking=masking)
     known = dict(zip((part.id for part in container.parts), container.modes))
     if modes:
         known.update(modes)

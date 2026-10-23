@@ -5,14 +5,23 @@ from collections.abc import Sequence
 import skia
 
 from presstoshape.geometry.boxes import Rect
-from presstoshape.models.shapes import CompositeShape, GroupShape, Shape
+from presstoshape.models.shapes import CompositeShape, GroupShape, Shape, content_children
 from presstoshape.render.paths import PathCache
 
 
 def _regions(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.Path]:
-    """Pickable regions of a shape; a group's are its children's."""
+    """Pickable regions of a shape; a group's are its content's, cut by its clip: mask objects are not pickable."""
     if isinstance(shape, GroupShape):
-        return [region for child in shape.children if not child.hidden for region in _regions(child, cache, tolerance)]
+        regions = [
+            region
+            for child in content_children(shape)
+            if not child.hidden
+            for region in _regions(child, cache, tolerance)
+        ]
+        if shape.masking is not None and shape.masking.type == "clip":
+            operation = skia.PathOp.kDifference_PathOp if shape.masking.inverted else skia.PathOp.kIntersect_PathOp
+            regions = [skia.Op(region, cache.clip(shape), operation) or region for region in regions]
+        return regions
     return _area(shape, cache, tolerance)
 
 
@@ -21,7 +30,10 @@ def _contains(shape: Shape, cache: PathCache, x: float, y: float, tolerance: flo
     if not (b.fLeft - tolerance <= x <= b.fRight + tolerance and b.fTop - tolerance <= y <= b.fBottom + tolerance):
         return False
     if isinstance(shape, GroupShape):
-        return any(_contains(child, cache, x, y, tolerance) for child in shape.children if not child.hidden)
+        if shape.masking is not None and shape.masking.type == "clip":
+            if cache.clip(shape).contains(x, y) == shape.masking.inverted:
+                return False
+        return any(_contains(child, cache, x, y, tolerance) for child in content_children(shape) if not child.hidden)
     return any(region.contains(x, y) for region in _area(shape, cache, tolerance))
 
 

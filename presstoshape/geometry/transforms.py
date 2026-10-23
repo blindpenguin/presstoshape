@@ -14,6 +14,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
     GroupShape,
+    Masking,
     PathShape,
     RectShape,
     Segment,
@@ -75,12 +76,27 @@ def _apply_affine(segments: tuple[Segment, ...], m: Affine) -> tuple[Segment, ..
     return transform_segments(segments, lambda x, y: affine.apply(m, x, y))
 
 
+def _masking_through(masking: Masking | None, m: Affine) -> Masking | None:
+    """The mask region follows its group; under a rotation or skew it becomes the box around the turned region."""
+    if masking is None or masking.region is None:
+        return masking
+    x, y, width, height = masking.region
+    corners = [affine.apply(m, px, py) for px, py in ((x, y), (x + width, y), (x, y + height), (x + width, y + height))]
+    left, right = min(c[0] for c in corners), max(c[0] for c in corners)
+    top, bottom = min(c[1] for c in corners), max(c[1] for c in corners)
+    return replace(masking, region=(left, top, right - left, bottom - top))
+
+
 def translate(shape: Shape, dx: float, dy: float) -> Shape:
     match shape:
         case CompositeShape():
             return replace(shape, parts=tuple(translate(part, dx, dy) for part in shape.parts))
         case GroupShape():
-            return replace(shape, children=tuple(translate(child, dx, dy) for child in shape.children))
+            return replace(
+                shape,
+                children=tuple(translate(child, dx, dy) for child in shape.children),
+                masking=_masking_through(shape.masking, (1.0, 0.0, 0.0, 1.0, dx, dy)),
+            )
         case PathShape():
             return replace(shape, segments=transform_segments(shape.segments, lambda x, y: (x + dx, y + dy)))
         case RectShape() | TextShape():
@@ -123,7 +139,7 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0, scale_radi
         return replace(shape, parts=tuple(transform_shape(part, m, min_extent, scale_radii) for part in shape.parts))
     if isinstance(shape, GroupShape):
         children = tuple(transform_shape(child, m, min_extent, scale_radii) for child in shape.children)
-        return replace(shape, children=children)
+        return replace(shape, children=children, masking=_masking_through(shape.masking, m))
     total = affine.compose(m, shape.transform)
     if isinstance(shape, PathShape):
         return replace(shape, segments=_apply_affine(shape.segments, total), transform=IDENTITY_TRANSFORM)

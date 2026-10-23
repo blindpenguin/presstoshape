@@ -1,6 +1,7 @@
 """Immutable shape/geometry data. Frozen so undo snapshots can share shapes and views can diff by equality."""
 
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from typing import Literal, get_args
@@ -275,10 +276,29 @@ class CompositeShape:
     locked: bool = False
 
 
+MaskType = Literal["clip", "luminance", "alpha"]
+
+
+@dataclass(frozen=True)
+class Masking:
+    """What turns a group into a clipping or opacity mask: the children listed in `mask_ids` are the mask objects,
+    all other children the content. `region` (x, y, width, height in the group's space) is the SVG mask
+    rectangle for opacity masks; None cuts nothing."""
+
+    type: MaskType
+    mask_ids: tuple[int, ...]
+    inverted: bool = False
+    region: tuple[float, float, float, float] | None = None
+
+    def is_mask(self, shape_id: int) -> bool:
+        return shape_id in self.mask_ids
+
+
 @dataclass(frozen=True)
 class GroupShape:
     """Shapes kept together as one object; each child keeps its own style. Drawn as its children, composited
-    together with `opacity` when that is below 1. Has no paint of its own."""
+    together with `opacity` when that is below 1. Has no paint of its own. With `masking`, the content is clipped
+    or masked by the mask objects among the children."""
 
     id: int
     children: tuple["Shape", ...]
@@ -287,6 +307,7 @@ class GroupShape:
     transform: Transform = IDENTITY_TRANSFORM
     hidden: bool = False
     locked: bool = False
+    masking: Masking | None = None
 
 
 Shape = RectShape | EllipseShape | PathShape | TextShape | CompositeShape | GroupShape
@@ -301,3 +322,34 @@ def children_of(shape: "Shape") -> tuple["Shape", ...]:
     if isinstance(shape, GroupShape):
         return shape.children
     return ()
+
+
+def mask_children(group: GroupShape) -> tuple[Shape, ...]:
+    masking = group.masking
+    return tuple(child for child in group.children if masking is not None and masking.is_mask(child.id))
+
+
+def content_children(group: GroupShape) -> tuple[Shape, ...]:
+    masking = group.masking
+    return tuple(child for child in group.children if masking is None or not masking.is_mask(child.id))
+
+
+def sanitized_masking(masking: Masking, child_ids: Iterable[int]) -> Masking:
+    """`masking` with an unknown type reset to a clip, `mask_ids` cut down to existing children (once each, in
+    child order) and an unusable region dropped."""
+    existing = set(child_ids)
+    seen: set[int] = set()
+    mask_ids = tuple(i for i in masking.mask_ids if i in existing and not (i in seen or seen.add(i)))
+    region = masking.region
+    if region is not None:
+        region = tuple(region)
+        if len(region) != 4 or not all(math.isfinite(v) for v in region) or region[2] < 0 or region[3] < 0:
+            region = None
+        else:
+            region = tuple(float(v) for v in region)
+    return Masking(
+        masking.type if masking.type in get_args(MaskType) else "clip",
+        mask_ids,
+        bool(masking.inverted),
+        region,
+    )

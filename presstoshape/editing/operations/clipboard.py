@@ -14,7 +14,7 @@ from presstoshape.formats.svg import read_shapes_svg, write_shapes_svg
 from presstoshape.geometry import transforms
 from presstoshape.geometry.boxes import Point, Rect
 from presstoshape.i18n import N_, _, ngettext, user_languages
-from presstoshape.models.shapes import GroupShape, PartMode, Shape, TextShape
+from presstoshape.models.shapes import GroupShape, PartMode, Shape, TextShape, content_children
 from presstoshape.render.paths import PathCache
 
 
@@ -160,7 +160,8 @@ def duplicate_and_move(session: Session, dx: float, dy: float) -> None:
 
 
 def _ungrouped(shapes: Sequence[Shape]) -> list[Shape]:
+    """Group children as separate shapes; a masked group gives its content only, as parts can't be masks."""
     result: list[Shape] = []
     for shape in shapes:
-        result.extend(_ungrouped(shape.children) if isinstance(shape, GroupShape) else [shape])
+        result.extend(_ungrouped(content_children(shape)) if isinstance(shape, GroupShape) else [shape])
     return result
