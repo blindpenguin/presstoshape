@@ -102,7 +102,16 @@ Geometry per type:
 | `path` | `segments`: list of `["M", x, y]` (move), `["L", x, y]` (line), `["C", c1x, c1y, c2x, c2y, x, y]` (cubic bezier), `["Z"]` (close). Paths keep an identity transform: transforms are applied to the points. |
 | `text` | `x`, `y` (the anchor point on the baseline), `text` (single line), `font_size` > 0; optional `anchor`: `"start"` (default), `"middle"` or `"end"`, which point of the line sits at `x`, as SVG's `text-anchor` |
 | `composite` | `parts`: list of shapes, bottom to top (may include Composites); `modes`: one per part, each `"add"`, `"subtract"`, `"intersect"` or `"exclude"`. The first part is the base, so its mode is ignored. Composites keep an identity transform; their parts carry the transforms. |
-| `group` | `children`: list of shapes, bottom to top (any type, including groups and Composites), at least one; optional `opacity`, a number from 0 to 1 (default 1), applied to the children flattened together. Groups have no `style` and no `transform`: each child keeps its own, and transforms are applied to the children. |
+| `group` | `children`: list of shapes, bottom to top (any type, including groups and Composites), at least one; optional `opacity`, a number from 0 to 1 (default 1), applied to the children flattened together. Groups have no `style` and no `transform`: each child keeps its own, and transforms are applied to the children. Optional `masking` (see below) turns the group into a clipping or opacity mask. |
+
+`masking` on a group (all keys but `mask` optional):
+
+| Key | Type | Meaning |
+|---|---|---|
+| `mask` | list of ints | Ids of the children that are the mask objects; the other children are the content. May be empty (then the content is not shown). |
+| `type` | string | `"clip"` (default: the content is cut to the fill area of the mask objects), `"luminance"` (the mask objects are drawn like artwork and their luminance times alpha is the content's alpha) or `"alpha"` (their alpha alone). |
+| `inverted` | bool | Optional, written only as `true`: the mask works the other way round. |
+| `region` | list of 4 numbers | Optional, opacity masks only: `x, y, width, height` in the group's space outside which nothing is shown. |
 
 Example (from the sample file):
 
@@ -165,6 +174,7 @@ Undo history and the active tool are not stored.
 | 6 | nightlies from October 2026 | Optional `document.guides` and `document.grid`, and their view state in `state.view`. Version 5 files need no change. |
 | 7 | nightlies from October 2026 | Optional `hidden` and `locked` on shapes, optional `locked` on layers. Version 6 files need no change (everything shown and unlocked). |
 | 8 | nightlies from October 2026 | `style.fill` and `style.stroke` may be a gradient object (`linear` or `radial`) instead of a colour. Version 7 files need no change. |
+| 9 | nightlies from October 2026 | Optional `masking` on groups: the group is a clipping or opacity mask. Version 8 files need no change. |
 
 Rules for changing the format:
 
