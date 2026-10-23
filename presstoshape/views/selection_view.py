@@ -25,6 +25,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
     GroupShape,
+    ImageShape,
     PathShape,
     RectShape,
     Shape,
@@ -35,7 +36,7 @@ from presstoshape.models.shapes import (
 )
 from presstoshape.render.paths import PathCache
 from presstoshape.views.icon_engine import icon
-from presstoshape.views.style_editor import ALL_FIELDS, StyleEditor
+from presstoshape.views.style_editor import ALL_FIELDS, OPACITY, StyleEditor
 from presstoshape.views.unit_fields import LengthSpinBox, font_unit
 from presstoshape.views.widgets import PartModeBox
 
@@ -51,6 +52,7 @@ _GEOMETRY: dict[type, tuple[tuple[str, str, float | None], ...]] = {
         ("ry", N_("Radius Y"), 0.1),
     ),
     TextShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("font_size", N_("Size"), 1.0)),
+    ImageShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("width", N_("W"), 0.1), ("height", N_("H"), 0.1)),
     # The group's bounds, set through transform.set_bounds.
     GroupShape: (("x", N_("X"), None), ("y", N_("Y"), None), ("width", N_("W"), 0.1), ("height", N_("H"), 0.1)),
 }
@@ -62,6 +64,7 @@ _TYPE_NAMES = {
     TextShape: N_("Text"),
     CompositeShape: N_("Composite"),
     GroupShape: N_("Group"),
+    ImageShape: N_("Image"),
 }
 
 _HINT = N_(
@@ -69,7 +72,7 @@ _HINT = N_(
     "Drag handles to scale (Shift keeps proportions, Alt scales from the centre); "
     "drag just outside a corner to rotate (Shift snaps to 15°)."
 )
-_ROTATABLE = (RectShape, EllipseShape, TextShape)
+_ROTATABLE = (RectShape, EllipseShape, TextShape, ImageShape)
 # One below 0 is the "mixed" placeholder of the corner radius (special value text shows at the minimum).
 _MIXED_RADIUS = -1.0
 
@@ -126,6 +129,9 @@ class SelectionOptions(QWidget):
         self._form.addRow(_("Corner radius"), self._radius)
         self._anchor_row, self._anchor_buttons = self._anchor_buttons_row()
         self._form.addRow(_("Alignment"), self._anchor_row)
+        self._image_info = QLabel()
+        self._image_info.setEnabled(False)
+        self._form.addRow(self._image_info)
         layout.addWidget(geometry_box)
         self._geometry = geometry_box
 
@@ -135,6 +141,9 @@ class SelectionOptions(QWidget):
 
         self._style = StyleEditor(ALL_FIELDS, lambda changes: style.set_style(session, **changes))
         layout.addWidget(self._style)
+        # Pictures have an opacity and no other paint.
+        self._image_style = StyleEditor((OPACITY,), lambda changes: style.set_style(session, **changes))
+        layout.addWidget(self._image_style)
         layout.addStretch(1)
 
     def _anchor_buttons_row(self) -> tuple[QWidget, dict[TextAnchor, QToolButton]]:
@@ -180,11 +189,16 @@ class SelectionOptions(QWidget):
             count = len(selected)
             self._heading.setText(ngettext("{count} object", "{count} objects", count).format(count=count))
         self._hint.setVisible(not selected)
-        self._style.setVisible(bool(selected))
+        only_images = bool(selected) and all(isinstance(shape, ImageShape) for shape in selected)
+        self._style.setVisible(bool(selected) and not only_images)
+        self._image_style.setVisible(only_images)
         document = state.document
         self._style.set_unit(document.unit, document.dpi)
         fill_rule_matters = any(_has_open_fill_rule(shape) for shape in selected)
-        self._style.refresh(style.display_style(selected[0]) if selected else Style(), fill_rule_matters)
+        display = style.display_style(selected[0]) if selected else Style()
+        self._style.refresh(display, fill_rule_matters)
+        if only_images:
+            self._image_style.refresh(display)
 
         rows = _GEOMETRY.get(type(single), ())
         show_mode = self._refresh_mode(state, selected)
@@ -200,10 +214,23 @@ class SelectionOptions(QWidget):
             if field in fields:
                 spin.set_px(_field_value(single, field))
         self._refresh_rotation(single)
+        self._refresh_image_info(single, document)
         is_text = isinstance(single, TextShape)
         self._form.setRowVisible(self._text, is_text)
         if is_text and not self._text.hasFocus() and self._text.text() != single.text:
             self._text.setText(single.text)
+
+    def _refresh_image_info(self, single: Shape | None, document: Document) -> None:
+        """Pixel size and resolution of a single picture at its current size."""
+        shown = isinstance(single, ImageShape)
+        self._form.setRowVisible(self._image_info, shown)
+        if shown:
+            ppi = single.data.width * document.dpi / single.width if single.width > 0 else 0
+            self._image_info.setText(
+                _("{width} × {height} px, {ppi} PPI").format(
+                    width=single.data.width, height=single.data.height, ppi=round(ppi)
+                )
+            )
 
     def _refresh_mode(self, state: AppState, selected: list[Shape]) -> bool:
         """Part mode of the selection inside a Composite: its mode, "Base" or "Mixed". False outside edit mode."""

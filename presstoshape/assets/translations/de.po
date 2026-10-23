@@ -8,6 +8,10 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: presstoshape/editing/object_tree.py
+msgid "{object} (reference)"
+msgstr "{object} (Referenz)"
+
+#: presstoshape/editing/object_tree.py
 msgid "{object} (mask)"
 msgstr "{object} (Maske)"
 
@@ -48,6 +52,11 @@ msgstr "Deckkraftmaske"
 #: presstoshape/views/selection_view.py
 msgid "Composite"
 msgstr "Komposit"
+
+#: presstoshape/editing/object_tree.py
+#: presstoshape/views/selection_view.py
+msgid "Image"
+msgstr "Bild"
 
 #: presstoshape/editing/operations/align.py
 msgid "&Left"
@@ -178,6 +187,10 @@ msgid "Exclude"
 msgstr "Ausschließen"
 
 #: presstoshape/editing/operations/booleans.py
+msgid "Images cannot be combined"
+msgstr "Bilder können nicht kombiniert werden"
+
+#: presstoshape/editing/operations/booleans.py
 msgid "Release the mask first"
 msgstr "Zuerst die Maske lösen"
 
@@ -252,6 +265,10 @@ msgid "the SVG holds no shapes"
 msgstr "das SVG enthält keine Formen"
 
 #: presstoshape/editing/operations/clipboard.py
+msgid "images can't be Composite parts"
+msgstr "Bilder können keine Teile eines Verbundobjekts sein"
+
+#: presstoshape/editing/operations/clipboard.py
 msgid "text became a path inside the Composite"
 msgstr "Text wurde im Komposit zum Pfad"
 
@@ -310,6 +327,10 @@ msgstr "Schneiden"
 msgctxt "part mode"
 msgid "Exclude"
 msgstr "Ausschließen"
+
+#: presstoshape/editing/operations/composites.py
+msgid "Images cannot be part of a Composite"
+msgstr "Bilder können nicht Teil eines Verbundobjekts sein"
 
 #: presstoshape/editing/operations/composites.py
 msgid "Make Composite"
@@ -416,6 +437,16 @@ msgstr "{name} gespeichert"
 #: presstoshape/editing/operations/documents.py
 msgid "Saved {name} (view, tool settings and selection are only kept in .p2s files)"
 msgstr "{name} gespeichert (Ansicht, Werkzeugeinstellungen und Auswahl werden nur in .p2s-Dateien gespeichert)"
+
+#: presstoshape/editing/operations/documents.py
+msgid "{count} reference image was not saved to SVG"
+msgid_plural "{count} reference images were not saved to SVG"
+msgstr[0] "{count} Referenzbild wurde nicht als SVG gespeichert"
+msgstr[1] "{count} Referenzbilder wurden nicht als SVG gespeichert"
+
+#: presstoshape/editing/operations/documents.py
+msgid "{message} ({note})"
+msgstr "{message} ({note})"
 
 #: presstoshape/editing/operations/documents.py
 msgid "{message} (no backup of the previous version could be made)"
@@ -527,6 +558,103 @@ msgstr "&Rückgängig"
 msgid "&Redo"
 msgstr "&Wiederholen"
 
+#: presstoshape/editing/operations/images.py
+msgctxt "layer name"
+msgid "Reference"
+msgstr "Referenz"
+
+#: presstoshape/editing/operations/images.py
+msgid "Images can't be placed inside a Composite"
+msgstr "Bilder können nicht in einem Verbundobjekt platziert werden"
+
+#: presstoshape/editing/operations/images.py
+msgid "Nothing to place"
+msgstr "Nichts zu platzieren"
+
+#: presstoshape/editing/operations/images.py
+msgid "Place reference image"
+msgid_plural "Place {count} reference images"
+msgstr[0] "Referenzbild platzieren"
+msgstr[1] "{count} Referenzbilder platzieren"
+
+#: presstoshape/editing/operations/images.py
+msgid "Place image"
+msgid_plural "Place {count} images"
+msgstr[0] "Bild platzieren"
+msgstr[1] "{count} Bilder platzieren"
+
+#: presstoshape/editing/operations/images.py
+msgid "Placed {count} reference image"
+msgid_plural "Placed {count} reference images"
+msgstr[0] "{count} Referenzbild platziert"
+msgstr[1] "{count} Referenzbilder platziert"
+
+#: presstoshape/editing/operations/images.py
+msgid "Placed {count} image"
+msgid_plural "Placed {count} images"
+msgstr[0] "{count} Bild platziert"
+msgstr[1] "{count} Bilder platziert"
+
+#: presstoshape/editing/operations/images.py
+msgid "&Reset Image Size"
+msgstr "Bildgröße &zurücksetzen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Reset image size"
+msgstr "Bildgröße zurücksetzen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Reset the image size"
+msgstr "Bildgröße zurückgesetzt"
+
+#: presstoshape/editing/operations/images.py
+msgid "&Fit Image to Page"
+msgstr "Bild an &Seite anpassen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Fit image to page"
+msgstr "Bild an Seite anpassen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Fitted to the page"
+msgstr "An die Seite angepasst"
+
+#: presstoshape/editing/operations/images.py
+msgid "Make Ref&erence"
+msgstr "Zum &Referenzbild machen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Make reference image"
+msgstr "Zum Referenzbild machen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Made a reference image"
+msgstr "Zum Referenzbild gemacht"
+
+#: presstoshape/editing/operations/images.py
+msgid "Make &Artwork"
+msgstr "Zum &Kunstwerk machen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Make image artwork"
+msgstr "Bild zum Kunstwerk machen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Made the image artwork"
+msgstr "Bild zum Kunstwerk gemacht"
+
+#: presstoshape/editing/operations/images.py
+msgid "Select an image to replace"
+msgstr "Wähle ein Bild zum Ersetzen aus"
+
+#: presstoshape/editing/operations/images.py
+msgid "Replace image"
+msgstr "Bild ersetzen"
+
+#: presstoshape/editing/operations/images.py
+msgid "Replaced the image"
+msgstr "Bild ersetzt"
+
 #: presstoshape/editing/operations/layers.py
 #: presstoshape/views/layers_view.py
 msgid "Add layer"
@@ -572,6 +700,10 @@ msgstr "Die Objekte müssen in derselben Ebene oder Gruppe liegen"
 #: presstoshape/editing/operations/masks.py
 msgid "&Make Clipping Mask"
 msgstr "&Schnittmaske erstellen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "An image cannot be a clipping path"
+msgstr "Ein Bild kann kein Schnittpfad sein"
 
 #: presstoshape/editing/operations/masks.py
 msgid "Make Clipping Mask"
@@ -1072,6 +1204,18 @@ msgid "Guides unlocked"
 msgstr "Hilfslinien entsperrt"
 
 #: presstoshape/editing/operations/view.py
+msgid "Show Referen&ces"
+msgstr "Referenz&bilder anzeigen"
+
+#: presstoshape/editing/operations/view.py
+msgid "Reference images shown"
+msgstr "Referenzbilder angezeigt"
+
+#: presstoshape/editing/operations/view.py
+msgid "Reference images hidden"
+msgstr "Referenzbilder ausgeblendet"
+
+#: presstoshape/editing/operations/view.py
 msgid "&Snapping"
 msgstr "Einras&ten"
 
@@ -1187,6 +1331,30 @@ msgstr "Rückgängig gemacht"
 msgid "Redo"
 msgstr "Wiederholt"
 
+#: presstoshape/formats/clipboard.py
+msgid "A picture could not be copied and shows as a placeholder."
+msgstr "Ein Bild konnte nicht kopiert werden und erscheint als Platzhalter."
+
+#: presstoshape/formats/image_info.py
+msgid "{name}: the file is empty."
+msgstr "{name}: Die Datei ist leer."
+
+#: presstoshape/formats/image_info.py
+msgid "{name}: this is not a PNG, JPEG, WebP or GIF image."
+msgstr "{name}: Das ist kein PNG-, JPEG-, WebP- oder GIF-Bild."
+
+#: presstoshape/formats/image_info.py
+msgid "{name}: the image is damaged."
+msgstr "{name}: Das Bild ist beschädigt."
+
+#: presstoshape/formats/image_info.py
+msgid "{name}: the file is larger than 64 MiB."
+msgstr "{name}: Die Datei ist größer als 64 MiB."
+
+#: presstoshape/formats/image_info.py
+msgid "{name}: the image has more than 100 million pixels."
+msgstr "{name}: Das Bild hat mehr als 100 Millionen Pixel."
+
 #: presstoshape/formats/p2s.py
 msgid "should be the id of a child"
 msgstr "sollte die ID eines Kindobjekts sein"
@@ -1248,6 +1416,10 @@ msgid "should be a path segment like [\"L\", x, y]"
 msgstr "sollte ein Pfadsegment wie [\"L\", x, y] sein"
 
 #: presstoshape/formats/p2s.py
+msgid "A picture is missing or damaged and shows as a placeholder."
+msgstr "Ein Bild fehlt oder ist beschädigt und erscheint als Platzhalter."
+
+#: presstoshape/formats/p2s.py
 msgid "should not be empty"
 msgstr "sollte nicht leer sein"
 
@@ -1258,6 +1430,14 @@ msgstr "sollte Teile und je Teil einen Modus haben"
 #: presstoshape/formats/p2s.py
 msgid "is an unknown shape type {type}"
 msgstr "ist ein unbekannter Formtyp {type}"
+
+#: presstoshape/formats/p2s.py
+msgid "should be a picture digest"
+msgstr "sollte die Prüfsumme eines Bildes sein"
+
+#: presstoshape/formats/p2s.py
+msgid "should be an alignment like 'xMidYMid slice'"
+msgstr "sollte eine Ausrichtung wie 'xMidYMid slice' sein"
 
 #: presstoshape/formats/p2s.py
 msgid "should have at least one layer"
@@ -1284,8 +1464,20 @@ msgid "damaged file: document.json contains {value}"
 msgstr "beschädigte Datei: document.json enthält {value}"
 
 #: presstoshape/formats/p2s.py
+msgid "not a PressToShape file"
+msgstr "keine PressToShape-Datei"
+
+#: presstoshape/formats/p2s.py
 msgid "damaged file: document.json is missing"
 msgstr "beschädigte Datei: document.json fehlt"
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: too many entries"
+msgstr "beschädigte Datei: zu viele Einträge"
+
+#: presstoshape/formats/p2s.py
+msgid "damaged file: the pictures are too large"
+msgstr "beschädigte Datei: die Bilder sind zu groß"
 
 #: presstoshape/formats/p2s.py
 msgid "damaged file: {error}"
@@ -1294,10 +1486,6 @@ msgstr "beschädigte Datei: {error}"
 #: presstoshape/formats/p2s.py
 msgid "damaged file: document.json isn't valid JSON ({error})"
 msgstr "beschädigte Datei: document.json ist kein gültiges JSON ({error})"
-
-#: presstoshape/formats/p2s.py
-msgid "not a PressToShape file"
-msgstr "keine PressToShape-Datei"
 
 #: presstoshape/formats/p2s.py
 msgid "made with a newer PressToShape (file format {version}, this version reads up to {supported}); please update PressToShape"
@@ -1334,10 +1522,34 @@ msgstr[0] "{count} Maske verlangt linearRGB-Farbmischung, es wird sRGB verwendet
 msgstr[1] "{count} Masken verlangen linearRGB-Farbmischung, es wird sRGB verwendet"
 
 #: presstoshape/formats/svg_notes.py
-msgid "{count} image was left out"
-msgid_plural "{count} images were left out"
-msgstr[0] "{count} Bild wurde weggelassen"
-msgstr[1] "{count} Bilder wurden weggelassen"
+msgid "{count} image was left out: its file was not found"
+msgid_plural "{count} images were left out: their files were not found"
+msgstr[0] "{count} Bild wurde weggelassen: die Datei wurde nicht gefunden"
+msgstr[1] "{count} Bilder wurden weggelassen: die Dateien wurden nicht gefunden"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} image was left out: it is not a readable PNG, JPEG, WebP or GIF"
+msgid_plural "{count} images were left out: they are not readable PNG, JPEG, WebP or GIF files"
+msgstr[0] "{count} Bild wurde weggelassen: es ist kein lesbares PNG, JPEG, WebP oder GIF"
+msgstr[1] "{count} Bilder wurden weggelassen: sie sind keine lesbaren PNG-, JPEG-, WebP- oder GIF-Dateien"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} image was left out: it is on the internet, which PressToShape does not fetch"
+msgid_plural "{count} images were left out: they are on the internet, which PressToShape does not fetch"
+msgstr[0] "{count} Bild wurde weggelassen: es liegt im Internet, und PressToShape lädt nichts aus dem Netz"
+msgstr[1] "{count} Bilder wurden weggelassen: sie liegen im Internet, und PressToShape lädt nichts aus dem Netz"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} image was left out: it is too large"
+msgid_plural "{count} images were left out: they are too large"
+msgstr[0] "{count} Bild wurde weggelassen: es ist zu groß"
+msgstr[1] "{count} Bilder wurden weggelassen: sie sind zu groß"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} image was left out: it is an SVG drawing, which cannot be placed as a picture"
+msgid_plural "{count} images were left out: they are SVG drawings, which cannot be placed as pictures"
+msgstr[0] "{count} Bild wurde weggelassen: es ist eine SVG-Zeichnung, die nicht als Bild platziert werden kann"
+msgstr[1] "{count} Bilder wurden weggelassen: sie sind SVG-Zeichnungen, die nicht als Bilder platziert werden können"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} filter effect (blur, shadow, …) was left out"
@@ -1734,6 +1946,14 @@ msgid "Save &As…"
 msgstr "Speichern &unter…"
 
 #: presstoshape/views/keymap.py
+msgid "&Place Image…"
+msgstr "Bild &platzieren…"
+
+#: presstoshape/views/keymap.py
+msgid "Place as Re&ference…"
+msgstr "Als &Referenz platzieren…"
+
+#: presstoshape/views/keymap.py
 msgid "&Export PNG…"
 msgstr "PNG &exportieren…"
 
@@ -1764,6 +1984,10 @@ msgstr "An &Fenster anpassen"
 #: presstoshape/views/keymap.py
 msgid "&Settings…"
 msgstr "E&instellungen…"
+
+#: presstoshape/views/keymap.py
+msgid "Re&place Image…"
+msgstr "Bild &ersetzen…"
 
 #: presstoshape/views/keymap.py
 msgid "Grid Se&ttings…"
@@ -1806,6 +2030,10 @@ msgid "Opacity &Mask"
 msgstr "&Deckkraftmaske"
 
 #: presstoshape/views/keymap.py
+msgid "&Picture"
+msgstr "&Bild"
+
+#: presstoshape/views/keymap.py
 msgid "&Align"
 msgstr "&Ausrichten"
 
@@ -1844,6 +2072,10 @@ msgstr "SVG (*.svg)"
 #: presstoshape/views/main_window.py
 msgid "PNG image (*.png)"
 msgstr "PNG-Bild (*.png)"
+
+#: presstoshape/views/main_window.py
+msgid "Images (*.png *.jpg *.jpeg *.webp *.gif)"
+msgstr "Bilder (*.png *.jpg *.jpeg *.webp *.gif)"
 
 #: presstoshape/views/main_window.py
 msgid "Tool"
@@ -1889,6 +2121,38 @@ msgstr "unbenannt"
 #: presstoshape/views/main_window.py
 msgid "Save As"
 msgstr "Speichern unter"
+
+#: presstoshape/views/main_window.py
+msgid "Clipboard"
+msgstr "Zwischenablage"
+
+#: presstoshape/views/main_window.py
+msgid "Place as Reference"
+msgstr "Als Referenz platzieren"
+
+#: presstoshape/views/main_window.py
+msgid "Place Image"
+msgstr "Bild platzieren"
+
+#: presstoshape/views/main_window.py
+msgid "{name}: {error}"
+msgstr "{name}: {error}"
+
+#: presstoshape/views/main_window.py
+msgid "Images not placed"
+msgstr "Bilder nicht platziert"
+
+#: presstoshape/views/main_window.py
+msgid "Replace Image"
+msgstr "Bild ersetzen"
+
+#: presstoshape/views/main_window.py
+msgid "Dropped image"
+msgstr "Abgelegtes Bild"
+
+#: presstoshape/views/main_window.py
+msgid "Only PNG, JPEG, WebP and GIF images can be dropped here"
+msgstr "Hier können nur PNG-, JPEG-, WebP- und GIF-Bilder abgelegt werden"
 
 #: presstoshape/views/main_window.py
 msgid "About PressToShape"
@@ -2061,6 +2325,10 @@ msgid "{count} object"
 msgid_plural "{count} objects"
 msgstr[0] "{count} Objekt"
 msgstr[1] "{count} Objekte"
+
+#: presstoshape/views/selection_view.py
+msgid "{width} × {height} px, {ppi} PPI"
+msgstr "{width} × {height} px, {ppi} PPI"
 
 #: presstoshape/views/selection_view.py
 msgid "Base"

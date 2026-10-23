@@ -10,6 +10,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
     GroupShape,
+    ImageShape,
     Masking,
     PathShape,
     RectShape,
@@ -18,7 +19,7 @@ from presstoshape.models.shapes import (
     children_of,
 )
 
-ObjectType = Literal["rect", "ellipse", "path", "text", "group", "composite", "clip", "mask"]
+ObjectType = Literal["rect", "ellipse", "path", "text", "group", "composite", "clip", "mask", "image", "reference"]
 ChildRole = Literal["mask", "content"]
 
 _LABEL_LENGTH = 30
@@ -42,6 +43,10 @@ def object_type(shape: Shape) -> ObjectType:
             return "mask"
         case CompositeShape():
             return "composite"
+        case ImageShape(reference=True):
+            return "reference"
+        case ImageShape():
+            return "image"
 
 
 def child_role(parent: Shape, child_id: int) -> ChildRole | None:
@@ -54,6 +59,8 @@ def child_role(parent: Shape, child_id: int) -> ChildRole | None:
 def object_label(shape: Shape, role: ChildRole | None = None) -> str:
     """The type's name, or for text its first line, shortened; a mask object of a masked group says so."""
     label = _type_label(shape)
+    if isinstance(shape, ImageShape) and shape.reference:
+        label = _("{object} (reference)").format(object=label)
     return _("{object} (mask)").format(object=label) if role == "mask" else label
 
 
@@ -78,6 +85,8 @@ def _type_label(shape: Shape) -> str:
             return _("Opacity Mask")
         case CompositeShape():
             return _("Composite")
+        case ImageShape():
+            return _("Image")
 
 
 @dataclass(frozen=True)

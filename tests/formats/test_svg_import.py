@@ -418,7 +418,7 @@ def test_text_anchor_is_kept():
     [
         ('<rect width="5" height="5" clip-path="url(#c)"/>', "1 clip path was ignored, its content is shown unclipped"),
         ('<g mask="url(#m)"><rect width="5" height="5"/></g>', "1 mask was ignored, its content is shown unmasked"),
-        ('<image href="a.png" width="5" height="5"/>', "1 image was left out"),
+        ('<image href="a.png" width="5" height="5"/>', "1 image was left out: its file was not found"),
         ('<rect width="5" height="5" style="filter:url(#f)"/>', "1 filter effect (blur, shadow, …) was left out"),
         ('<path d="M0 0 L1 1" marker-end="url(#m)"/>', "1 line with markers (arrowheads) lost them"),
         ('<foreignObject width="5" height="5"/>', "1 other element was left out"),

@@ -67,7 +67,7 @@ PressToShape grows from its current shape-editor core into a full professional i
 
 ### Potential Enhancements
 - **Pro workflows**: artboards, symbols/components, swatches and color libraries, global colors, styles libraries.
-- **Import**: PDF / AI-compatible import, more SVG features (images, patterns, filters, markers).
+- **Import**: PDF / AI-compatible import, more SVG features (patterns, filters, markers). Raster pictures (PNG, JPEG, WebP, GIF) can be placed and are embedded in `.p2s` and SVG; SVG files as pictures are not read.
 - **Export**: PNG/JPEG/PDF export with size/DPI and per-artboard/slice export.
 - **Customization**: preferences, customizable shortcuts and workspaces.
 - **Extensibility**: plugin or scripting API in the longer term.

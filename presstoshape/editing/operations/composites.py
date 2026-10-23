@@ -41,7 +41,11 @@ def make_composite(session: Session, mode: PartMode = "add") -> None:
     """Turns the selected outlines into a Composite: bottom one as base, every other part in `mode`. Inside edit
     mode the new Composite is nested in place and takes the bottom part's mode there."""
     state = session.state
-    targets = [shape for shape in queries.selected_shapes(state) if transforms.outline(shape) is not None]
+    if queries.selection_has_image(state):
+        state.status_message = _("Images cannot be part of a Composite")
+        session.notify()
+        return
+    targets = queries.combinable_shapes(state)
     if len(targets) < 2:
         return
     with session.edit(_("Make Composite")):

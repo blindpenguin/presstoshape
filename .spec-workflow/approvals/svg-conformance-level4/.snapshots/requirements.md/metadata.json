@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-level4/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-23T11:47:14.991Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792756034938_jw7qoox0l",
+      "approvalTitle": "Level 4: clipping and opacity masks - requirements"
+    }
+  ]
+}

@@ -116,6 +116,18 @@ def toggle_lock_guides(session: Session) -> None:
     _toggle_view(session, "lock_guides", _("Guides locked"), _("Guides unlocked"))
 
 
+@operation("view.show_references", N_("Show Referen&ces"), checked=lambda session: session.state.view.show_references)
+def toggle_references(session: Session) -> None:
+    _toggle_view(session, "show_references", _("Reference images shown"), _("Reference images hidden"))
+
+
+def set_show_references(session: Session, shown: bool) -> None:
+    """Shows or hides reference images (view state, not an undo step)."""
+    state = session.state
+    if state.view.show_references != shown:
+        toggle_references(session)
+
+
 @operation("view.snapping", N_("&Snapping"), checked=lambda session: session.state.snapping.enabled)
 def toggle_snapping(session: Session) -> None:
     state = session.state

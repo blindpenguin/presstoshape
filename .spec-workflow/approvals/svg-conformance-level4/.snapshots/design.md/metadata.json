@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/svg-conformance-level4/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-23T11:51:56.303Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792756316278_pirmf0c99",
+      "approvalTitle": "Level 4: clipping and opacity masks - design"
+    }
+  ]
+}

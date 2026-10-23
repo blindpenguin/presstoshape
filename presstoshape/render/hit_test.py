@@ -5,12 +5,14 @@ from collections.abc import Sequence
 import skia
 
 from presstoshape.geometry.boxes import Rect
-from presstoshape.models.shapes import CompositeShape, GroupShape, Shape, content_children
+from presstoshape.models.shapes import CompositeShape, GroupShape, ImageShape, Shape, content_children
 from presstoshape.render.paths import PathCache
 
 
 def _regions(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.Path]:
     """Pickable regions of a shape; a group's are its content's, cut by its clip: mask objects are not pickable."""
+    if isinstance(shape, ImageShape) and shape.reference:
+        return []
     if isinstance(shape, GroupShape):
         regions = [
             region
@@ -26,6 +28,8 @@ def _regions(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[ski
 
 
 def _contains(shape: Shape, cache: PathCache, x: float, y: float, tolerance: float) -> bool:
+    if isinstance(shape, ImageShape) and shape.reference:
+        return False
     b = cache.bounds(shape)
     if not (b.fLeft - tolerance <= x <= b.fRight + tolerance and b.fTop - tolerance <= y <= b.fBottom + tolerance):
         return False
@@ -46,6 +50,8 @@ def _area(shape: Shape, cache: PathCache, tolerance: float = 0.0) -> list[skia.P
         box = skia.Path()
         box.addRect(cache.bounds(shape))
         return [box]
+    if isinstance(shape, ImageShape):
+        return [cache.get(shape)]
     style = shape.style
     stroked = bool(style.stroke) and style.stroke_width > 0
     regions = []
@@ -74,6 +80,8 @@ def shapes_in_rect(shapes: Sequence[Shape], cache: PathCache, rect: Rect) -> set
     band_path.addRect(band)
     hits: set[int] = set()
     for shape in shapes:
+        if isinstance(shape, ImageShape) and shape.reference:
+            continue
         bounds = cache.bounds(shape)
         if not skia.Rect.Intersects(band, bounds):
             continue

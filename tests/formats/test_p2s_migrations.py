@@ -7,10 +7,12 @@ from presstoshape.formats.p2s_migrations import CURRENT_VERSION, MIGRATIONS, upg
 from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
+    Aspect,
     CompositeShape,
     EllipseShape,
     GradientStop,
     GroupShape,
+    ImageShape,
     LinearGradient,
     LineTo,
     Masking,
@@ -21,6 +23,7 @@ from presstoshape.models.shapes import (
     Style,
     TextShape,
 )
+from tests.helpers import tiny_image
 
 SAMPLES = Path(__file__).resolve().parent / "samples"
 
@@ -285,3 +288,40 @@ def expected_v9() -> tuple[Document, SavedState]:
 
 def test_v9_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v9.p2s").read_bytes()) == expected_v9()
+
+
+def expected_v10() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v10.p2s holds: a picture used twice (one stored copy), one of them dimmed and a
+    reference inside a group, and a picture sliced, rotated and half transparent."""
+    picture = tiny_image()
+    document = Document(
+        width=200.0,
+        height=150.0,
+        layers=[
+            Layer(
+                "Layer 1",
+                True,
+                [
+                    ImageShape(1, 10.0, 20.0, 40.0, 40.0, picture),
+                    GroupShape(
+                        3,
+                        (ImageShape(2, 0.0, 0.0, 30.0, 20.0, picture, Aspect("xMinYMax", True), 0.5, reference=True),),
+                    ),
+                    ImageShape(
+                        4, 60.0, 60.0, 50.0, 25.0, picture, Aspect("none"), 0.5, (0.0, 1.0, -1.0, 0.0, 120.0, 0.0)
+                    ),
+                ],
+            )
+        ],
+        next_id=5,
+    )
+    return document, SavedState(zoom_percent=100)
+
+
+def test_v10_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v10.p2s").read_bytes()) == expected_v10()
+
+
+def test_v9_sample_opens_in_version_10_without_pictures():
+    document, _state = read_p2s((SAMPLES / "v9.p2s").read_bytes())
+    assert not any(isinstance(shape, ImageShape) for layer in document.layers for shape in layer.shapes)

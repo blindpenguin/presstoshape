@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication
 
 from presstoshape import i18n, icons
 from presstoshape.editing import queries
-from presstoshape.editing.operations import composites, documents, selection, shapes
+from presstoshape.editing.operations import composites, documents, images, selection, shapes
 from presstoshape.editing.session import Session
 from presstoshape.i18n import languages
 from presstoshape.models.shapes import CompositeShape
@@ -124,6 +124,28 @@ def _run_self_test(app: QApplication, session: Session, window: MainWindow) -> i
     return 0 if outcome == "OK" else 1
 
 
+def _tiny_pictures() -> list[tuple[str, bytes]]:
+    """A few pixels as PNG, JPEG and WebP, made by Skia's own encoders: placing them proves the bundle's image
+    codecs decode what it writes."""
+    import skia
+
+    surface = skia.Surface(8, 8)
+    surface.getCanvas().clear(skia.ColorRED)
+    snapshot = surface.makeImageSnapshot()
+    formats = {
+        "png": skia.EncodedImageFormat.kPNG,
+        "jpg": skia.EncodedImageFormat.kJPEG,
+        "webp": skia.EncodedImageFormat.kWEBP,
+    }
+    pictures = []
+    for suffix, encoded_format in formats.items():
+        data = snapshot.encodeToData(encoded_format, 90)
+        if data is None:
+            raise RuntimeError(f"Skia can't encode {suffix}")
+        pictures.append((f"tiny.{suffix}", bytes(data)))
+    return pictures
+
+
 def _self_test(app: QApplication, session: Session, window: MainWindow) -> None:
     """Exercises what a broken bundle would miss: assets, translations, Skia rendering, path ops and SVG round
     trips."""
@@ -145,6 +167,9 @@ def _self_test(app: QApplication, session: Session, window: MainWindow) -> None:
     composites.make_composite(session, "subtract")
     shapes.add_path(session, [(40, 330), (140, 250), (240, 360), (360, 300)])
     shapes.add_text(session, (390, 90), "PressToShape")
+    placed = images.place_images(session, _tiny_pictures(), (200.0, 200.0))
+    if len(placed.placed) != 3 or placed.refused:
+        raise RuntimeError(f"PNG, JPEG and WebP pictures didn't decode: {placed.refused}")
     count = len(queries.pickable_shapes(session.state))
 
     with tempfile.TemporaryDirectory() as folder:

@@ -8,12 +8,14 @@ import pytest
 
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import (
+    Aspect,
     Close,
     CompositeShape,
     CubicTo,
     EllipseShape,
     GradientStop,
     GroupShape,
+    ImageShape,
     LinearGradient,
     LineTo,
     Masking,
@@ -24,6 +26,7 @@ from presstoshape.models.shapes import (
     Style,
     TextShape,
 )
+from tests.helpers import quadrant_picture
 
 _SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "svg_conformance.py"
 _spec = importlib.util.spec_from_file_location("svg_conformance", _SCRIPT)
@@ -80,7 +83,50 @@ def _masked(content, mask_type, mask, **fields) -> GroupShape:
     )
 
 
+PICTURE = quadrant_picture()
+TALL_PICTURE = quadrant_picture(30, 60)
+
+
+def _picture(shape_id, x, y, width, height, aspect=Aspect("xMidYMid"), data=PICTURE, **fields) -> ImageShape:
+    return ImageShape(shape_id, x, y, width, height, data, aspect, **fields)
+
+
 DOCUMENTS = {
+    "image aspect ratios": _doc(
+        _picture(1, 20, 20, 100, 100),
+        _picture(2, 140, 20, 100, 100, Aspect("xMinYMin")),
+        _picture(3, 260, 20, 100, 100, Aspect("xMaxYMax")),
+        _picture(4, 20, 160, 100, 100, Aspect("xMidYMid", True)),
+        _picture(5, 140, 160, 100, 100, Aspect("xMinYMax", True), TALL_PICTURE),
+        _picture(6, 260, 160, 100, 100, Aspect("none")),
+    ),
+    "image opacity and rotation": _doc(
+        RectShape(1, 0, 0, 400, 300, Style(fill="#f0f0f0", stroke=None)),
+        _picture(2, 40, 40, 140, 70, opacity=0.5),
+        _picture(3, 220, 60, 140, 70, transform=_rotation(30, 290, 95)),
+        _picture(4, 60, 170, 120, 90, Aspect("xMidYMid", True), transform=_rotation(-20, 120, 215), opacity=0.7),
+    ),
+    "images in groups and masks": _doc(
+        GroupShape(1, (_picture(2, 20, 20, 140, 70),), opacity=0.5),
+        _masked(
+            [_picture(3, 220, 20, 160, 80)],
+            "clip",
+            [EllipseShape(4, 300, 60, 60, 30, Style(fill="#000000", stroke=None))],
+        ),
+        _masked(
+            [_picture(5, 20, 160, 160, 100)],
+            "luminance",
+            [
+                RectShape(6, 20, 160, 80, 100, Style(fill="#ffffff", stroke=None)),
+                RectShape(7, 100, 160, 80, 100, Style(fill="#808080", stroke=None)),
+            ],
+        ),
+        _masked(
+            [RectShape(8, 220, 160, 160, 100, Style(fill="#2f6fd0", stroke=None))],
+            "luminance",
+            [_picture(9, 220, 160, 160, 100)],
+        ),
+    ),
     "basic shapes": _doc(
         RectShape(1, 20, 20, 120, 80, FILL),
         RectShape(2, 160, 20, 120, 80, FILL, rx=20, ry=12),

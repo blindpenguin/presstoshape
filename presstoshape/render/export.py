@@ -38,7 +38,7 @@ def render_png(doc: Document, scale: float, dpi: float | None = None) -> bytes |
     canvas = surface.getCanvas()
     canvas.clear(skia.ColorTRANSPARENT)
     canvas.scale(scale, scale)
-    draw_document(canvas, doc, PathCache())
+    draw_document(canvas, doc, PathCache(), references=False)
     data = surface.makeImageSnapshot().encodeToData(skia.EncodedImageFormat.kPNG, 100)
     if data is None:
         return None

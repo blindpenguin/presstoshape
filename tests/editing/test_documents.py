@@ -277,7 +277,7 @@ def test_opening_a_lossy_svg_keeps_its_notes_outside_undo(tmp_path):
     )
     session = Session()
     assert documents.open_file(session, str(target))
-    assert session.state.import_notes == ["1 pattern was painted grey", "1 image was left out"]
+    assert session.state.import_notes == ["1 pattern was painted grey", "1 image was left out: its file was not found"]
     assert session.state.status_message == "Opened lossy.svg with 2 import notes"
     assert not session.can_undo
     view.clear_import_notes(session)

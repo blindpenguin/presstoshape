@@ -13,6 +13,7 @@ from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
     GroupShape,
+    ImageShape,
     PathShape,
     RectShape,
     Shape,
@@ -99,7 +100,7 @@ class Frame:
 def local_bounds(shape: Shape, cache: PathCache) -> Rect:
     """Geometric bounds before the shape's transform."""
     match shape:
-        case RectShape(x=x, y=y, width=w, height=h):
+        case RectShape(x=x, y=y, width=w, height=h) | ImageShape(x=x, y=y, width=w, height=h):
             return x, y, w, h
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
             return cx - rx, cy - ry, 2 * rx, 2 * ry

@@ -7,7 +7,7 @@ from presstoshape.editing.session import Session
 from presstoshape.geometry import affine, transforms
 from presstoshape.geometry.affine import Affine
 from presstoshape.i18n import N_, _, ngettext
-from presstoshape.models.shapes import EllipseShape, RectShape, TextShape
+from presstoshape.models.shapes import EllipseShape, ImageShape, RectShape, TextShape
 from presstoshape.render.paths import PathCache
 
 # Smallest width/height (doc units) a handle scale may leave; same floor as the panel's size fields.
@@ -30,7 +30,7 @@ def transform_selection(session: Session, matrix: Affine) -> None:
 def set_rotation(session: Session, shape_id: int, degrees: float) -> None:
     """Rotation about the shape's own center. Consecutive edits of one shape form one undo step."""
     shape = queries.find_shape(session.state, shape_id)
-    if not isinstance(shape, (RectShape, EllipseShape, TextShape)):
+    if not isinstance(shape, (RectShape, EllipseShape, TextShape, ImageShape)):
         return
     current = transforms.rotation_of(shape)
     if current is None or abs(current - degrees) < 1e-9:

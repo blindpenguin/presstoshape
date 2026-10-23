@@ -22,7 +22,16 @@ OPERATIONS: dict[str, tuple[booleans.Mode, str]] = {
 
 def _targets(state: AppState) -> list[Shape]:
     """Selected shapes with a vector outline, bottom to top."""
-    return [shape for shape in queries.selected_shapes(state) if transforms.outline(shape) is not None]
+    return queries.combinable_shapes(state)
+
+
+def _refuses_images(session: Session) -> bool:
+    state = session.state
+    if queries.selection_has_image(state):
+        state.status_message = _("Images cannot be combined")
+        session.notify()
+        return True
+    return False
 
 
 def _refuses_masks(session: Session) -> bool:
@@ -42,7 +51,7 @@ def combine(session: Session, op: str) -> None:
     name = _(untranslated_name)
     state = session.state
     targets = _targets(state)
-    if _refuses_masks(session) or len(targets) < 2:
+    if _refuses_images(session) or _refuses_masks(session) or len(targets) < 2:
         return
     try:
         segments = booleans.combine_parts([(transforms.area_outline(shape), mode) for shape in targets])
@@ -60,7 +69,7 @@ def divide_selection(session: Session) -> None:
     """Splits the selected shapes along all their edges; each piece keeps the style it showed before."""
     state = session.state
     targets = _targets(state)
-    if _refuses_masks(session) or len(targets) < 2:
+    if _refuses_images(session) or _refuses_masks(session) or len(targets) < 2:
         return
     try:
         pieces = booleans.divide([transforms.area_outline(shape) for shape in targets])

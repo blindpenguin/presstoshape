@@ -4,12 +4,16 @@ purpose, so renaming a model field never silently changes what files contain. Se
 import io
 import json
 import math
+import re
 import zipfile
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from typing import Any, get_args
 
+from presstoshape.formats.image_info import ImageError, probe
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, upgrade
 from presstoshape.geometry import units
+from presstoshape.geometry.aspect import DEFAULT, Invalid, parse_aspect
 from presstoshape.geometry.boxes import Point
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, Tool
@@ -17,6 +21,7 @@ from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
     MAX_STOPS,
+    Aspect,
     Close,
     CompositeShape,
     CubicTo,
@@ -25,6 +30,8 @@ from presstoshape.models.shapes import (
     GradientStop,
     GradientUnits,
     GroupShape,
+    ImageData,
+    ImageShape,
     LinearGradient,
     LineCap,
     LineJoin,
@@ -46,6 +53,7 @@ from presstoshape.models.shapes import (
     Transform,
     children_of,
     sanitized,
+    valid_digest,
 )
 
 MIMETYPE = "application/x-presstoshape"
@@ -57,6 +65,12 @@ _MAX_COLOR = 64
 _MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
 _MAX_PREVIEW_BYTES = 8 * 1024 * 1024
 _READ_CHUNK = 1024 * 1024
+_MAX_MEDIA_BYTES = 64 * 1024 * 1024
+_MAX_ENTRIES = 10_000
+_MAX_MEDIA_TOTAL = 1024 * 1024 * 1024
+MEDIA_EXTENSIONS = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
+MISSING_MIME = "application/x-missing"
+_MEDIA_NAME = re.compile(r"media/([0-9a-f]{64})\.(?:png|jpg|webp|gif)")
 # Fixed entry timestamps, so saving the same drawing twice gives the same bytes.
 _ENTRY_DATE = (1980, 1, 1, 0, 0, 0)
 
@@ -78,6 +92,7 @@ class SavedState:
     show_grid: bool | None = None
     show_guides: bool | None = None
     lock_guides: bool | None = None
+    show_references: bool | None = None
 
 
 class P2sError(ValueError):
@@ -198,7 +213,27 @@ def _decode_masking(value: Any, children: tuple[Shape, ...], where: str) -> Mask
     )
 
 
+def _encode_aspect(aspect: Aspect) -> str:
+    return f"{aspect.align} slice" if aspect.slice else aspect.align
+
+
 def _encode_shape(shape: Shape) -> dict[str, Any]:
+    if isinstance(shape, ImageShape):
+        fields: dict[str, Any] = {
+            "type": "image",
+            "id": shape.id,
+            **_numbers(x=shape.x, y=shape.y, width=shape.width, height=shape.height),
+            "media": shape.data.digest,
+        }
+        if shape.aspect != DEFAULT:
+            fields["aspect"] = _encode_aspect(shape.aspect)
+        if shape.opacity != 1:
+            fields["opacity"] = _number(shape.opacity)
+        if shape.reference:
+            fields["reference"] = True
+        if shape.transform != IDENTITY_TRANSFORM:
+            fields["transform"] = [_number(value) for value in shape.transform]
+        return fields
     if isinstance(shape, GroupShape):
         # No style and no transform: a group has no paint of its own and its children carry the transforms.
         fields: dict[str, Any] = {
@@ -434,9 +469,30 @@ def _decode_segment(value: Any, where: str) -> Segment:
             return Close()
 
 
-def decode_shape(value: Any, where: str) -> Shape:
+class MediaTable:
+    """The pictures of a file or clipboard payload by digest, one `ImageData` per distinct picture however often
+    it is used. `load(digest)` fetches a blob lazily and returns None when it is absent or damaged; each such
+    picture is noted once and shows as a placeholder."""
+
+    def __init__(self, load: Callable[[str], ImageData | None] | None = None) -> None:
+        self._load = load or (lambda digest: None)
+        self._blobs: dict[str, ImageData | None] = {}
+        self.notes: list[str] = []
+
+    def get(self, digest: str, width: float, height: float) -> ImageData:
+        if digest not in self._blobs:
+            self._blobs[digest] = self._load(digest)
+            if self._blobs[digest] is None:
+                self.notes.append(_("A picture is missing or damaged and shows as a placeholder."))
+        data = self._blobs[digest]
+        if data is not None:
+            return data
+        return ImageData(b"", max(1, round(width)), max(1, round(height)), MISSING_MIME, digest)
+
+
+def decode_shape(value: Any, where: str, media: MediaTable | None = None) -> Shape:
     fields = read_object(value, where)
-    shape = _decode_shape(fields, where)
+    shape = _decode_shape(fields, where, media or MediaTable())
     hidden = _optional_bool(fields, "hidden", where)
     locked = _optional_bool(fields, "locked", where)
     if hidden or locked:
@@ -444,17 +500,21 @@ def decode_shape(value: Any, where: str) -> Shape:
     return shape
 
 
-def _decode_shape(fields: dict[str, Any], where: str) -> Shape:
+def _decode_shape(fields: dict[str, Any], where: str, media: MediaTable) -> Shape:
     shape_type = _field(fields, "type", where)
     shape_id = read_int(_field(fields, "id", where), f"{where}.id", minimum=0)
     if shape_type == "group":
         child_values = read_list(_field(fields, "children", where), f"{where}.children")
         if not child_values:
             raise _damaged(f"{where}.children", _("should not be empty"))
-        children = tuple(decode_shape(child, f"{where}.children[{index}]") for index, child in enumerate(child_values))
+        children = tuple(
+            decode_shape(child, f"{where}.children[{index}]", media) for index, child in enumerate(child_values)
+        )
         opacity = _optional_number(fields, "opacity", where, 1.0, minimum=0.0, maximum=1.0)
         masking = _decode_masking(fields["masking"], children, f"{where}.masking") if "masking" in fields else None
         return GroupShape(shape_id, children, opacity, masking=masking)
+    if shape_type == "image":
+        return _decode_image(fields, shape_id, where, media)
     style = decode_style(_field(fields, "style", where), f"{where}.style")
     transform = _decode_transform(fields, where)
     match shape_type:
@@ -503,10 +563,35 @@ def _decode_shape(fields: dict[str, Any], where: str) -> Shape:
             for index, mode in enumerate(mode_values):
                 if mode not in PART_MODES:
                     raise _damaged(f"{where}.modes[{index}]", _one_of(PART_MODES))
-            parts = tuple(decode_shape(part, f"{where}.parts[{index}]") for index, part in enumerate(part_values))
+            parts = tuple(
+                decode_shape(part, f"{where}.parts[{index}]", media) for index, part in enumerate(part_values)
+            )
             return CompositeShape(shape_id, parts, tuple(mode_values), style, transform)
         case _:
             raise _damaged(f"{where}.type", _("is an unknown shape type {type}").format(type=repr(shape_type)))
+
+
+def _decode_image(fields: dict[str, Any], shape_id: int, where: str, media: MediaTable) -> ImageShape:
+    digest = read_string(_field(fields, "media", where), f"{where}.media", 64)
+    if not valid_digest(digest):
+        raise _damaged(f"{where}.media", _("should be a picture digest"))
+    aspect = parse_aspect(fields.get("aspect"))
+    if isinstance(aspect, Invalid):
+        raise _damaged(f"{where}.aspect", _("should be an alignment like 'xMidYMid slice'"))
+    width = _number_field(fields, "width", where, minimum=0.0)
+    height = _number_field(fields, "height", where, minimum=0.0)
+    return ImageShape(
+        shape_id,
+        _number_field(fields, "x", where),
+        _number_field(fields, "y", where),
+        width,
+        height,
+        media.get(digest, width, height),
+        aspect or DEFAULT,
+        _optional_number(fields, "opacity", where, 1.0, minimum=0.0, maximum=1.0),
+        _decode_transform(fields, where),
+        bool(_optional_bool(fields, "reference", where)),
+    )
 
 
 def _all_ids(shapes: list[Shape]) -> list[int]:
@@ -517,7 +602,8 @@ def _all_ids(shapes: list[Shape]) -> list[int]:
     return ids
 
 
-def decode_document(value: Any, where: str = "document") -> Document:
+def decode_document(value: Any, where: str = "document", media: MediaTable | None = None) -> Document:
+    media = media or MediaTable()
     fields = read_object(value, where)
     layer_values = read_list(_field(fields, "layers", where), f"{where}.layers")
     layers = []
@@ -528,7 +614,9 @@ def decode_document(value: Any, where: str = "document") -> Document:
         if not isinstance(visible, bool):
             raise _damaged(f"{layer_where}.visible", _("should be true or false"))
         shape_values = read_list(_field(layer_fields, "shapes", layer_where), f"{layer_where}.shapes")
-        shapes = [decode_shape(item, f"{layer_where}.shapes[{number}]") for number, item in enumerate(shape_values)]
+        shapes = [
+            decode_shape(item, f"{layer_where}.shapes[{number}]", media) for number, item in enumerate(shape_values)
+        ]
         name = read_string(_field(layer_fields, "name", layer_where), f"{layer_where}.name")
         locked = bool(_optional_bool(layer_fields, "locked", layer_where))
         layers.append(Layer(name, visible, shapes, locked))
@@ -599,7 +687,7 @@ def encode_state(state: SavedState) -> dict[str, Any]:
     if state.selected_layer is not None:
         fields["selected_layer"] = state.selected_layer
     fields["edit_path"] = list(state.edit_path)
-    for key in ("show_grid", "show_guides", "lock_guides"):
+    for key in ("show_grid", "show_guides", "lock_guides", "show_references"):
         if getattr(state, key) is not None:
             view[key] = getattr(state, key)
     return fields
@@ -647,6 +735,7 @@ def decode_state(value: Any, where: str = "state") -> SavedState:
         show_grid=_optional_bool(view, "show_grid", f"{where}.view"),
         show_guides=_optional_bool(view, "show_guides", f"{where}.view"),
         lock_guides=_optional_bool(view, "lock_guides", f"{where}.view"),
+        show_references=_optional_bool(view, "show_references", f"{where}.view"),
     )
 
 
@@ -666,6 +755,18 @@ def _entry(name: str, compression: int) -> zipfile.ZipInfo:
     return info
 
 
+def media_of(shapes: Iterable[Shape]) -> dict[str, ImageData]:
+    """The distinct pictures used by `shapes`, nested ones included, in order of first use; pictures that
+    lost their bytes (placeholders) have nothing to store."""
+    found: dict[str, ImageData] = {}
+    for shape in shapes:
+        if isinstance(shape, ImageShape) and shape.data.data:
+            found.setdefault(shape.data.digest, shape.data)
+        for digest, data in media_of(children_of(shape)).items():
+            found.setdefault(digest, data)
+    return found
+
+
 def write_p2s(document: Document, state: SavedState, preview: bytes | None, app_version: str) -> bytes:
     payload = {
         "format": FORMAT_NAME,
@@ -680,6 +781,10 @@ def write_p2s(document: Document, state: SavedState, preview: bytes | None, app_
         # First and uncompressed, so the type can be told from the file's first bytes (OpenDocument convention).
         archive.writestr(_entry("mimetype", zipfile.ZIP_STORED), MIMETYPE)
         archive.writestr(_entry("document.json", zipfile.ZIP_DEFLATED), text)
+        # Already compressed formats, so stored; named by digest only.
+        for digest, data in media_of(shape for layer in document.layers for shape in layer.shapes).items():
+            extension = MEDIA_EXTENSIONS.get(data.mime, "bin")
+            archive.writestr(_entry(f"media/{digest}.{extension}", zipfile.ZIP_STORED), data.data)
         if preview is not None:
             archive.writestr(_entry("preview.png", zipfile.ZIP_STORED), preview)
     return buffer.getvalue()
@@ -703,8 +808,36 @@ def _reject_constant(name: str) -> None:
     raise P2sError(_("damaged file: document.json contains {value}").format(value=name))
 
 
+def _media_loader(archive: zipfile.ZipFile) -> Callable[[str], ImageData | None]:
+    """Reads a picture when the document asks for it, by digest; the entry names of the archive are only
+    compared, never used as paths."""
+    entries = {}
+    for info in archive.infolist():
+        found = _MEDIA_NAME.fullmatch(info.filename)
+        if found:
+            entries.setdefault(found.group(1), info.filename)
+
+    def load(digest: str) -> ImageData | None:
+        name = entries.get(digest)
+        if name is None:
+            return None
+        try:
+            data = probe(_read_entry(archive, name, _MAX_MEDIA_BYTES))
+        except (P2sError, ImageError, zipfile.BadZipFile, OSError, EOFError):
+            return None
+        return data if data.digest == digest else None
+
+    return load
+
+
 def read_p2s(data: bytes) -> tuple[Document, SavedState]:
     """Raises P2sError with a user-readable reason for anything that isn't a readable .p2s file."""
+    document, state, _notes = read_p2s_with_notes(data)
+    return document, state
+
+
+def read_p2s_with_notes(data: bytes) -> tuple[Document, SavedState, list[str]]:
+    """`read_p2s` plus the notes about what could not be restored (pictures missing or damaged)."""
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile:
@@ -716,25 +849,31 @@ def read_p2s(data: bytes) -> tuple[Document, SavedState]:
                 raise P2sError(_("not a PressToShape file"))
             if "document.json" not in names:
                 raise P2sError(_("damaged file: document.json is missing"))
+            if len(names) > _MAX_ENTRIES:
+                raise P2sError(_("damaged file: too many entries"))
+            if sum(archive.getinfo(name).file_size for name in names if name.startswith("media/")) > _MAX_MEDIA_TOTAL:
+                raise P2sError(_("damaged file: the pictures are too large"))
             raw = _read_entry(archive, "document.json", _MAX_DOCUMENT_BYTES)
         except (zipfile.BadZipFile, OSError, EOFError) as error:
             raise P2sError(_("damaged file: {error}").format(error=error)) from None
-    try:
-        payload = json.loads(raw.decode("utf-8"), parse_constant=_reject_constant)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise P2sError(_("damaged file: document.json isn't valid JSON ({error})").format(error=error)) from None
-    payload = read_object(payload, "document.json")
-    if payload.get("format") != FORMAT_NAME:
-        raise P2sError(_("not a PressToShape file"))
-    version = read_int(payload.get("format_version"), "format_version", minimum=1)
-    if version > CURRENT_VERSION:
-        message = _(
-            "made with a newer PressToShape (file format {version}, this version reads up to {supported});"
-            " please update PressToShape"
-        )
-        raise P2sError(message.format(version=version, supported=CURRENT_VERSION))
-    payload = upgrade(payload, version)
-    return decode_document(payload.get("document")), decode_state(payload.get("state", {}))
+        try:
+            payload = json.loads(raw.decode("utf-8"), parse_constant=_reject_constant)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise P2sError(_("damaged file: document.json isn't valid JSON ({error})").format(error=error)) from None
+        payload = read_object(payload, "document.json")
+        if payload.get("format") != FORMAT_NAME:
+            raise P2sError(_("not a PressToShape file"))
+        version = read_int(payload.get("format_version"), "format_version", minimum=1)
+        if version > CURRENT_VERSION:
+            message = _(
+                "made with a newer PressToShape (file format {version}, this version reads up to {supported});"
+                " please update PressToShape"
+            )
+            raise P2sError(message.format(version=version, supported=CURRENT_VERSION))
+        payload = upgrade(payload, version)
+        media = MediaTable(_media_loader(archive))
+        document = decode_document(payload.get("document"), media=media)
+    return document, decode_state(payload.get("state", {})), media.notes
 
 
 def read_preview(data: bytes) -> bytes | None:

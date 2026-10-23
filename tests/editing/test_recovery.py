@@ -94,3 +94,43 @@ def test_discard_and_adopt(tmp_path):
     recovery.discard_snapshot(tmp_path, "mine")
     assert os.listdir(tmp_path) == []
     assert recovery.find_snapshots(tmp_path / "missing", _never_running) == []
+
+
+def test_snapshot_carries_the_pictures(tmp_path):
+    from dataclasses import replace
+
+    from presstoshape.models.shapes import ImageShape
+    from tests.helpers import tiny_image
+
+    session = Session()
+    documents.new_document(session, documents.DocumentSetup(210, 297, "mm", 300))
+    picture = tiny_image()
+    with session.edit("Add picture"):
+        layer = session.state.document.layers[0]
+        layer.shapes.append(ImageShape(900, 10.0, 10.0, 40.0, 40.0, picture))
+    recovery.write_snapshot(session, tmp_path, "run2", None)
+    (snapshot,) = recovery.find_snapshots(tmp_path, _never_running)
+    other = Session()
+    assert recovery.recover(other, snapshot)
+    (restored,) = [shape for shape in all_shapes(other) if isinstance(shape, ImageShape)]
+    assert restored.data.data == picture.data
+    assert replace(restored, id=0) == replace(all_shapes(session)[0], id=0)
+
+
+def test_snapshot_skips_the_preview_for_huge_pictures(tmp_path, monkeypatch):
+    from presstoshape.editing.operations import images
+    from presstoshape.editing.operations import recovery as module
+
+    session = Session()
+    documents.new_document(session, documents.DocumentSetup(210, 297, "mm", 300))
+    from tests.helpers import quadrant_picture
+
+    images.place_images(session, [("a.png", quadrant_picture(40, 40).data)], (50.0, 50.0))
+    calls = []
+    monkeypatch.setattr(module, "preview_png", lambda *args: calls.append(1) or b"png")
+    monkeypatch.setattr(module, "_PREVIEW_MAX_PIXELS", 10_000)
+    module.write_snapshot(session, tmp_path, "r1", None)
+    assert len(calls) == 1
+    monkeypatch.setattr(module, "_PREVIEW_MAX_PIXELS", 100)
+    module.write_snapshot(session, tmp_path, "r2", None)
+    assert len(calls) == 1

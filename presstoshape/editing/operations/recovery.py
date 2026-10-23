@@ -22,12 +22,14 @@ from presstoshape.editing.session import Session
 from presstoshape.formats import p2s
 from presstoshape.geometry.boxes import Point
 from presstoshape.i18n import _
-from presstoshape.models.app_state import RecoveredFrom
+from presstoshape.models.app_state import Document, RecoveredFrom
 from presstoshape.version import app_version
 
 _DOCUMENT_SUFFIX = ".p2s"
 _INFO_SUFFIX = ".json"
+_PREVIEW_MAX_PIXELS = 4_000_000
 _PREVIEW_SIDE = 128
+_PREVIEW_MAX_PIXELS = 4_000_000
 _MAX_INFO_BYTES = 64 * 1024
 
 
@@ -51,14 +53,22 @@ def _files(folder: Path, run_id: str) -> tuple[Path, Path]:
     return folder / f"{run_id}{_DOCUMENT_SUFFIX}", folder / f"{run_id}{_INFO_SUFFIX}"
 
 
+def _preview(document: Document) -> bytes | None:
+    """The recovery list's thumbnail; left out when the pictures are big, because drawing it decodes them all on
+    the UI thread (230 ms for one 24 MP picture) and the write itself costs next to nothing."""
+    pixels = sum(
+        data.width * data.height
+        for data in p2s.media_of(shape for layer in document.layers for shape in layer.shapes).values()
+    )
+    return None if pixels > _PREVIEW_MAX_PIXELS else preview_png(document, _PREVIEW_SIDE)
+
+
 def write_snapshot(session: Session, folder: Path, run_id: str, view_center: Point | None) -> None:
     """Writes the current document as this run's snapshot. Changes nothing in the session; raises OSError."""
     state = session.state
     original = state.file_path or (state.recovered.original_path if state.recovered else None)
     document_path, info_path = _files(folder, run_id)
-    data = p2s.write_p2s(
-        state.document, saved_state(state, view_center), preview_png(state.document, _PREVIEW_SIDE), app_version()
-    )
+    data = p2s.write_p2s(state.document, saved_state(state, view_center), _preview(state.document), app_version())
     write_atomically(document_path, data)
     info = {"original_path": original, "saved_at": time.time(), "app_version": app_version()}
     write_atomically(info_path, json.dumps(info).encode("utf-8"))

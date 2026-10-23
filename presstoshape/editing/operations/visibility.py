@@ -9,7 +9,7 @@ from presstoshape.editing.operations.edit_mode import enter_path
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _, ngettext
-from presstoshape.models.shapes import Shape
+from presstoshape.models.shapes import ImageShape, Shape
 
 
 def _has_selection(session: Session) -> bool:
@@ -133,7 +133,9 @@ def select_object(session: Session, shape_id: int, extend: bool = False) -> None
     if location is None:
         return
     shape = queries.find_shape(state, shape_id)
-    if shape.hidden or shape.locked or any(object_tree.inherited_flags(state, location)):
+    # A reference image is locked by design; the tree can still select it to make it artwork again.
+    held = not (isinstance(shape, ImageShape) and shape.reference)
+    if shape.hidden or (held and (shape.locked or any(object_tree.inherited_flags(state, location)))):
         return
     state.selected_layer_index = location.layer_index
     same_container = containers.valid_edit_path(state) == location.containers

@@ -7,13 +7,16 @@ import pathops
 
 from presstoshape.geometry import affine, booleans
 from presstoshape.geometry.affine import Affine
+from presstoshape.geometry.aspect import visible_box
 from presstoshape.geometry.boxes import Point
 from presstoshape.geometry.segments import ellipse_segments, rect_segments, transform_segments
 from presstoshape.models.shapes import (
     IDENTITY_TRANSFORM,
+    Aspect,
     CompositeShape,
     EllipseShape,
     GroupShape,
+    ImageShape,
     Masking,
     PathShape,
     RectShape,
@@ -43,6 +46,8 @@ def outline(shape: Shape) -> tuple[Segment, ...] | None:
             segments = ellipse_segments(cx, cy, rx, ry)
         case PathShape(segments=segments):
             pass
+        case ImageShape():
+            segments = rect_segments(*visible_box(shape), 0.0, 0.0)
         case TextShape() | GroupShape():
             return None
     return _apply_affine(segments, shape.transform)
@@ -53,7 +58,7 @@ def area_outline(shape: Shape) -> tuple[Segment, ...] | None:
     survive the nonzero rule the boolean code assumes. Not for drawing: strokes follow the original contours.
     Raises pathops.PathOpsError when pathops can't simplify the outline."""
     segments = outline(shape)
-    if segments is None or shape.style.fill_rule != "evenodd":
+    if segments is None or isinstance(shape, ImageShape) or shape.style.fill_rule != "evenodd":
         return segments
     return booleans.simplify(segments, evenodd=True)
 
@@ -99,7 +104,7 @@ def translate(shape: Shape, dx: float, dy: float) -> Shape:
             )
         case PathShape():
             return replace(shape, segments=transform_segments(shape.segments, lambda x, y: (x + dx, y + dy)))
-        case RectShape() | TextShape():
+        case RectShape() | TextShape() | ImageShape():
             moved = replace(shape, x=shape.x + dx, y=shape.y + dy)
         case EllipseShape():
             moved = replace(shape, cx=shape.cx + dx, cy=shape.cy + dy)
@@ -110,9 +115,9 @@ def translate(shape: Shape, dx: float, dy: float) -> Shape:
     return replace(moved, transform=affine.compose(shift, affine.compose(shape.transform, affine.invert(shift))))
 
 
-def _center(shape: RectShape | EllipseShape | TextShape) -> Point:
+def _center(shape: RectShape | EllipseShape | TextShape | ImageShape) -> Point:
     match shape:
-        case RectShape(x=x, y=y, width=w, height=h):
+        case RectShape(x=x, y=y, width=w, height=h) | ImageShape(x=x, y=y, width=w, height=h):
             return x + w / 2, y + h / 2
         case EllipseShape(cx=cx, cy=cy):
             return cx, cy
@@ -148,6 +153,13 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0, scale_radi
     det = affine.determinant(total)
     if su < _SCALE_EPS or sv < _SCALE_EPS or abs(det) < _SCALE_EPS:
         raise ValueError("singular transform")
+    if isinstance(shape, ImageShape) and shape.aspect.align != "none" and abs(su - sv) > _ORTHO_EPS * max(su, sv):
+        # Stretching a picture that is fitted into its box: a sliced one keeps the matrix (the clip must follow),
+        # a letterboxed one becomes its drawn area with `none`, so the stretch shows as such.
+        if shape.aspect.slice:
+            return replace(shape, transform=total)
+        left, top, width, height = visible_box(shape)
+        shape = replace(shape, x=left, y=top, width=width, height=height, aspect=Aspect("none"))
     center = affine.apply(total, *_center(shape))
     angle = math.atan2(b, a)
 
@@ -158,7 +170,8 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0, scale_radi
         size = max(1.0, shape.font_size * max(su, sv))
         return replace(shape, x=center[0], y=center[1], font_size=size, transform=_rotation_about(angle, center))
 
-    if abs(a * c + b * d) > _ORTHO_EPS * su * sv:
+    # A picture is not mirror-symmetric like a rect, so a flip stays in the matrix.
+    if abs(a * c + b * d) > _ORTHO_EPS * su * sv or (det < 0 and isinstance(shape, ImageShape)):
         return replace(shape, transform=total)
     # Rects and ellipses look the same turned by 180°, so a flip folds into the rotation and the angle is
     # normalized to (-90°, 90°].
@@ -167,9 +180,9 @@ def transform_shape(shape: Shape, m: Affine, min_extent: float = 0.0, scale_radi
     elif angle <= -math.pi / 2:
         angle += math.pi
     rotation = _rotation_about(angle, center)
-    if isinstance(shape, RectShape):
+    if isinstance(shape, (RectShape, ImageShape)):
         w, h = max(shape.width * su, min_extent), max(shape.height * sv, min_extent)
-        radii = {"rx": shape.rx * su, "ry": shape.ry * sv} if scale_radii else {}
+        radii = {"rx": shape.rx * su, "ry": shape.ry * sv} if scale_radii and isinstance(shape, RectShape) else {}
         return replace(shape, x=center[0] - w / 2, y=center[1] - h / 2, width=w, height=h, transform=rotation, **radii)
     rx, ry = max(shape.rx * su, min_extent / 2), max(shape.ry * sv, min_extent / 2)
     return replace(shape, cx=center[0], cy=center[1], rx=rx, ry=ry, transform=rotation)
@@ -183,6 +196,6 @@ def rotation_of(shape: Shape) -> float | None:
     return None if rotation is None else rotation[0]
 
 
-def with_rotation(shape: RectShape | EllipseShape | TextShape, degrees: float) -> Shape:
+def with_rotation(shape: RectShape | EllipseShape | TextShape | ImageShape, degrees: float) -> Shape:
     """Rotation about the shape's own center (anchor for text), replacing any previous rotation."""
     return replace(shape, transform=_rotation_about(math.radians(degrees), _center(shape)))

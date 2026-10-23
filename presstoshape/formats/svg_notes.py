@@ -12,7 +12,11 @@ class Note(Enum):
     CLIP = auto()
     MASK = auto()
     MASK_COLOR_SPACE = auto()
-    IMAGE = auto()
+    IMAGE_MISSING = auto()
+    IMAGE_UNSUPPORTED = auto()
+    IMAGE_REMOTE = auto()
+    IMAGE_TOO_LARGE = auto()
+    IMAGE_SVG = auto()
     FILTER = auto()
     MARKER = auto()
     GROUP_OPACITY = auto()
@@ -61,8 +65,36 @@ def _message(note: Note, count: int) -> str:
                 "{count} masks ask for linearRGB colour mixing, sRGB is used",
                 count,
             )
-        case Note.IMAGE:
-            text = ngettext("{count} image was left out", "{count} images were left out", count)
+        case Note.IMAGE_MISSING:
+            text = ngettext(
+                "{count} image was left out: its file was not found",
+                "{count} images were left out: their files were not found",
+                count,
+            )
+        case Note.IMAGE_UNSUPPORTED:
+            text = ngettext(
+                "{count} image was left out: it is not a readable PNG, JPEG, WebP or GIF",
+                "{count} images were left out: they are not readable PNG, JPEG, WebP or GIF files",
+                count,
+            )
+        case Note.IMAGE_REMOTE:
+            text = ngettext(
+                "{count} image was left out: it is on the internet, which PressToShape does not fetch",
+                "{count} images were left out: they are on the internet, which PressToShape does not fetch",
+                count,
+            )
+        case Note.IMAGE_TOO_LARGE:
+            text = ngettext(
+                "{count} image was left out: it is too large",
+                "{count} images were left out: they are too large",
+                count,
+            )
+        case Note.IMAGE_SVG:
+            text = ngettext(
+                "{count} image was left out: it is an SVG drawing, which cannot be placed as a picture",
+                "{count} images were left out: they are SVG drawings, which cannot be placed as pictures",
+                count,
+            )
         case Note.FILTER:
             text = ngettext(
                 "{count} filter effect (blur, shadow, …) was left out",

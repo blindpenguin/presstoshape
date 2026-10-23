@@ -10,7 +10,7 @@ from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _, ngettext
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import GroupShape, Masking, MaskType, Shape
+from presstoshape.models.shapes import GroupShape, ImageShape, Masking, MaskType, Shape
 
 
 def _selected_masked(state: AppState, clip: bool | None = None) -> list[GroupShape]:
@@ -104,8 +104,21 @@ def _has_mask(session: Session) -> bool:
     return bool(_selected_masked(session.state))
 
 
-@operation("object.clip.make", N_("&Make Clipping Mask"), can_run=_can_make)
+def _top_is_image(state: AppState) -> bool:
+    targets = queries.selected_shapes(state)
+    return bool(targets) and isinstance(targets[-1], ImageShape)
+
+
+def _can_make_clip(session: Session) -> bool:
+    return _can_make(session) and not _top_is_image(session.state)
+
+
+@operation("object.clip.make", N_("&Make Clipping Mask"), can_run=_can_make_clip)
 def make_clip(session: Session) -> None:
+    if _top_is_image(session.state):
+        session.state.status_message = _("An image cannot be a clipping path")
+        session.notify()
+        return
     _make(session, "clip", _("Make Clipping Mask"), _("Made a clipping mask (double-click to edit it)"))
 
 

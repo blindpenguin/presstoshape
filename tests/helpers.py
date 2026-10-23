@@ -70,3 +70,31 @@ def leaves(shapes):
     for shape in shapes:
         result.extend(leaves(shape.children) if isinstance(shape, GroupShape) else [shape])
     return result
+
+
+TINY_PNG = bytes.fromhex(
+    "89504e470d0a1a0a0000000d4948445200000002000000020802000000fdd49a73000000104944415478da63f8cf0004ff19"
+    "2014001bf203fd3e975da40000000049454e44ae426082"
+)
+
+
+def tiny_image():
+    """A 2×2 PNG (red | blue) as the ImageData the reader and the editor would make from the file."""
+    from presstoshape.formats.image_info import probe
+
+    return probe(TINY_PNG)
+
+
+def quadrant_picture(width=60, height=30):
+    """An ImageData of a PNG with four differently coloured quadrants, so alignment and mirroring show."""
+    import skia
+
+    from presstoshape.formats.image_info import probe
+
+    surface = skia.Surface(width, height)
+    canvas = surface.getCanvas()
+    colors = (skia.ColorRED, skia.ColorGREEN, skia.ColorBLUE, skia.ColorYELLOW)
+    for index, color in enumerate(colors):
+        left, top = (index % 2) * width / 2, (index // 2) * height / 2
+        canvas.drawRect(skia.Rect.MakeXYWH(left, top, width / 2, height / 2), skia.Paint(Color=color))
+    return probe(surface.makeImageSnapshot().encodeToData(skia.EncodedImageFormat.kPNG, 100).bytes())

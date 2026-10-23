@@ -2,7 +2,7 @@
 
 from dataclasses import replace
 
-from presstoshape.models.shapes import GroupShape, Shape, content_children, mask_children
+from presstoshape.models.shapes import GroupShape, ImageShape, Shape, content_children, mask_children
 
 # A released clipping path is drawn as a thin outline: unpainted, it would vanish.
 RELEASED_CLIP_STROKE = "#18181b"
@@ -22,7 +22,7 @@ def released_children(group: GroupShape) -> list[Shape]:
 
 
 def _outlined(shape: Shape) -> Shape:
-    if isinstance(shape, GroupShape):
+    if isinstance(shape, (GroupShape, ImageShape)):
         return shape
     style = replace(
         shape.style,

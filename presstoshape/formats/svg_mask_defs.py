@@ -12,9 +12,11 @@ from presstoshape.geometry.boxes import Rect
 from presstoshape.geometry.masks import visible_outline
 from presstoshape.geometry.segments import segments_bounds
 from presstoshape.geometry.transforms import area_outline
+from presstoshape.geometry.transforms import outline as shape_outline
 from presstoshape.models.shapes import (
     Close,
     GroupShape,
+    ImageShape,
     LineTo,
     Masking,
     MoveTo,
@@ -101,6 +103,8 @@ def _clip_elements(shape: Shape, defs: PaintDefs, write_shape: WriteShape, path_
             ]
         outline = visible_outline(shape)
         return [ET.Element(q("path"), {"d": path_data(outline)})] if outline else []
+    if isinstance(shape, ImageShape):
+        return [ET.Element(q("path"), {"d": path_data(shape_outline(shape) or ())})]
     element = write_shape(shape, defs)
     for attribute in _PAINT_ATTRIBUTES:
         element.attrib.pop(attribute, None)
@@ -163,6 +167,6 @@ def _box(shape: Shape) -> tuple[float, float, float, float] | None:
     bounds = segments_bounds(outline) if outline else None
     if bounds is None:
         return None
-    half = shape.style.stroke_width / 2 * 1.5 if shape.style.stroke else 0.0
+    half = 0.0 if isinstance(shape, ImageShape) else shape.style.stroke_width / 2 * 1.5 if shape.style.stroke else 0.0
     x, y, width, height = bounds
     return x - half, y - half, x + width + half, y + height + half

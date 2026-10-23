@@ -1,11 +1,20 @@
 """Replays shapes from recorded Skia pictures, so a frame isn't thousands of draw calls from Python."""
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 
 import skia
 
 from presstoshape.models.app_state import Document
-from presstoshape.models.shapes import IDENTITY_TRANSFORM, CompositeShape, ContainerShape, Shape, Transform
+from presstoshape.models.shapes import (
+    IDENTITY_TRANSFORM,
+    CompositeShape,
+    ContainerShape,
+    ImageShape,
+    Shape,
+    Transform,
+    children_of,
+)
+from presstoshape.render.images import device_scale, image_sampling
 from presstoshape.render.overlay import CanvasColors, Overlay
 from presstoshape.render.paths import PathCache, to_skia_matrix
 from presstoshape.render.scene import (
@@ -30,6 +39,13 @@ def record(shapes: Iterable[Shape], cache: PathCache) -> skia.Picture:
     return recorder.finishRecordingAsPicture()
 
 
+def _images_in(shape: Shape) -> Iterator[ImageShape]:
+    if isinstance(shape, ImageShape):
+        yield shape
+    for child in children_of(shape):
+        yield from _images_in(child)
+
+
 class ShapesPicture:
     """Paint order split into runs of static and moving shapes, each recorded once.
 
@@ -42,6 +58,7 @@ class ShapesPicture:
         self._cache = cache
         self._key: tuple | None = None
         self._runs: list[tuple[bool, skia.Picture, tuple[int, ...]]] = []
+        self._images: tuple[ImageShape, ...] = ()
 
     def draw_shapes(
         self,
@@ -51,10 +68,11 @@ class ShapesPicture:
         matrix: Transform = IDENTITY_TRANSFORM,
         live: tuple[Shape, ...] = (),
         hidden: frozenset[int] = frozenset(),
+        references: bool = True,
     ) -> None:
         """`shapes` bottom to top; `hidden` ones are left out (drawn elsewhere)."""
         shapes = tuple(shapes)
-        self._draw(canvas, shapes, lambda: shapes, moving, matrix, live, hidden)
+        self._draw(canvas, shapes, lambda: shapes, moving, matrix, live, hidden, references)
 
     def _draw(
         self,
@@ -65,13 +83,17 @@ class ShapesPicture:
         matrix: Transform,
         live: tuple[Shape, ...],
         hidden: frozenset[int],
+        references: bool = True,
     ) -> None:
         separate = moving | hidden
-        # Tuple comparison checks identity first, so unchanged content compares in a fast C loop.
-        key = (content_key, separate)
+        zoom = device_scale(canvas)
+        # Tuple comparison checks identity first, so unchanged content compares in a fast C loop. Images are
+        # recorded for the sampling their zoom calls for, so the picture is also valid only while that holds.
+        key = (content_key, separate, references, self._sampling(zoom))
         if key != self._key:
-            self._runs = self._record(shapes(), separate)
-            self._key = key
+            with self._cache.drawing(zoom, references):
+                self._runs, self._images = self._record(shapes(), separate)
+            self._key = (content_key, separate, references, self._sampling(zoom))
         replacements = {s.id: s for s in live}
         for is_moving, picture, ids in self._runs:
             if not is_moving:
@@ -88,10 +110,14 @@ class ShapesPicture:
                 canvas.drawPicture(picture)
                 canvas.restore()
 
+    def _sampling(self, zoom: float) -> tuple[tuple[bool, int], ...]:
+        return tuple(image_sampling(shape, zoom) for shape in self._images)
+
     def _record(
         self, shapes: Iterable[Shape], moving: frozenset[int]
-    ) -> list[tuple[bool, skia.Picture, tuple[int, ...]]]:
+    ) -> tuple[list[tuple[bool, skia.Picture, tuple[int, ...]]], tuple[ImageShape, ...]]:
         runs: list[tuple[bool, skia.Picture, tuple[int, ...]]] = []
+        images: list[ImageShape] = []
         recorder: skia.PictureRecorder | None = None
         run_moving = False
         ids: list[int] = []
@@ -105,10 +131,11 @@ class ShapesPicture:
                 run_moving = is_moving
                 ids = []
             draw_shape(recorder.getRecordingCanvas(), shape, self._cache)
+            images.extend(_images_in(shape))
             ids.append(shape.id)
         if recorder is not None:
             runs.append((run_moving, recorder.finishRecordingAsPicture(), tuple(ids)))
-        return runs
+        return runs, tuple(images)
 
 
 class DocumentPicture(ShapesPicture):
@@ -127,10 +154,11 @@ class DocumentPicture(ShapesPicture):
         matrix: Transform = IDENTITY_TRANSFORM,
         live: tuple[Shape, ...] = (),
         hidden: frozenset[int] = frozenset(),
+        references: bool = True,
     ) -> None:
         """`hidden` shapes are left out (the shape being edited inside, drawn by edit mode)."""
         content = tuple((layer.visible, tuple(layer.shapes)) for layer in doc.layers)
-        self._draw(canvas, content, lambda: visible_shapes(doc), moving, matrix, live, hidden)
+        self._draw(canvas, content, lambda: visible_shapes(doc), moving, matrix, live, hidden, references)
 
     def draw_copies(self, canvas: skia.Canvas, copies: tuple[Shape, ...], matrix: Transform) -> None:
         """`copies` through `matrix`, recorded once per set of shapes so each frame is one replay."""

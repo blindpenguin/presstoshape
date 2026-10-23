@@ -5,9 +5,10 @@ Repaints the real canvas while panning, zooming, and moving/scaling/rotating a s
 shapes). GL frames wait for the GPU to finish, so times include GPU work. `hover` times the cursor query alone.
 `part` drags one part of a 20-part Composite in edit mode (the result is recomputed every frame). `gpan` pans
 with all shapes in one group, `inside` drags 500 of them with that group entered. `snap` is `drag` with snapping
-targets and the grid on, `grid` pans with the grid shown.
+targets and the grid on, `grid` pans with the grid shown. `imgpan`, `imgzoom` and `imgdrag` repeat pan, zoom
+and a 20-picture drag with 200 pictures of 512 × 512 pixels instead of the shapes (`--pictures N`).
 
-Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N]
+Usage: uv run python scripts/bench_canvas.py [--shapes N] [--frames N] [--pictures N]
        PRESSTOSHAPE_RENDERER=cpu uv run python scripts/bench_canvas.py   # CPU raster path
 """
 
@@ -28,11 +29,13 @@ from presstoshape.app import _set_surface_format  # noqa: E402
 from presstoshape.editing import queries  # noqa: E402
 from presstoshape.editing.operations import edit_mode, selection, view  # noqa: E402
 from presstoshape.editing.session import Session  # noqa: E402
+from presstoshape.formats.image_info import probe  # noqa: E402
 from presstoshape.models.app_state import AppState, Document, Layer  # noqa: E402
 from presstoshape.models.shapes import (  # noqa: E402
     CompositeShape,
     EllipseShape,
     GroupShape,
+    ImageShape,
     LineTo,
     MoveTo,
     PathShape,
@@ -66,6 +69,25 @@ def _document(count: int) -> Document:
             case _:
                 shapes.append(RectShape(i, x, y, rng.uniform(5, 80), rng.uniform(5, 80), style))
     return Document(side, side, [Layer("Bench", True, shapes)], next_id=count + 1)
+
+
+def _pictures(count: int) -> list[ImageShape]:
+    """`count` pictures of 512 × 512 pixels over the artboard; eight distinct images are shared among them."""
+    rng = random.Random(4)
+    blobs = []
+    for variant in range(8):
+        surface = skia.Surface(512, 512)
+        canvas = surface.getCanvas()
+        canvas.clear(skia.ColorWHITE)
+        for _ in range(60):
+            paint = skia.Paint(Color=0xFF000000 | rng.randrange(0x1000000))
+            canvas.drawRect(skia.Rect.MakeXYWH(rng.uniform(0, 480), rng.uniform(0, 480), 64, 64), paint)
+        blobs.append(probe(bytes(surface.makeImageSnapshot().encodeToData(skia.EncodedImageFormat.kPNG, 100))))
+    side = 4000.0
+    return [
+        ImageShape(i, rng.uniform(0, side), rng.uniform(0, side), 300.0, 300.0, blobs[i % len(blobs)])
+        for i in range(count)
+    ]
 
 
 def _composite(state: AppState) -> CompositeShape:
@@ -140,6 +162,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--shapes", type=int, default=10_000)
     parser.add_argument("--frames", type=int, default=120)
+    parser.add_argument("--pictures", type=int, default=200)
     args = parser.parse_args()
 
     _set_surface_format()
@@ -225,6 +248,22 @@ def main() -> None:
     selection.set_selection(session, {shape.id for shape in group.children[:500]})
     _start_gesture(select, _Mode.MOVE)
     _report("inside", _measure(viewport, lambda i: select.move((float(i), float(i)), none), args.frames, True))
+    select.cancel()
+
+    # Pictures instead of shapes: replayed from the recorded picture, redrawn when the zoom changes sampling.
+    edit_mode.leave_all(state)
+    pictures = _pictures(args.pictures)
+    state.document.layers[0].shapes = list(pictures)
+    state.document.next_id = args.pictures + 1
+    session.notify()
+    view.set_zoom(session, 25)
+    _frame(viewport)
+    _report("imgpan", _measure(viewport, lambda i: canvas._scroll_by(7 if i % 40 < 20 else -7, 3), args.frames))
+    _report("imgzoom", _measure(viewport, lambda i: view.set_zoom(session, zooms[i % 30]), args.frames))
+    view.set_zoom(session, 25)
+    selection.set_selection(session, {shape.id for shape in pictures[:20]})
+    _start_gesture(select, _Mode.MOVE)
+    _report("imgdrag", _measure(viewport, lambda i: select.move((float(i), float(i)), none), args.frames, True))
     select.cancel()
 
     window.close_without_prompt()
