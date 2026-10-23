@@ -92,3 +92,12 @@ def test_gradients_survive_copy_and_paste():
     )
     shapes = [RectShape(1, 0, 0, 10, 10, Style(fill=gradient, stroke=gradient))]
     assert decode_shapes(encode_shapes(shapes)) == shapes
+
+
+def test_masked_groups_survive_the_clipboard():
+    from presstoshape.models.shapes import GroupShape, Masking
+
+    group = GroupShape(
+        5, (RectShape(1, 0, 0, 10, 10, RED), EllipseShape(2, 5, 5, 3, 3, RED)), masking=Masking("clip", (2,), True)
+    )
+    assert decode_shapes(encode_shapes([group])) == [group]

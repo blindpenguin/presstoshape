@@ -30,6 +30,7 @@ from presstoshape.models.shapes import (
     GroupShape,
     LinearGradient,
     LineTo,
+    Masking,
     MoveTo,
     PathShape,
     RadialGradient,
@@ -550,3 +551,52 @@ def test_huge_stop_lists_are_cut_before_decoding():
     fields["stops"] = [{"offset": 0.5, "color": "#000"}] * 100_000
     style = p2s.decode_style({"fill": fields, "stroke": None, "stroke_width": 1.0}, "s")
     assert len(style.fill.stops) == 1024
+
+
+def _masked_group(masking: Masking) -> GroupShape:
+    style = Style(fill="#ff0000", stroke=None)
+    return GroupShape(5, (RectShape(1, 0, 0, 10, 10, style), RectShape(2, 0, 0, 5, 5, style)), masking=masking)
+
+
+@pytest.mark.parametrize(
+    "masking",
+    [
+        Masking("clip", (2,)),
+        Masking("clip", (2,), True),
+        Masking("luminance", (2,), False, (1.0, 2.0, 3.0, 4.0)),
+        Masking("alpha", (1, 2), True, (0.0, 0.0, 0.0, 0.0)),
+        Masking("luminance", ()),
+    ],
+)
+def test_masked_groups_round_trip(masking):
+    group = _masked_group(masking)
+    document = Document(layers=[Layer("L", True, [GroupShape(9, (group,), masking=Masking("clip", ()))])], next_id=10)
+    assert read_p2s(write_p2s(document, SavedState(), None, "x"))[0] == document
+    assert p2s.decode_shape(p2s.encode_shape(group), "shape") == group
+
+
+def test_masking_defaults_are_left_out_and_plain_groups_have_none():
+    encoded = p2s.encode_shape(_masked_group(Masking("clip", (2,))))
+    assert encoded["masking"] == {"type": "clip", "mask": [2]}
+    assert "masking" not in p2s.encode_shape(GroupShape(1, (RectShape(2, 0, 0, 1, 1, Style()),)))
+
+
+@pytest.mark.parametrize(
+    "change, field",
+    [
+        (lambda f: f.update(type="sepia"), "type"),
+        (lambda f: f.update(mask=[7]), "mask"),
+        (lambda f: f.update(mask=["a"]), "mask"),
+        (lambda f: f.update(mask=2), "mask"),
+        (lambda f: f.pop("mask"), "mask"),
+        (lambda f: f.update(region=[1, 2, 3]), "region"),
+        (lambda f: f.update(region=[1, 2, -3, 4]), "region"),
+        (lambda f: f.update(region=[1, 2, "x", 4]), "region"),
+        (lambda f: f.update(inverted="yes"), "inverted"),
+    ],
+)
+def test_damaged_masking_is_refused(change, field):
+    encoded = p2s.encode_shape(_masked_group(Masking("luminance", (2,), False, (0.0, 0.0, 1.0, 1.0))))
+    change(encoded["masking"])
+    with pytest.raises(P2sError, match=field):
+        p2s.decode_shape(encoded, "shape")

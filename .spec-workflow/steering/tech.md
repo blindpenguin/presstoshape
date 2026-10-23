@@ -120,7 +120,7 @@ None. PressToShape is offline; no network access, accounts or telemetry. Interop
 - **Renderer**: Skia renders shapes with solid paint only so far; gradients, blend modes and effects are future specs. Continuous zoom on documents with many text objects re-rasterizes glyphs at each scale (~20 ms/frame at 10k shapes on an integrated GPU); pan and drag stay under 16 ms. The CPU fallback is ~25–30 ms/frame at 10k shapes.
 - **Undo scaling**: snapshot undo copies every layer's shape list per step — fine now, may need structural sharing or command-based undo for very large documents (a change inside `Session`, operations stay as they are).
 - **Full-state notify**: every change refreshes every view; views must keep diffing cheap, and finer-grained change notification may be needed as the UI grows.
-- **SVG import gaps**: gradients, clip paths, masks, `<use>`, images and CSS stylesheets are skipped or approximated; skew on text is dropped.
+- **SVG import gaps**: patterns, images, filters and markers are skipped or approximated; skew on text is dropped. Gradients, clip paths, masks, `<use>` and CSS stylesheets are read.
 - **Text**: single-line, single font; rendered with Skia using a generic sans-serif font.
 - **Shape model**: no groups. Each shape has an affine `transform`, kept canonical: rect/ellipse/text store unrotated geometry plus a rotation about their center (a full matrix only when skewed); paths always have the transform baked into their segments. Handle scaling changes geometry, so strokes don't scale.
 - **CI covers nightlies only** (no per-push checks, no code signing, no macOS/ARM builds, no Linux formats besides AppImage).

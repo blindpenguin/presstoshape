@@ -42,6 +42,7 @@ _COLORS = CanvasColors(
     guide=theme.GUIDE,
     grid=theme.GRID,
     snap=theme.SNAP,
+    mask_outline=theme.MASK_OUTLINE,
 )
 
 _log = logging.getLogger(__name__)

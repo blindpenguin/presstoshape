@@ -24,9 +24,12 @@ from presstoshape.models.shapes import (
     TextShape,
     Transform,
     children_of,
+    content_children,
+    mask_children,
 )
 from presstoshape.render.gradients import gradient_shader
 from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
+from presstoshape.render.masks import mask_filter, shape_area
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
 from presstoshape.render.paths import PathCache, stroke_paint, to_skia_matrix, to_skia_path
 from presstoshape.render.text import anchor_offset, text_blob, typeface
@@ -139,16 +142,55 @@ def draw_shape(canvas: skia.Canvas, shape: Shape, cache: PathCache) -> None:
 
 
 def _draw_group(canvas: skia.Canvas, group: GroupShape, cache: PathCache) -> None:
-    """Children in order; below full opacity they are flattened in a layer first, as SVG renders group opacity."""
+    """Children in order; below full opacity they are flattened in a layer first, as SVG renders group opacity.
+    A mask clips the content, or multiplies it by the mask objects' luminance or alpha."""
     if group.opacity <= 0:
         return
     layered = group.opacity < 1
     if layered:
         canvas.saveLayerAlpha(cache.bounds(group), round(group.opacity * 255))
-    for child in group.children:
-        draw_shape(canvas, child, cache)
+    if group.masking is None:
+        for child in group.children:
+            draw_shape(canvas, child, cache)
+    elif group.masking.type == "clip":
+        _draw_clipped(canvas, group, cache)
+    else:
+        _draw_masked(canvas, group, cache)
     if layered:
         canvas.restore()
+
+
+def _draw_clipped(canvas: skia.Canvas, group: GroupShape, cache: PathCache) -> None:
+    canvas.save()
+    operation = skia.ClipOp.kDifference if group.masking.inverted else skia.ClipOp.kIntersect
+    canvas.clipPath(cache.clip(group), operation, True)
+    for child in content_children(group):
+        draw_shape(canvas, child, cache)
+    canvas.restore()
+
+
+def _draw_masked(canvas: skia.Canvas, group: GroupShape, cache: PathCache) -> None:
+    masking = group.masking
+    bounds = cache.bounds(group)
+    canvas.save()
+    if masking.region is not None:
+        canvas.clipRect(skia.Rect.MakeXYWH(*masking.region), True)
+    canvas.saveLayer(bounds, None)
+    for child in content_children(group):
+        draw_shape(canvas, child, cache)
+    mask_paint = skia.Paint(BlendMode=skia.BlendMode.kDstIn)
+    value_filter = mask_filter(masking.type, masking.inverted)
+    if value_filter is not None:
+        mask_paint.setColorFilter(value_filter)
+    canvas.saveLayer(bounds, mask_paint)
+    if masking.type == "luminance":
+        # Luminance of a colour over black: transparent mask areas hide the content.
+        canvas.drawColor(skia.ColorBLACK)
+    for child in mask_children(group):
+        draw_shape(canvas, child, cache)
+    canvas.restore()
+    canvas.restore()
+    canvas.restore()
 
 
 def _draw_local(canvas: skia.Canvas, shape: Shape, cache: PathCache, opacity: float) -> None:
@@ -311,7 +353,7 @@ def edit_mode_outer(chain: Sequence[ContainerShape], overlay: Overlay) -> Shape:
     they are included."""
     innermost = chain[-1]
     if isinstance(innermost, GroupShape):
-        updated: Shape = replace(innermost, children=())
+        updated: Shape = replace(innermost, children=(), masking=None)
     else:
         updated = live_container(innermost, overlay)
     for parent in reversed(chain[:-1]):
@@ -341,6 +383,20 @@ def draw_composite_parts(canvas: skia.Canvas, composite: CompositeShape, zoom: f
         canvas.drawPath(to_skia_path(part_outline), paint)
 
 
+def draw_mask_outlines(
+    canvas: skia.Canvas, group: ContainerShape, zoom: float, colors: CanvasColors, cache: PathCache
+) -> None:
+    """Dashed outlines of an entered masked group's mask objects, so they can be told from the content."""
+    if not isinstance(group, GroupShape) or group.masking is None:
+        return
+    dash = _DASH_PX * 2 / zoom
+    paint = _hairline(parse_color(colors.mask_outline), dash)
+    paint.setAntiAlias(True)
+    for child in mask_children(group):
+        if not child.hidden:
+            canvas.drawPath(shape_area(child, cache), paint)
+
+
 def draw_dim(canvas: skia.Canvas, colors: CanvasColors) -> None:
     dim = parse_color(colors.pasteboard) & 0x00FFFFFF | (_DIM_ALPHA << 24)
     canvas.drawRect(_EVERYWHERE, skia.Paint(Color=dim))
@@ -366,6 +422,7 @@ def draw_edit_mode(
     else:
         for child in container.children:
             draw_shape(canvas, child, cache)
+        draw_mask_outlines(canvas, container, zoom, colors, cache)
 
 
 def draw_overlays(

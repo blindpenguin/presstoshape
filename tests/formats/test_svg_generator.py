@@ -16,6 +16,7 @@ from presstoshape.models.shapes import (
     GroupShape,
     LinearGradient,
     LineTo,
+    Masking,
     MoveTo,
     PathShape,
     RadialGradient,
@@ -66,6 +67,17 @@ _FADE = (GradientStop(0, "#2f6fd0"), GradientStop(1, "#2f6fd0", 0.1))
 
 def _gradient(**options) -> Style:
     return Style(fill=LinearGradient(0, 0, 1, 0, _RGB, **options), stroke=None)
+
+
+_next_mask_group_id = iter(range(900, 1000))
+
+
+def _masked(content, mask_type, mask, **fields) -> GroupShape:
+    return GroupShape(
+        next(_next_mask_group_id),
+        (*content, *mask),
+        masking=Masking(mask_type, tuple(shape.id for shape in mask), **fields),
+    )
 
 
 DOCUMENTS = {
@@ -176,6 +188,67 @@ DOCUMENTS = {
             2,
             (MoveTo(220, 60), LineTo(380, 60), LineTo(380, 200)),
             Style(fill=None, stroke=LinearGradient(220, 0, 380, 0, _RGB, "userSpaceOnUse"), stroke_width=16),
+        ),
+    ),
+    "clipping masks": _doc(
+        _masked(
+            [RectShape(1, 20, 20, 160, 120, Style(fill="#d03030", stroke=None))],
+            "clip",
+            [EllipseShape(2, 100, 80, 50, 40, NO_STROKE)],
+        ),
+        _masked(
+            [RectShape(3, 220, 20, 160, 120, Style(fill="#30a050", stroke=None))],
+            "clip",
+            [EllipseShape(4, 300, 80, 50, 40, NO_STROKE)],
+            inverted=True,
+        ),
+        _masked(
+            [RectShape(5, 20, 160, 160, 120, Style(fill="#2f6fd0", stroke=None))],
+            "clip",
+            [PathShape(6, _square(40, 180, 120) + _square(70, 210, 60), _blue(stroke=None, fill_rule="evenodd"))],
+        ),
+        _masked(
+            [RectShape(7, 220, 160, 160, 120, Style(fill="#d03030", stroke=None))],
+            "clip",
+            [RectShape(8, 230, 170, 60, 100, NO_STROKE), EllipseShape(9, 340, 220, 40, 40, NO_STROKE)],
+        ),
+    ),
+    "opacity masks": _doc(
+        _masked(
+            [RectShape(1, 20, 20, 160, 120, Style(fill="#d03030", stroke=None))],
+            "luminance",
+            [
+                RectShape(
+                    2,
+                    20,
+                    20,
+                    160,
+                    120,
+                    Style(
+                        fill=LinearGradient(0, 0, 1, 0, (GradientStop(0, "#000000"), GradientStop(1, "#ffffff"))),
+                        stroke=None,
+                    ),
+                )
+            ],
+        ),
+        _masked(
+            [RectShape(3, 220, 20, 160, 120, Style(fill="#2f6fd0", stroke=None))],
+            "alpha",
+            [EllipseShape(4, 300, 80, 60, 40, Style(fill="#000000", fill_opacity=0.5, stroke=None))],
+        ),
+        _masked(
+            [RectShape(5, 20, 160, 160, 120, Style(fill="#30a050", stroke=None))],
+            "luminance",
+            [
+                RectShape(6, 20, 160, 80, 120, Style(fill="#ffffff", stroke=None)),
+                RectShape(7, 100, 160, 80, 120, Style(fill="#808080", stroke=None)),
+            ],
+        ),
+        _masked(
+            [RectShape(8, 220, 160, 160, 120, Style(fill="#d03030", stroke=None))],
+            "luminance",
+            [RectShape(9, 220, 160, 160, 120, Style(fill="#ffffff", stroke=None))],
+            region=(250.0, 180.0, 100.0, 80.0),
         ),
     ),
     "hidden content": _doc(

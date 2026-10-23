@@ -12,6 +12,7 @@ from presstoshape.editing.operations import (  # noqa: F401
     guides,
     history,
     layers,
+    masks,
     node_editing,
     paths,
     selection,

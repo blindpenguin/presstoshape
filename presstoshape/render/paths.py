@@ -23,8 +23,10 @@ from presstoshape.models.shapes import (
     Style,
     TextShape,
     Transform,
+    content_children,
 )
 from presstoshape.render.gradients import gradient_shader
+from presstoshape.render.masks import build_clip
 from presstoshape.render.text import text_path
 
 _FILL_TYPES = {"nonzero": skia.PathFillType.kWinding, "evenodd": skia.PathFillType.kEvenOdd}
@@ -128,6 +130,7 @@ class PathCache:
         self._paths: dict[int, tuple[Shape, skia.Path, skia.Rect]] = {}
         self._strokes: dict[int, tuple[Shape, float, skia.Path]] = {}
         self._shaders: dict[int, tuple[Shape, tuple[skia.Shader | None, skia.Shader | None]]] = {}
+        self._clips: dict[int, tuple[Shape, skia.Path]] = {}
 
     def _entry(self, shape: Shape) -> tuple[Shape, skia.Path, skia.Rect]:
         entry = self._paths.get(shape.id)
@@ -135,7 +138,7 @@ class PathCache:
         if entry is None or (entry[0] is not shape and entry[0] != shape):
             if isinstance(shape, GroupShape):
                 # Never drawn as one path; picked and framed through its children.
-                entry = (shape, skia.Path(), self._union(self.bounds(child) for child in _framed(shape.children)))
+                entry = (shape, skia.Path(), self._group_bounds(shape, self.bounds))
                 self._paths[shape.id] = entry
                 return entry
             path = _build(shape)
@@ -145,6 +148,32 @@ class PathCache:
             entry = (shape, path, bounds)
             self._paths[shape.id] = entry
         return entry
+
+    def _group_bounds(self, group: GroupShape, child_bounds) -> skia.Rect:
+        """What a group shows: its content, cut by the clip or the mask region. Mask objects don't count."""
+        content = self._union(child_bounds(child) for child in _framed(content_children(group)))
+        masking = group.masking
+        if masking is None:
+            return content
+        visible = skia.Rect.MakeLTRB(content.left(), content.top(), content.right(), content.bottom())
+        if masking.type == "clip":
+            if masking.inverted:
+                return content
+            cut = self.clip(group).computeTightBounds()
+        elif masking.region is not None:
+            cut = skia.Rect.MakeXYWH(*masking.region)
+        else:
+            return content
+        # A group clipped away entirely keeps its content's box, so it can still be found and selected.
+        return visible if visible.intersect(cut) else content
+
+    def clip(self, group: GroupShape) -> skia.Path:
+        """The union of a masked group's mask objects, world space."""
+        entry = self._clips.get(group.id)
+        if entry is None or (entry[0] is not group and entry[0] != group):
+            entry = (group, build_clip(group, self))
+            self._clips[group.id] = entry
+        return entry[1]
 
     @staticmethod
     def _union(rects) -> skia.Rect:
@@ -206,7 +235,7 @@ class PathCache:
         """Tight bounds of the transformed geometry, without stroke. An empty Composite uses its parts' bounds,
         so it can still be found, selected and framed; a group its children's."""
         if isinstance(shape, GroupShape):
-            return self._union(self.geometry_bounds(child) for child in _framed(shape.children))
+            return self._group_bounds(shape, self.geometry_bounds)
         path = self.get(shape)
         if isinstance(shape, CompositeShape) and path.isEmpty():
             return self._union(self.geometry_bounds(part) for part in _framed(shape.parts))
@@ -214,6 +243,6 @@ class PathCache:
 
     def prune(self, live_ids: Iterable[int]) -> None:
         live = set(live_ids)
-        for cache in (self._paths, self._strokes, self._shaders):
+        for cache in (self._paths, self._strokes, self._shaders, self._clips):
             for shape_id in [i for i in cache if i not in live]:
                 del cache[shape_id]

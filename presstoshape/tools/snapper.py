@@ -11,7 +11,7 @@ from presstoshape.geometry import nodes, transforms, units
 from presstoshape.geometry.boxes import Point, Rect
 from presstoshape.geometry.snapping import NO_SNAP, GridSpec, LineTarget, SnapHit, SnapResult, SnapTargets
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import CubicTo, GroupShape, LineTo, MoveTo, PathShape, Shape
+from presstoshape.models.shapes import CubicTo, GroupShape, LineTo, MoveTo, PathShape, Shape, content_children
 from presstoshape.render.paths import PathCache
 
 # Node targets beyond this many are left out (huge drawings zoomed out), so building stays quick.
@@ -24,7 +24,7 @@ def shape_points(shape: Shape) -> list[Point]:
     """Points of a shape's outline that snap: path nodes, rectangle corners, ellipse extremes; a group's from
     its shown children. Text has none."""
     if isinstance(shape, GroupShape):
-        return [point for child in shape.children if not child.hidden for point in shape_points(child)]
+        return [point for child in content_children(shape) if not child.hidden for point in shape_points(child)]
     segments = transforms.outline(shape)
     if not segments:
         return []

@@ -532,9 +532,13 @@ def test_inkscape_drawing_with_layers_and_text_lines():
 
 def test_figma_frame_export():
     document, notes = _fixture("figma_frame.svg")
-    (frame,) = document.layers[0].shapes
-    assert isinstance(frame, GroupShape)
-    background, ring, card, circle, translucent, gradient = frame.children
+    (clipped,) = document.layers[0].shapes
+    assert clipped.masking.type == "clip"
+    inner, clip_rect = clipped.children
+    assert clipped.masking.mask_ids == (clip_rect.id,)
+    assert (clip_rect.width, clip_rect.height) == (120, 80)
+    assert isinstance(inner, GroupShape)
+    background, ring, card, circle, translucent, gradient = inner.children
     assert background.style.fill == "#ffffff"
     assert ring.style.fill_rule == "evenodd"
     assert (card.rx, card.style.fill_opacity) == (8, 0.25)
@@ -543,7 +547,7 @@ def test_figma_frame_export():
     assert gradient.style.fill == LinearGradient(
         60, 72, 110, 77, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff")), units="userSpaceOnUse"
     )
-    assert notes == ["1 clip path was ignored, its content is shown unclipped"]
+    assert notes == []
 
 
 def test_icon_sprite_with_symbols_and_uses():

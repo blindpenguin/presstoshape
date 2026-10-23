@@ -123,7 +123,9 @@ def parse_transform(value: str | None) -> Affine:
         m = se.Matrix(value)
     except (ValueError, TypeError):
         return IDENTITY
-    return (m.a, m.b, m.c, m.d, m.e, m.f)
+    result = (m.a, m.b, m.c, m.d, m.e, m.f)
+    # A transform that overflows is as invalid as one that doesn't parse.
+    return result if all(math.isfinite(v) for v in result) else IDENTITY
 
 
 _ARGUMENT_COUNT = {"M": 2, "L": 2, "H": 1, "V": 1, "C": 6, "S": 4, "Q": 4, "T": 2, "A": 7, "Z": 0}

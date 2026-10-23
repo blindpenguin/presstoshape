@@ -13,6 +13,7 @@ from presstoshape.models.shapes import (
     GroupShape,
     LinearGradient,
     LineTo,
+    Masking,
     MoveTo,
     PathShape,
     RadialGradient,
@@ -249,3 +250,38 @@ def expected_v8() -> tuple[Document, SavedState]:
 
 def test_v8_sample_opens_to_the_expected_document():
     assert read_p2s((SAMPLES / "v8.p2s").read_bytes()) == expected_v8()
+
+
+def expected_v9() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v9.p2s holds: a clipping mask, an inverted opacity mask with a region and an
+    alpha mask nested in a group."""
+    style = Style(fill="#ff0000", stroke=None)
+    clip = GroupShape(
+        3,
+        (RectShape(1, 0.0, 0.0, 100.0, 100.0, style), EllipseShape(2, 50.0, 50.0, 30.0, 30.0, style)),
+        masking=Masking("clip", (2,)),
+    )
+    luminance = GroupShape(
+        6,
+        (
+            RectShape(4, 0.0, 0.0, 50.0, 50.0, style),
+            RectShape(5, 0.0, 0.0, 25.0, 50.0, Style(fill="#ffffff", stroke=None)),
+        ),
+        masking=Masking("luminance", (5,), True, (0.0, 0.0, 50.0, 50.0)),
+    )
+    alpha = GroupShape(
+        9,
+        (RectShape(7, 0.0, 0.0, 10.0, 10.0, style), RectShape(8, 0.0, 0.0, 5.0, 5.0, style)),
+        masking=Masking("alpha", (8,)),
+    )
+    document = Document(
+        width=200.0,
+        height=150.0,
+        layers=[Layer("Layer 1", True, [clip, GroupShape(11, (luminance, alpha), opacity=0.5)])],
+        next_id=12,
+    )
+    return document, SavedState(zoom_percent=100)
+
+
+def test_v9_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v9.p2s").read_bytes()) == expected_v9()

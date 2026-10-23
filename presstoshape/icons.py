@@ -70,6 +70,8 @@ OBJECT_PATH = _DIR / "object_path.svg"
 OBJECT_TEXT = _DIR / "object_text.svg"
 OBJECT_GROUP = _DIR / "object_group.svg"
 OBJECT_COMPOSITE = _DIR / "object_composite.svg"
+OBJECT_CLIP = _DIR / "object_clip.svg"
+OBJECT_MASK = _DIR / "object_mask.svg"
 
 CURSOR_ROTATE = _DIR / "cursor_rotate.svg"
 CURSOR_NODE_INSERT = _DIR / "cursor_node_insert.svg"

@@ -4,6 +4,7 @@ from dataclasses import replace
 
 from presstoshape.editing import containers, queries
 from presstoshape.editing.operations._document import new_id, prune_selection
+from presstoshape.editing.operations._masking import released_children
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _, ngettext, pgettext
@@ -52,14 +53,15 @@ def group(session: Session) -> None:
 
 @operation("object.ungroup", N_("&Ungroup"), can_run=_has_group)
 def ungroup(session: Session) -> None:
-    """Replaces each selected group by its shapes, in place. A group's opacity moves into each of them."""
+    """Replaces each selected group by its shapes, in place. A group's opacity moves into each of them; a masked
+    group is released like Release Clipping Mask / Release Opacity Mask."""
     state = session.state
     groups = {group.id: group for group in _selected_groups(state)}
     if not groups:
         return
     with session.edit(_("Ungroup")):
         released = {
-            group_id: [with_opacity(child, group.opacity) for child in group.children]
+            group_id: [with_opacity(child, group.opacity) for child in released_children(group)]
             for group_id, group in groups.items()
         }
 

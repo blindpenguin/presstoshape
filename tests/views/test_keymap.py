@@ -14,7 +14,7 @@ def test_every_layout_id_resolves():
     for ids in layouts:
         for entry in ids:
             if isinstance(entry, tuple):
-                used.update(entry[1])
+                used.update(item for item in entry[1] if item is not None)
             elif entry not in (None, keymap.ZOOM_LABEL, keymap.RECENT_MENU):
                 used.add(entry)
     assert used - _known_ids() == set()

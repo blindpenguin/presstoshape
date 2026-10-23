@@ -8,6 +8,10 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: presstoshape/editing/object_tree.py
+msgid "{object} (mask)"
+msgstr "{object} (Maske)"
+
+#: presstoshape/editing/object_tree.py
 #: presstoshape/views/selection_view.py
 msgid "Text"
 msgstr "Text"
@@ -28,13 +32,19 @@ msgid "Path"
 msgstr "Pfad"
 
 #: presstoshape/editing/object_tree.py
-#: presstoshape/views/edit_bar_view.py
 #: presstoshape/views/selection_view.py
 msgid "Group"
 msgstr "Gruppe"
 
 #: presstoshape/editing/object_tree.py
-#: presstoshape/views/edit_bar_view.py
+msgid "Clipping Mask"
+msgstr "Schnittmaske"
+
+#: presstoshape/editing/object_tree.py
+msgid "Opacity Mask"
+msgstr "Deckkraftmaske"
+
+#: presstoshape/editing/object_tree.py
 #: presstoshape/views/selection_view.py
 msgid "Composite"
 msgstr "Komposit"
@@ -166,6 +176,10 @@ msgstr "Schnittmenge"
 #: presstoshape/editing/operations/booleans.py
 msgid "Exclude"
 msgstr "Ausschließen"
+
+#: presstoshape/editing/operations/booleans.py
+msgid "Release the mask first"
+msgstr "Zuerst die Maske lösen"
 
 #: presstoshape/editing/operations/booleans.py
 msgid "{operation} is empty"
@@ -542,6 +556,118 @@ msgstr "Ebene entsperren"
 #: presstoshape/editing/operations/layers.py
 msgid "Rename layer"
 msgstr "Ebene umbenennen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Masks can't be made inside a Composite"
+msgstr "Innerhalb eines Komposits lassen sich keine Masken erstellen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Select the objects to mask and, on top of them, the mask object"
+msgstr "Die zu maskierenden Objekte und darüber das Maskenobjekt auswählen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "The objects must be in the same layer or group"
+msgstr "Die Objekte müssen in derselben Ebene oder Gruppe liegen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "&Make Clipping Mask"
+msgstr "&Schnittmaske erstellen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Make Clipping Mask"
+msgstr "Schnittmaske erstellen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Made a clipping mask (double-click to edit it)"
+msgstr "Schnittmaske erstellt (Doppelklick zum Bearbeiten)"
+
+#: presstoshape/editing/operations/masks.py
+msgid "&Release Clipping Mask"
+msgstr "Schnittmaske &lösen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Release Clipping Mask"
+msgstr "Schnittmaske lösen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Released the clipping mask"
+msgstr "Schnittmaske gelöst"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Make &Opacity Mask"
+msgstr "&Deckkraftmaske erstellen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Make Opacity Mask"
+msgstr "Deckkraftmaske erstellen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Made an opacity mask (double-click to edit it)"
+msgstr "Deckkraftmaske erstellt (Doppelklick zum Bearbeiten)"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Release O&pacity Mask"
+msgstr "Deckkraftmaske l&ösen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Release Opacity Mask"
+msgstr "Deckkraftmaske lösen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Released the opacity mask"
+msgstr "Deckkraftmaske gelöst"
+
+#: presstoshape/editing/operations/masks.py
+msgid "&Invert Mask"
+msgstr "Maske &umkehren"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Invert Mask"
+msgstr "Maske umkehren"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Mask by &Luminance"
+msgstr "Maske nach &Luminanz"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Mask by Luminance"
+msgstr "Maske nach Luminanz"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Mask by &Alpha"
+msgstr "Maske nach &Alpha"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Mask by Alpha"
+msgstr "Maske nach Alpha"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Moved {count} object to the mask"
+msgid_plural "Moved {count} objects to the mask"
+msgstr[0] "{count} Objekt zur Maske verschoben"
+msgstr[1] "{count} Objekte zur Maske verschoben"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Moved {count} object to the content"
+msgid_plural "Moved {count} objects to the content"
+msgstr[0] "{count} Objekt in den Inhalt verschoben"
+msgstr[1] "{count} Objekte in den Inhalt verschoben"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Add to Mas&k"
+msgstr "Zur &Maske hinzufügen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Add to Mask"
+msgstr "Zur Maske hinzufügen"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Mov&e to Content"
+msgstr "In den &Inhalt verschieben"
+
+#: presstoshape/editing/operations/masks.py
+msgid "Move to Content"
+msgstr "In den Inhalt verschieben"
 
 #: presstoshape/editing/operations/node_editing.py
 msgid "Moved {count} node"
@@ -1062,6 +1188,18 @@ msgid "Redo"
 msgstr "Wiederholt"
 
 #: presstoshape/formats/p2s.py
+msgid "should be the id of a child"
+msgstr "sollte die ID eines Kindobjekts sein"
+
+#: presstoshape/formats/p2s.py
+msgid "should have four numbers"
+msgstr "sollte vier Zahlen haben"
+
+#: presstoshape/formats/p2s.py
+msgid "should not have a negative size"
+msgstr "sollte keine negative Größe haben"
+
+#: presstoshape/formats/p2s.py
 msgid "should be one of {choices}"
 msgstr "sollte eines von {choices} sein"
 
@@ -1188,6 +1326,12 @@ msgid "{count} mask was ignored, its content is shown unmasked"
 msgid_plural "{count} masks were ignored, their content is shown unmasked"
 msgstr[0] "{count} Maske wurde ignoriert, ihr Inhalt wird unmaskiert gezeigt"
 msgstr[1] "{count} Masken wurden ignoriert, ihr Inhalt wird unmaskiert gezeigt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} mask asks for linearRGB colour mixing, sRGB is used"
+msgid_plural "{count} masks ask for linearRGB colour mixing, sRGB is used"
+msgstr[0] "{count} Maske verlangt linearRGB-Farbmischung, es wird sRGB verwendet"
+msgstr[1] "{count} Masken verlangen linearRGB-Farbmischung, es wird sRGB verwendet"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} image was left out"
@@ -1652,6 +1796,14 @@ msgstr "&Pfad"
 #: presstoshape/views/keymap.py
 msgid "&Object"
 msgstr "&Objekt"
+
+#: presstoshape/views/keymap.py
+msgid "&Clipping Mask"
+msgstr "S&chnittmaske"
+
+#: presstoshape/views/keymap.py
+msgid "Opacity &Mask"
+msgstr "&Deckkraftmaske"
 
 #: presstoshape/views/keymap.py
 msgid "&Align"

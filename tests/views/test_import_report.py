@@ -26,14 +26,13 @@ def window(tmp_path):
     window.close_without_prompt()
 
 
-def test_opening_a_lossy_file_shows_its_notes_once(window):
-    assert window.open_path(str(SAMPLES / "figma_frame.svg"))
-    assert window.reports == [
-        (
-            "figma_frame.svg",
-            ["1 clip path was ignored, its content is shown unclipped"],
-        )
-    ]
+def test_opening_a_lossy_file_shows_its_notes_once(window, tmp_path):
+    lossy = tmp_path / "lossy.svg"
+    lossy.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect width="5" height="5" style="filter:url(#f)"/></svg>'
+    )
+    assert window.open_path(str(lossy))
+    assert window.reports == [("lossy.svg", ["1 filter effect (blur, shadow, …) was left out"])]
     assert window._session.state.import_notes == []
 
 

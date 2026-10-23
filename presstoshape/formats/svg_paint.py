@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 from presstoshape.formats.svg_names import q
 from presstoshape.formats.svg_page import number_text
+from presstoshape.geometry.boxes import Rect
 from presstoshape.models.shapes import Gradient, LinearGradient, Paint, RadialGradient
 
 
@@ -14,8 +15,24 @@ def _num(value: float) -> str:
 class PaintDefs:
     """Collects the gradients of one written document; equal gradients share one element."""
 
-    def __init__(self) -> None:
+    def __init__(self, page: Rect = (0.0, 0.0, 0.0, 0.0)) -> None:
         self._ids: dict[Gradient, str] = {}
+        self._definitions: list[ET.Element] = []
+        self._counts: dict[str, int] = {}
+        self._page = page
+
+    def new_id(self, prefix: str) -> str:
+        """The next unused id for a definition: `prefix1`, `prefix2`, … in order of first use."""
+        self._counts[prefix] = self._counts.get(prefix, 0) + 1
+        return f"{prefix}{self._counts[prefix]}"
+
+    def add_definition(self, element: ET.Element) -> None:
+        self._definitions.append(element)
+
+    def fallback_region(self, scale: float) -> Rect:
+        """The page grown to `scale` times its size around its centre (a mask region when nothing better is known)."""
+        x, y, width, height = self._page
+        return x - width * (scale - 1) / 2, y - height * (scale - 1) / 2, width * scale, height * scale
 
     def attribute(self, paint: Paint) -> str:
         if paint is None:
@@ -27,11 +44,12 @@ class PaintDefs:
         return f"url(#{self._ids[paint]})"
 
     def element(self) -> ET.Element | None:
-        if not self._ids:
+        if not self._ids and not self._definitions:
             return None
         defs = ET.Element(q("defs"))
         for gradient, gradient_id in self._ids.items():
             defs.append(_gradient_element(gradient, gradient_id))
+        defs.extend(self._definitions)
         return defs
 
 

@@ -11,6 +11,7 @@ class Note(Enum):
     COLOR_INTERPOLATION = auto()
     CLIP = auto()
     MASK = auto()
+    MASK_COLOR_SPACE = auto()
     IMAGE = auto()
     FILTER = auto()
     MARKER = auto()
@@ -52,6 +53,12 @@ def _message(note: Note, count: int) -> str:
             text = ngettext(
                 "{count} mask was ignored, its content is shown unmasked",
                 "{count} masks were ignored, their content is shown unmasked",
+                count,
+            )
+        case Note.MASK_COLOR_SPACE:
+            text = ngettext(
+                "{count} mask asks for linearRGB colour mixing, sRGB is used",
+                "{count} masks ask for linearRGB colour mixing, sRGB is used",
                 count,
             )
         case Note.IMAGE:

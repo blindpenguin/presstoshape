@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QToolButton, QWidget
 
 from presstoshape.editing import containers
+from presstoshape.editing.object_tree import object_label
 from presstoshape.editing.operations import edit_mode
 from presstoshape.editing.session import Session
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import GroupShape
 
 
 class EditBar(QWidget):
@@ -44,7 +44,7 @@ class EditBar(QWidget):
         layer_name = next(
             (layer.name for layer in state.document.layers if any(shape.id == path[0] for shape in layer.shapes)), ""
         )
-        names = [layer_name] + [_("Group") if isinstance(entry, GroupShape) else _("Composite") for entry in chain]
+        names = [layer_name] + [object_label(entry) for entry in chain]
         for depth, name in enumerate(names):
             if depth:
                 self._crumbs.addWidget(QLabel("›"))

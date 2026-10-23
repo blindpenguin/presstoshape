@@ -8,6 +8,7 @@ from presstoshape.models.shapes import (
     EllipseShape,
     GroupShape,
     LineTo,
+    Masking,
     MoveTo,
     PathShape,
     RectShape,
@@ -211,3 +212,69 @@ def test_hidden_and_locked_shapes_are_passed_over_by_point_hits():
     hidden = RectShape(2, 0, 0, 100, 100, FILLED, hidden=True)
     locked = RectShape(3, 0, 0, 100, 100, FILLED, locked=True)
     assert shape_at([below, hidden, locked], PathCache(), (50, 50), 0) == 1
+
+
+def _masked(mask_type="clip", mask=None, **fields) -> GroupShape:
+    content = RectShape(1, 0, 0, 100, 100, FILLED)
+    mask = mask or RectShape(2, 20, 20, 40, 40, FILLED)
+    return GroupShape(9, (content, mask), masking=Masking(mask_type, (mask.id,), **fields))
+
+
+def test_masked_group_is_picked_only_inside_its_clip():
+    group = _masked()
+    assert shape_at([group], PathCache(), (30, 30), 0) == 9
+    assert shape_at([group], PathCache(), (80, 80), 0) is None
+
+
+def test_inverted_clip_is_picked_outside_the_hole():
+    group = _masked(inverted=True)
+    assert shape_at([group], PathCache(), (30, 30), 0) is None
+    assert shape_at([group], PathCache(), (80, 80), 0) == 9
+
+
+def test_mask_object_alone_is_not_pickable_in_an_opacity_mask():
+    mask = RectShape(2, 300, 300, 40, 40, FILLED)
+    group = _masked("luminance", mask)
+    assert shape_at([group], PathCache(), (310, 310), 0) is None
+    assert shape_at([group], PathCache(), (50, 50), 0) == 9
+
+
+def test_marquee_uses_visible_area_of_masked_group():
+    group = _masked()
+    assert shapes_in_rect([group], PathCache(), (70, 70, 20, 20)) == set()
+    assert shapes_in_rect([group], PathCache(), (25, 25, 5, 5)) == {9}
+
+
+def test_entered_masked_group_children_are_picked_individually():
+    group = _masked()
+    assert shape_at(list(group.children), PathCache(), (80, 80), 0) == 1
+    assert shape_at(list(group.children), PathCache(), (30, 30), 0) == 2
+
+
+def test_selection_frame_and_snap_points_use_visible_content():
+    from presstoshape.render.handles import selection_frame
+    from presstoshape.tools.snapper import shape_points
+
+    group = _masked(mask=RectShape(2, 20, 20, 40, 40, FILLED))
+    frame = selection_frame([group], PathCache())
+    assert frame.rect == (20, 20, 40, 40)
+    assert len(shape_points(group)) == len(shape_points(group.children[0]))
+
+
+def test_translate_and_scale_move_mask_region_with_the_group():
+    from presstoshape.geometry.transforms import transform_shape, translate
+
+    group = _masked("luminance", region=(10.0, 20.0, 30.0, 40.0))
+    assert translate(group, 5, 6).masking.region == (15.0, 26.0, 30.0, 40.0)
+    assert transform_shape(group, (2, 0, 0, 2, 0, 0)).masking.region == (20.0, 40.0, 60.0, 80.0)
+    turned = transform_shape(group, (0, 1, -1, 0, 0, 0)).masking.region
+    assert turned == (-60.0, 10.0, 40.0, 30.0)
+
+
+def test_fresh_ids_keep_mask_membership(session):
+    from presstoshape.editing.operations._document import with_fresh_ids
+
+    session.state.document.next_id = 100
+    copy = with_fresh_ids(session.state, [_masked()])[0]
+    assert copy.masking.mask_ids == (copy.children[1].id,)
+    assert copy.children[1].id >= 100

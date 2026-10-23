@@ -29,6 +29,8 @@ from presstoshape.models.shapes import (
     LineCap,
     LineJoin,
     LineTo,
+    Masking,
+    MaskType,
     MoveTo,
     Paint,
     PartMode,
@@ -162,6 +164,40 @@ def encode_shape(shape: Shape) -> dict[str, Any]:
     return fields
 
 
+def _encode_masking(masking: Masking) -> dict[str, Any]:
+    fields: dict[str, Any] = {"type": masking.type, "mask": list(masking.mask_ids)}
+    if masking.inverted:
+        fields["inverted"] = True
+    if masking.region is not None:
+        fields["region"] = [_number(value) for value in masking.region]
+    return fields
+
+
+def _decode_masking(value: Any, children: tuple[Shape, ...], where: str) -> Masking:
+    fields = read_object(value, where)
+    child_ids = {child.id for child in children}
+    mask_ids = []
+    for index, item in enumerate(read_list(_field(fields, "mask", where), f"{where}.mask")):
+        mask_id = read_int(item, f"{where}.mask[{index}]", minimum=0)
+        if mask_id not in child_ids:
+            raise _damaged(f"{where}.mask[{index}]", _("should be the id of a child"))
+        mask_ids.append(mask_id)
+    region = None
+    if "region" in fields:
+        values = read_list(fields["region"], f"{where}.region")
+        if len(values) != 4:
+            raise _damaged(f"{where}.region", _("should have four numbers"))
+        region = tuple(read_number(item, f"{where}.region[{index}]") for index, item in enumerate(values))
+        if region[2] < 0 or region[3] < 0:
+            raise _damaged(f"{where}.region", _("should not have a negative size"))
+    return Masking(
+        _optional_choice(fields, "type", where, get_args(MaskType), "clip"),
+        tuple(mask_ids),
+        bool(_optional_bool(fields, "inverted", where)),
+        region,
+    )
+
+
 def _encode_shape(shape: Shape) -> dict[str, Any]:
     if isinstance(shape, GroupShape):
         # No style and no transform: a group has no paint of its own and its children carry the transforms.
@@ -172,6 +208,8 @@ def _encode_shape(shape: Shape) -> dict[str, Any]:
         }
         if shape.opacity != 1:
             fields["opacity"] = _number(shape.opacity)
+        if shape.masking is not None:
+            fields["masking"] = _encode_masking(shape.masking)
         return fields
     match shape:
         case RectShape(x=x, y=y, width=width, height=height, rx=rx, ry=ry):
@@ -415,7 +453,8 @@ def _decode_shape(fields: dict[str, Any], where: str) -> Shape:
             raise _damaged(f"{where}.children", _("should not be empty"))
         children = tuple(decode_shape(child, f"{where}.children[{index}]") for index, child in enumerate(child_values))
         opacity = _optional_number(fields, "opacity", where, 1.0, minimum=0.0, maximum=1.0)
-        return GroupShape(shape_id, children, opacity)
+        masking = _decode_masking(fields["masking"], children, f"{where}.masking") if "masking" in fields else None
+        return GroupShape(shape_id, children, opacity, masking=masking)
     style = decode_style(_field(fields, "style", where), f"{where}.style")
     transform = _decode_transform(fields, where)
     match shape_type:

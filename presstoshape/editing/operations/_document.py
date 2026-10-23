@@ -22,7 +22,13 @@ def with_fresh_ids(state: AppState, shapes: Sequence[Shape]) -> list[Shape]:
         if isinstance(shape, CompositeShape):
             return replace(shape, id=new_id(state), parts=tuple(renumbered(part) for part in shape.parts))
         if isinstance(shape, GroupShape):
-            return replace(shape, id=new_id(state), children=tuple(renumbered(child) for child in shape.children))
+            group_id = new_id(state)
+            children = tuple(renumbered(child) for child in shape.children)
+            masking = shape.masking
+            if masking is not None:
+                new_ids = {old.id: new.id for old, new in zip(shape.children, children)}
+                masking = replace(masking, mask_ids=tuple(new_ids[i] for i in masking.mask_ids if i in new_ids))
+            return replace(shape, id=group_id, children=children, masking=masking)
         return replace(shape, id=new_id(state))
 
     return [renumbered(shape) for shape in shapes]

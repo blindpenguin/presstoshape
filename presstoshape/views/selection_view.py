@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from presstoshape import icons
 from presstoshape.editing import containers, queries
+from presstoshape.editing.object_tree import object_label
 from presstoshape.editing.operations import composites, shapes, style, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
@@ -30,6 +31,7 @@ from presstoshape.models.shapes import (
     Style,
     TextAnchor,
     TextShape,
+    content_children,
 )
 from presstoshape.render.paths import PathCache
 from presstoshape.views.icon_engine import icon
@@ -165,7 +167,9 @@ class SelectionOptions(QWidget):
         if not selected:
             self._heading.setText(_("Nothing selected"))
         elif single is not None:
-            if isinstance(single, GroupShape):
+            if isinstance(single, GroupShape) and single.masking is not None:
+                self._heading.setText(object_label(single))
+            elif isinstance(single, GroupShape):
                 count = len(single.children)
                 self._heading.setText(
                     ngettext("Group of {count} object", "Group of {count} objects", count).format(count=count)
@@ -291,7 +295,7 @@ class SelectionOptions(QWidget):
 def _has_open_fill_rule(shape: Shape) -> bool:
     """Whether the fill rule can change how `shape` looks: paths and Composites, also inside groups."""
     if isinstance(shape, GroupShape):
-        return any(_has_open_fill_rule(child) for child in shape.children)
+        return any(_has_open_fill_rule(child) for child in content_children(shape))
     return isinstance(shape, (PathShape, CompositeShape))
 
 

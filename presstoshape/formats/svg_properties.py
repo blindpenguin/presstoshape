@@ -16,6 +16,8 @@ _COLOR_FUNCTION = re.compile(r"(?:rgba?|hsla?)\(([-+0-9.%a-zA-Z\s,/]*)\)", re.IG
 _OPAQUE_BLACK = 255
 _ENUMS = {
     "fill-rule": ("nonzero", "evenodd"),
+    "clip-rule": ("nonzero", "evenodd"),
+    "mask-type": ("luminance", "alpha"),
     "stroke-linecap": ("butt", "round", "square"),
     "stroke-linejoin": ("miter", "round", "bevel", "miter-clip", "arcs"),
     "text-anchor": ("start", "middle", "end"),

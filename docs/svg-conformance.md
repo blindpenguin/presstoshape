@@ -15,7 +15,7 @@ Suite: `https://www.w3.org/Graphics/SVG/Test/20110816/archives/W3C_SVG_11_TestSu
   looked at and aren't right yet are kept there as `!name # reason`.
 - This page: `uv run python scripts/svg_conformance.py report --write-summary`.
 
-## Status 2026-10-22
+## Status 2026-10-23
 
 | Chapter | Tests | Match | On pass list |
 |---|---|---|---|
@@ -25,9 +25,9 @@ Suite: `https://www.w3.org/Graphics/SVG/Test/20110816/archives/W3C_SVG_11_TestSu
 | filters | 43 | 1 | 0 |
 | imp | 1 | 0 | 0 |
 | linking | 12 | 9 | 9 |
-| masking | 19 | 3 | 2 |
+| masking | 19 | 14 | 12 |
 | metadata | 1 | 1 | 1 |
-| painting | 31 | 26 | 20 |
+| painting | 31 | 28 | 21 |
 | paths | 19 | 18 | 18 |
 | pservers | 33 | 22 | 21 |
 | render | 8 | 3 | 3 |
@@ -36,6 +36,6 @@ Suite: `https://www.w3.org/Graphics/SVG/Test/20110816/archives/W3C_SVG_11_TestSu
 | styling | 18 | 12 | 11 |
 | text | 54 | 30 | 8 |
 | types | 2 | 1 | 1 |
-| **Total** | **352** | **200** | **157** |
+| **Total** | **352** | **213** | **168** |
 
 Out of scope (animation, scripting, DOM, interactivity, SVG fonts, colour profiles): animate (78), color-prof (1), coords-dom (4), extend (1), fonts (17), interact (24), paths-dom (2), script (6), struct-dom (18), svgdom (1), text-altglyph (3), text-dom (5), types-dom (13).

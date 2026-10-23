@@ -65,6 +65,8 @@ ICONS = {
     "object_text": "typography",
     "object_group": "box-multiple",
     "object_composite": "layers-union",
+    "object_clip": "crop",
+    "object_mask": "mask",
 }
 
 

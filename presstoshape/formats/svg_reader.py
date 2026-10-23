@@ -18,6 +18,17 @@ from presstoshape.formats.svg_conditions import is_drawable, passes, switch_choi
 from presstoshape.formats.svg_gradients import Resolved, resolve_gradient
 from presstoshape.formats.svg_lengths import Axis, Viewport, length, resolve, root_viewport
 from presstoshape.formats.svg_lengths import parse as parse_length_text
+from presstoshape.formats.svg_masks import (
+    MAX_CLIP_CHILDREN,
+    MAX_REFERENCE_DEPTH,
+    Box,
+    bbox_matrix,
+    covers,
+    parse_reference,
+    region_in_group_space,
+    shapes_box,
+    unit_value,
+)
 from presstoshape.formats.svg_namedview import read_namedview
 from presstoshape.formats.svg_names import (
     COMPOSITE,
@@ -71,6 +82,7 @@ from presstoshape.models.shapes import (
     Gradient,
     GroupShape,
     LineTo,
+    Masking,
     MoveTo,
     Paint,
     PathShape,
@@ -81,8 +93,6 @@ from presstoshape.models.shapes import (
     TextShape,
     sanitized,
 )
-
-Box = tuple[float, float, float, float]
 
 # How far a stored result may drift from the parts' result (float rounding, other tools rewriting `d`) and
 # still count as unedited: a share of the result's area, with a floor for tiny shapes.
@@ -107,16 +117,18 @@ _INHERITED_KEYS = frozenset(
         "text-anchor",
         "visibility",
         "color-interpolation",
+        "clip-rule",
     }
 )
 _MARKER_KEYS = ("marker", "marker-start", "marker-mid", "marker-end")
-_EFFECT_NOTES = (("clip-path", Note.CLIP), ("mask", Note.MASK), ("filter", Note.FILTER))
+_EFFECT_NOTES = (("filter", Note.FILTER),)
 _STYLE_KEYS = _INHERITED_KEYS | {
     "display",
     "opacity",
     "overflow",
     "clip-path",
     "mask",
+    "mask-type",
     "filter",
     "stop-color",
     "stop-opacity",
@@ -272,6 +284,8 @@ class _Reader:
         self.viewport = root_viewport(root)
         self.next_id = 1
         self._depth = 0
+        self._clipping = False
+        self._mask_chain: tuple[str, ...] = ()
         self.notes = NoteCollector()
         # The first element with an id wins, as browsers do.
         self.ids: dict[str, ET.Element] = {}
@@ -402,6 +416,8 @@ class _Reader:
             return
         before = len(out)
         self._visit_shown(tag, element, style, matrix, out, opacity, uses, use)
+        if len(out) > before and not hidden:
+            self._apply_masks(element, style, matrix, out, before)
         locked = _locked(element)
         if hidden or locked:
             out[before:] = [replace(shape, hidden=hidden, locked=locked) for shape in out[before:]]
@@ -417,6 +433,8 @@ class _Reader:
         uses: tuple[str, ...],
         use: ET.Element | None = None,
     ) -> None:
+        if self._clipping and tag not in _SHAPE_TAGS and tag not in ("text", "use"):
+            return
         if tag == "svg":
             self._note_effects(style)
             matrix = compose(matrix, parse_transform(element.get("transform")))
@@ -510,6 +528,146 @@ class _Reader:
             group_opacity = min(1.0, opacity * parse_fraction(style.get("opacity")))
             out.append(GroupShape(group_id, tuple(children), group_opacity))
 
+    def _apply_masks(
+        self, element: ET.Element, style: dict[str, str], matrix: Affine, out: list[Shape], before: int
+    ) -> None:
+        """Wraps what `element` produced (out[before:]) in a masked group for its `mask` and `clip-path`: the mask
+        inside, the clip around it. Both are defined in the user space of the element, so its own transform is
+        part of the matrix. An element that can't be measured for bounding-box units is not shown."""
+        user = compose(matrix, parse_transform(element.get("transform")))
+        for key, tag in (("mask", "mask"), ("clip-path", "clipPath")):
+            if key == "mask" and self._clipping:
+                continue
+            reference = parse_reference(style.get(key))
+            if reference.type == "none":
+                continue
+            note = Note.MASK if key == "mask" else Note.CLIP
+            target = self.ids.get(reference.target) if reference.target else None
+            if reference.type != "url" or target is None or _local_name(target) != tag:
+                self.notes.add(note)
+                continue
+            if reference.target in self._mask_chain or len(self._mask_chain) >= MAX_REFERENCE_DEPTH:
+                self.notes.add(Note.CYCLIC_REFERENCE)
+                continue
+            content = out[before:]
+            self._mask_chain = (*self._mask_chain, reference.target)
+            try:
+                wrapped = (
+                    self._clip_group(target, user, content)
+                    if tag == "clipPath"
+                    else self._mask_group(target, user, content)
+                )
+            finally:
+                self._mask_chain = self._mask_chain[:-1]
+            out[before:] = [wrapped] if wrapped is not None else []
+            if wrapped is None:
+                return
+
+    def _clip_group(self, clip: ET.Element, user: Affine, content: list[Shape]) -> Shape | None:
+        """`content` clipped by the clipPath's shapes."""
+        mask_shapes = self._clip_shapes(clip, user, content)
+        return None if mask_shapes is None else self._masked(content, mask_shapes, "clip")
+
+    def _clip_shapes(self, clip: ET.Element, user: Affine, content: list[Shape]) -> list[Shape] | None:
+        """The clipPath's children as shapes in the document space of `content`; None when the clip can't be
+        applied (bounding-box units on an element without extent). A clip path that has a `clip-path` itself is
+        cut by that one: its shapes become one mask object."""
+        style = self._element_style(clip)
+        matrix = compose(user, parse_transform(clip.get("transform")))
+        if clip.get("clipPathUnits") == "objectBoundingBox":
+            box = shapes_box(content, user)
+            if box is None or box[2] <= 0 or box[3] <= 0:
+                self.notes.add(Note.INVALID_VALUE)
+                return None
+            matrix = compose(matrix, bbox_matrix(box))
+        shapes = self._read_mask_children(clip, style, matrix, clipping=True)
+        reference = parse_reference(style.get("clip-path"))
+        if reference.type == "none":
+            return shapes
+        target = self.ids.get(reference.target) if reference.target else None
+        if reference.type != "url" or target is None or _local_name(target) != "clipPath":
+            self.notes.add(Note.CLIP)
+            return shapes
+        if reference.target in self._mask_chain or len(self._mask_chain) >= MAX_REFERENCE_DEPTH:
+            self.notes.add(Note.CYCLIC_REFERENCE)
+            return shapes
+        self._mask_chain = (*self._mask_chain, reference.target)
+        try:
+            cut = self._clip_shapes(target, user, content)
+        finally:
+            self._mask_chain = self._mask_chain[:-1]
+        if cut is None:
+            return None
+        return [self._masked(shapes, cut, "clip")]
+
+    def _mask_group(self, mask: ET.Element, user: Affine, content: list[Shape]) -> Shape | None:
+        style = self._element_style(mask)
+        box = shapes_box(content, user)
+        units = mask.get("maskUnits") or "objectBoundingBox"
+        content_units = mask.get("maskContentUnits") or "userSpaceOnUse"
+        if (units == "objectBoundingBox" or content_units == "objectBoundingBox") and (
+            box is None or box[2] <= 0 or box[3] <= 0
+        ):
+            self.notes.add(Note.INVALID_VALUE)
+            return None
+        matrix = compose(user, bbox_matrix(box)) if content_units == "objectBoundingBox" else user
+        if style.get("color-interpolation") == "linearRGB":
+            self.notes.add(Note.MASK_COLOR_SPACE)
+        mask_shapes = self._read_mask_children(mask, style, matrix, clipping=False)
+        region = self._mask_region(mask, style, units, box, user)
+        if region is not None and covers(region, shapes_box([*content, *mask_shapes], IDENTITY)):
+            region = None
+        mask_type = "alpha" if style.get("mask-type") == "alpha" else "luminance"
+        return self._masked(content, mask_shapes, mask_type, region)
+
+    def _mask_region(
+        self, mask: ET.Element, style: dict[str, str], units: str, box: Box | None, user: Affine
+    ) -> Box | None:
+        """The mask's x, y, width and height as a box around the element's document-space area."""
+        if units == "objectBoundingBox":
+            x = unit_value(mask.get("x"), -0.1)
+            y = unit_value(mask.get("y"), -0.1)
+            width = unit_value(mask.get("width"), 1.2)
+            height = unit_value(mask.get("height"), 1.2)
+            left, top, box_width, box_height = box
+            rect = (left + x * box_width, top + y * box_height, width * box_width, height * box_height)
+        else:
+            base_x, base_y = self.viewport.width * -0.1, self.viewport.height * -0.1
+            rect = (
+                self._length(mask.get("x"), "x", style, base_x),
+                self._length(mask.get("y"), "y", style, base_y),
+                self._length(mask.get("width"), "x", style, self.viewport.width * 1.2),
+                self._length(mask.get("height"), "y", style, self.viewport.height * 1.2),
+            )
+        if rect[2] <= 0 or rect[3] <= 0:
+            return (0.0, 0.0, 0.0, 0.0)
+        return region_in_group_space(rect, user)
+
+    def _read_mask_children(
+        self, element: ET.Element, style: dict[str, str], matrix: Affine, clipping: bool
+    ) -> list[Shape]:
+        """The children of a clipPath or mask, read with `matrix` as the user space of the element they apply to."""
+        shapes: list[Shape] = []
+        was_clipping, self._clipping = self._clipping, clipping
+        try:
+            for child in element:
+                self.visit(child, style, matrix, shapes)
+                if len(shapes) > MAX_CLIP_CHILDREN:
+                    self.notes.add(Note.INVALID_VALUE)
+                    del shapes[MAX_CLIP_CHILDREN:]
+                    break
+        finally:
+            self._clipping = was_clipping
+        if clipping:
+            shapes = [shape for shape in shapes if not shape.hidden]
+        return shapes
+
+    def _masked(
+        self, content: list[Shape], mask_shapes: list[Shape], mask_type: str, region: Box | None = None
+    ) -> Shape:
+        masking = Masking(mask_type, tuple(shape.id for shape in mask_shapes), False, region)
+        return GroupShape(self.new_id(), (*content, *mask_shapes), masking=masking)
+
     def _note_effects(self, style: dict[str, str]) -> None:
         for key, note in _EFFECT_NOTES:
             value = style.get(key)
@@ -595,6 +753,11 @@ class _Reader:
         return composite
 
     def _paint(self, style: dict[str, str], m: Affine, opacity: float) -> Style:
+        if self._clipping:
+            # Inside a clipPath only the fill area counts, and its rule is clip-rule.
+            rule = style.get("clip-rule", "nonzero")
+            style = {**style, "fill": "black", "stroke": "none", "fill-opacity": "1", "fill-rule": rule}
+            opacity = 1.0
         scale = math.sqrt(abs(m[0] * m[3] - m[1] * m[2]))
         fill, fill_alpha = self._color(style.get("fill", "black"), style)
         stroke, stroke_alpha = self._color(style.get("stroke", "none"), style)

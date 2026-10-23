@@ -9,7 +9,7 @@ from presstoshape.editing.session import Session
 from presstoshape.geometry import booleans, transforms
 from presstoshape.i18n import N_, _, ngettext
 from presstoshape.models.app_state import AppState
-from presstoshape.models.shapes import PathShape, Shape
+from presstoshape.models.shapes import GroupShape, PathShape, Shape
 
 # Command -> (mode applied to every shape above the bottom one, name shown in undo and status, untranslated).
 OPERATIONS: dict[str, tuple[booleans.Mode, str]] = {
@@ -25,6 +25,16 @@ def _targets(state: AppState) -> list[Shape]:
     return [shape for shape in queries.selected_shapes(state) if transforms.outline(shape) is not None]
 
 
+def _refuses_masks(session: Session) -> bool:
+    """Booleans work on outlines; a masked group has none, so it has to be released first."""
+    state = session.state
+    if any(isinstance(shape, GroupShape) and shape.masking is not None for shape in queries.selected_shapes(state)):
+        state.status_message = _("Release the mask first")
+        session.notify()
+        return True
+    return False
+
+
 def combine(session: Session, op: str) -> None:
     if op not in OPERATIONS:
         raise ValueError(f"unknown boolean op {op!r}")
@@ -32,7 +42,7 @@ def combine(session: Session, op: str) -> None:
     name = _(untranslated_name)
     state = session.state
     targets = _targets(state)
-    if len(targets) < 2:
+    if _refuses_masks(session) or len(targets) < 2:
         return
     try:
         segments = booleans.combine_parts([(transforms.area_outline(shape), mode) for shape in targets])
@@ -50,7 +60,7 @@ def divide_selection(session: Session) -> None:
     """Splits the selected shapes along all their edges; each piece keeps the style it showed before."""
     state = session.state
     targets = _targets(state)
-    if len(targets) < 2:
+    if _refuses_masks(session) or len(targets) < 2:
         return
     try:
         pieces = booleans.divide([transforms.area_outline(shape) for shape in targets])
