@@ -88,7 +88,7 @@ Commands return the new segments **and** a mapping from old node indices to new 
 
 ### Corner flag on segments (data model)
 - `MoveTo`, `LineTo`, `CubicTo` get `corner: bool = False` (last field, so existing positional constructors keep working). For the closed-subpath alias, the flag lives on the `MoveTo`.
-- `nodes._is_smooth` returns `False` for a corner-flagged node, so `move_control` stops mirroring (Req 1.5). Smooth/Symmetric clear the flag; Corner sets it; Alt-dragging a handle in the Node tool sets it (a deliberately broken node stays broken even if the user later lines the handles up by eye).
+- `nodes._is_smooth` returns `False` for a corner-flagged node, so `move_control` stops mirroring (Req 1.5). Smooth/Symmetric clear the flag; Corner sets it and retracts the node's handles (revised 2026-10-25, Illustrator behaviour; segments without handles become lines); Alt-dragging a handle in the Node tool sets it (a deliberately broken node stays broken even if the user later lines the handles up by eye).
 - `nodes.insert_node`, `delete_nodes`/`_rebuild`, `move_nodes` keep flags (they use `replace` or the anchor form, which now carries the flag). `transform_segments` keeps them. Booleans, Pencil fitting and outlines create fresh segments without flags, which is correct (new geometry).
 - Equality includes the flag, so `PathCache` and undo see the change.
 

@@ -7,6 +7,7 @@ from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     CompositeShape,
+    CubicTo,
     EllipseShape,
     GroupShape,
     LineTo,
@@ -200,8 +201,17 @@ def test_subpath_start_nodes_are_drawn_larger():
     segments = (MoveTo(20, 20), LineTo(80, 20), MoveTo(20, 60), LineTo(80, 60))
     surface = _render_overlay(_doc(), Overlay(nodes=(NodeOverlay(segments),)), 1.0)
     for y in (20, 60):
-        assert _pixel(surface, 20, y + 4) == (255, 255, 255, 255)
-        assert _pixel(surface, 80, y + 4) != (255, 255, 255, 255)
+        assert _pixel(surface, 20, y + 5) == (255, 255, 255, 255)
+        assert _pixel(surface, 80, y + 5) != (255, 255, 255, 255)
+
+
+def test_corner_nodes_are_diamonds_smooth_nodes_squares():
+    smooth = (MoveTo(0, 50), CubicTo(10, 50, 30, 50, 50, 50), CubicTo(70, 50, 90, 50, 100, 50))
+    corner = (MoveTo(0, 50), CubicTo(10, 50, 30, 50, 50, 50, corner=True), CubicTo(70, 50, 90, 50, 100, 50))
+    for segments, inside in ((smooth, True), (corner, False)):
+        surface = _render_overlay(_doc(), Overlay(nodes=(NodeOverlay(segments),)), 1.0)
+        # A square's corner area; a diamond leaves it empty.
+        assert (_pixel(surface, 52, 47) == (255, 255, 255, 255)) is inside
 
 
 def _ring(shape_id=10, style=Style(fill="#ff0000", stroke=None)):
