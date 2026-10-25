@@ -441,3 +441,11 @@ def test_hidden_shape_is_not_exported():
     shape = RectShape(1, 0, 0, 100, 100, Style(fill="#ff0000", stroke=None), hidden=True)
     image = skia.Image.MakeFromEncoded(render_png(_doc(shape), 1.0))
     assert tuple(int(v) for v in image.toarray(colorType=skia.kRGBA_8888_ColorType)[50, 50]) == TRANSPARENT
+
+
+def test_node_overlay_draws_extra_handles():
+    segments = (MoveTo(20, 20),)
+    overlay = Overlay(nodes=(NodeOverlay(segments, handles=(((20, 20), (60, 20)),)),))
+    surface = _render_overlay(_doc(), overlay, 1.0)
+    assert _pixel(surface, 40, 20)[3] > 0
+    assert _pixel(surface, 60, 20) == (255, 255, 255, 255)

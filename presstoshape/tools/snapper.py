@@ -113,6 +113,12 @@ class Snapper:
         targets = SnapTargets(xs, ys, points[:_MAX_POINTS], grid)
         return cls(targets, settings.distance_px * pixel_size)
 
+    def with_points(self, points: Iterable[Point]) -> "Snapper":
+        """The same targets plus `points` (e.g. nodes placed since the gesture began)."""
+        if self._targets is None:
+            return self
+        return Snapper(self._targets.with_points(points), self._tolerance)
+
     def _use(self, result: SnapResult) -> SnapResult:
         self.hits = result.hits
         return result

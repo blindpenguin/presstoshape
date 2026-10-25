@@ -48,5 +48,7 @@ class Toolbox:
 
     def switch(self, tool: Tool) -> None:
         if tool is not self._active_type:
-            self.active.cancel()
+            # Switched first: a tool that commits on leaving notifies, and the refresh switches here again.
+            previous = self.active
             self._active_type = tool
+            previous.leave()

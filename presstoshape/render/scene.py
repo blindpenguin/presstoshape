@@ -323,13 +323,14 @@ def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: i
     filled = skia.Paint(Color=color, AntiAlias=True)
     border = skia.Paint(Color=color, Style=skia.Paint.kStroke_Style, StrokeWidth=0, AntiAlias=True)
     arm = _hairline(color)
-    for ref in overlay.controls:
-        ax, ay = path_nodes.control_anchor(segments, ref)
-        cx, cy = path_nodes.control_point(segments, ref)
+    arms = [
+        (path_nodes.control_anchor(segments, ref), path_nodes.control_point(segments, ref)) for ref in overlay.controls
+    ]
+    arms += overlay.handles
+    for (ax, ay), (cx, cy) in arms:
         canvas.drawLine(ax, ay, cx, cy, arm)
     radius = CONTROL_PX / 2 / zoom
-    for ref in overlay.controls:
-        cx, cy = path_nodes.control_point(segments, ref)
+    for _anchor, (cx, cy) in arms:
         canvas.drawCircle(cx, cy, radius, white)
         canvas.drawCircle(cx, cy, radius, border)
     half = NODE_PX / 2 / zoom

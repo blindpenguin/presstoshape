@@ -39,6 +39,7 @@ presstoshape/                   # repo root
     │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
     │   ├── boxes.py            # Point, Rect, drag boxes
     │   ├── segments.py         # building/mapping path segments
+    │   ├── pen_paths.py        # pen nodes (point + optional handles) → segments, straight or curved, open or closed
     │   ├── booleans.py         # ordered-parts booleans, divide, regions (skia-pathops)
     │   ├── transforms.py       # outline, translate, canonical shape transforms
     │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)

@@ -56,7 +56,7 @@ Yes: `.p2s`. It's a ZIP archive with the drawing as JSON and a small preview ima
 
 ### Does it support drawing tablets and pressure?
 
-Not yet. The pen tool currently places bezier points by clicking. Freehand drawing with pressure-sensitive tablets, vector brushes and variable-width strokes are planned.
+Partly. Tablets work like a mouse, for example with the Pencil for freehand lines, but without pressure. Pressure-sensitive drawing, vector brushes and variable-width strokes are planned.
 
 ### Can I export PNG or PDF?
 

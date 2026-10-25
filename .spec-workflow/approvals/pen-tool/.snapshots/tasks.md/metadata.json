@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/pen-tool/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T18:31:56.293Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792953116283_ad93y3w0g",
+      "approvalTitle": "Pen tool: tasks (5 tasks)"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T18:32:09.512Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792953116283_ad93y3w0g",
+      "approvalTitle": "Pen tool: tasks (5 tasks)"
+    }
+  ]
+}

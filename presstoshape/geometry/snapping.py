@@ -70,6 +70,9 @@ class SnapTargets:
         self._point_xs = tuple(point[0] for point in self.points)
         self.grid = grid if grid is not None and grid.spacing > 0 else None
 
+    def with_points(self, points: Iterable[Point]) -> "SnapTargets":
+        return SnapTargets(self.xs, self.ys, (*self.points, *points), self.grid)
+
     def __len__(self) -> int:
         return len(self.xs) + len(self.ys) + len(self.points)
 

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from presstoshape.geometry.boxes import Rect
+from presstoshape.geometry.boxes import Point, Rect
 from presstoshape.geometry.snapping import SnapHit
 from presstoshape.models.layout import Guide
 from presstoshape.models.shapes import IDENTITY_TRANSFORM, Segment, Shape, Style, Transform
@@ -31,6 +31,8 @@ class NodeOverlay:
     segments: tuple[Segment, ...]
     selected: frozenset[int] = frozenset()
     controls: frozenset[tuple[int, int]] = frozenset()
+    # Extra (anchor, handle) arms with no segment of their own yet, e.g. the Pen's handle being dragged out.
+    handles: tuple[tuple[Point, Point], ...] = ()
 
 
 @dataclass(frozen=True)

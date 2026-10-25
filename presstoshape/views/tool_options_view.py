@@ -29,7 +29,11 @@ _HINTS = {
     ),
     Tool.RECTANGLE: N_("Drag to draw. Shift: square."),
     Tool.ELLIPSE: N_("Drag to draw. Shift: circle."),
-    Tool.PEN: N_("Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."),
+    Tool.PEN: N_(
+        "Click: corner point. Drag: curve. Click the first point to close.\n"
+        "Double-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\n"
+        "Shift: 45° steps. Alt while dragging: break the handles."
+    ),
     Tool.PENCIL: N_(
         "Drag to draw. Smoothing: how calm the line comes out, from following your hand closely to flowing "
         "curves with few nodes. End near the start to close the shape."

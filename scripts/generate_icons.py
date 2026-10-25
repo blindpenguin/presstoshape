@@ -36,6 +36,8 @@ ICONS = {
     "layer_delete": "trash",
     "cursor_rotate": "rotate-clockwise",
     "cursor_node_insert": "pencil-plus",
+    "cursor_pen_add": "crosshair",
+    "cursor_pen_close": "circle-dot",
     "settings": "settings",
     "settings_language": "language",
     "settings_canvas": "artboard",

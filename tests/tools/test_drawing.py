@@ -1,6 +1,6 @@
 from presstoshape.editing.operations import shapes
 from presstoshape.models.app_state import Tool
-from presstoshape.models.shapes import PathShape, RectShape
+from presstoshape.models.shapes import RectShape
 from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import all_shapes, drag, setup_tools
 
@@ -23,17 +23,6 @@ def test_preview_follows_drag_and_clears_on_release():
     assert g.overlay.preview is not None
     g.release((40, 20), NONE)
     assert g.overlay.preview is None
-
-
-def test_pen_finishes_with_deduped_points():
-    session, g = setup_tools()
-    g.set_tool(Tool.PEN)
-    for p in [(0, 0), (50, 0), (50, 1), (100, 50)]:
-        g.press(p, NONE)
-    g.double_click((100, 50), NONE)
-    path = all_shapes(session)[0]
-    assert isinstance(path, PathShape)
-    assert len(path.segments) == 3
 
 
 def test_escape_cancels_gesture_then_clears_selection():

@@ -1,4 +1,4 @@
-"""CursorType -> QCursor. Rotate and node-insert are vector cursors drawn from the app's Tabler icons."""
+"""CursorType -> QCursor. Rotate, node-insert and the Pen's are vector cursors drawn from the app's Tabler icons."""
 
 from functools import cache
 from pathlib import Path
@@ -32,6 +32,8 @@ _SHAPES = {
 _CUSTOM = {
     CursorType.ROTATE: icons.CURSOR_ROTATE,
     CursorType.NODE_INSERT: icons.CURSOR_NODE_INSERT,
+    CursorType.PEN_ADD: icons.CURSOR_PEN_ADD,
+    CursorType.PEN_CLOSE: icons.CURSOR_PEN_CLOSE,
 }
 
 

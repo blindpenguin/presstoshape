@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/pen-tool/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T18:30:21.212Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792953021197_5akjodw9z",
+      "approvalTitle": "Pen tool: design (pen nodes, pen_segments, gesture state machine)"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T18:31:00.743Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792953021197_5akjodw9z",
+      "approvalTitle": "Pen tool: design (pen nodes, pen_segments, gesture state machine)"
+    }
+  ]
+}

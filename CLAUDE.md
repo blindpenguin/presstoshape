@@ -63,6 +63,7 @@ presstoshape/
 │   ├── align.py / snapping.py / rulers.py   # align/distribute offsets, snap targets and queries, ruler ticks
 │   ├── aspect.py         # preserveAspectRatio: align/meet/slice for the SVG viewport and pictures (`fitted_rect`, `visible_box`)
 │   ├── segments.py           # building/mapping path segments
+│   ├── pen_paths.py          # Pen nodes (point + optional handles) → line/cubic segments, open or closed
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   ├── nodes.py              # path node editing
