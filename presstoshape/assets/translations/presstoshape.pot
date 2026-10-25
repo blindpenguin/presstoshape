@@ -391,6 +391,38 @@ msgstr ""
 msgid "Mode: {mode}"
 msgstr ""
 
+#: presstoshape/editing/operations/corners.py
+msgid "Round corners"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Corner rounding"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Remove Corner &Rounding"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Remove corner rounding"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Removed corner rounding"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Appl&y Corner Rounding"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Apply corner rounding"
+msgstr ""
+
+#: presstoshape/editing/operations/corners.py
+msgid "Applied corner rounding"
+msgstr ""
+
 #: presstoshape/editing/operations/documents.py
 msgid "Unknown unit {unit}"
 msgstr ""
@@ -1595,6 +1627,10 @@ msgid "should be the index of a node segment"
 msgstr ""
 
 #: presstoshape/formats/p2s.py
+msgid "should be [index, radius, kind]"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
 msgid "A picture is missing or damaged and shows as a placeholder."
 msgstr ""
 
@@ -2015,6 +2051,35 @@ msgstr ""
 
 #: presstoshape/views/canvas_view.py
 msgid "Text:"
+msgstr ""
+
+#: presstoshape/views/corner_dialog.py
+msgctxt "corner"
+msgid "Round"
+msgstr ""
+
+#: presstoshape/views/corner_dialog.py
+msgctxt "corner"
+msgid "Inverted"
+msgstr ""
+
+#: presstoshape/views/corner_dialog.py
+msgctxt "corner"
+msgid "Chamfer"
+msgstr ""
+
+#: presstoshape/views/corner_dialog.py
+#: presstoshape/views/tool_options_view.py
+msgid "Corner"
+msgstr ""
+
+#: presstoshape/views/corner_dialog.py
+msgid "Kind"
+msgstr ""
+
+#: presstoshape/views/corner_dialog.py
+#: presstoshape/views/tool_options_view.py
+msgid "Radius"
 msgstr ""
 
 #: presstoshape/views/edit_bar_view.py
@@ -2470,6 +2535,7 @@ msgid "Rotation"
 msgstr ""
 
 #: presstoshape/views/selection_view.py
+#: presstoshape/views/tool_options_view.py
 msgid "Mixed"
 msgstr ""
 

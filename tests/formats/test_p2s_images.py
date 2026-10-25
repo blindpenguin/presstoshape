@@ -179,5 +179,5 @@ def test_an_unknown_alignment_is_damage():
         read_p2s_with_notes(data)
 
 
-def test_current_version_is_eleven():
-    assert json.loads(entries(archive(document_with()))["document.json"][0])["format_version"] == 11
+def test_current_version_is_twelve():
+    assert json.loads(entries(archive(document_with()))["document.json"][0])["format_version"] == 12

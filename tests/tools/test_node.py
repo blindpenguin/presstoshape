@@ -1,7 +1,14 @@
+import math
+
+import pytest
+
 from presstoshape.editing import queries
 from presstoshape.editing.operations import composites, edit_mode, node_editing, selection, shapes, view
+from presstoshape.editing.operations import corners as corner_ops
 from presstoshape.geometry import nodes
+from presstoshape.geometry.segments import rect_segments
 from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import LineTo, MoveTo, Rounding
 from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import drag, setup_tools
 
@@ -153,3 +160,117 @@ def test_node_tool_cant_pick_a_locked_path():
     layer.shapes = [replace(shape, locked=True) for shape in layer.shapes]
     drag(g, (100, 0), (100, 0))
     assert session.state.selection == set() and session.state.node_selection == set()
+
+
+# --- live-corner widgets ----------------------------------------------------------------
+
+
+def _square_setup():
+    session, g = setup_tools()
+    sid = shapes.add_drawn_path(session, rect_segments(0, 0, 100, 100), Tool.PEN)
+    selection.set_selection(session, {sid})
+    view.select_tool(session, Tool.NODE)
+    g.set_tool(Tool.NODE)
+    return session, g, sid
+
+
+def _widgets(g):
+    (overlay,) = g.overlay.nodes
+    return dict(overlay.widgets)
+
+
+def test_widgets_for_all_corners_or_only_selected_ones():
+    session, g, sid = _square_setup()
+    assert set(_widgets(g)) == {0, 1, 2, 3}
+    node_editing.set_node_selection(session, {(sid, 2)})
+    assert set(_widgets(g)) == {2}
+    # Inside the corner, 12 screen px along the bisector.
+    (x, y) = _widgets(g)[2]
+    assert math.dist((x, y), (100, 100)) == pytest.approx(12)
+    assert x < 100 and y < 100
+
+
+def test_no_widgets_on_open_ends_smooth_or_tiny_corners():
+    session, g, sid = _node_setup()
+    # A smooth spline: no corners to round.
+    assert set(_widgets(g)) == set()
+    open_sid = shapes.add_drawn_path(session, ((MoveTo(0, 0), LineTo(100, 0), LineTo(100, 100))), Tool.PEN)
+    selection.set_selection(session, {open_sid})
+    assert set(_widgets(g)) == {1}
+    session2, g2, sid2 = _square_setup()
+    g2.pixel_size = 30.0
+    assert set(_widgets(g2)) == set()
+
+
+def test_dragging_a_widget_rounds_the_selected_corners_in_one_step():
+    session, g, sid = _square_setup()
+    node_editing.set_node_selection(session, {(sid, 1), (sid, 2)})
+    depth = session.undo_count
+    start = _widgets(g)[2]
+    assert g.hover(start) is CursorType.CORNER
+    g.press(start, NONE)
+    # Pull 10 px further along the bisector: the arc middle moves by 10, so r = 10 / (sqrt(2) - 1).
+    end = (start[0] - 10 / math.sqrt(2), start[1] - 10 / math.sqrt(2))
+    g.move(end, NONE)
+    live = {shape.id: shape for shape in g.overlay.live}
+    assert live[sid].segments[2].rounding.radius == pytest.approx(10 / (math.sqrt(2) - 1))
+    g.release(end, NONE)
+    segments = queries.find_shape(session.state, sid).segments
+    assert segments[1].rounding == segments[2].rounding == Rounding(pytest.approx(10 / (math.sqrt(2) - 1)))
+    assert segments[0].rounding is None
+    assert session.undo_count == depth + 1 and session.undo_label == "Round corners"
+
+
+def test_pressing_a_widget_without_moving_changes_nothing():
+    session, g, sid = _square_setup()
+    depth = session.undo_count
+    start = _widgets(g)[2]
+    g.press(start, NONE)
+    g.move((start[0] + 0.0, start[1]), NONE)
+    assert g.overlay.live[0].segments[2].rounding is None
+    g.release(start, NONE)
+    assert session.undo_count == depth
+
+
+def test_dragging_back_into_the_node_removes_the_rounding():
+    session, g, sid = _square_setup()
+    corner_ops.set_radius(session, {(sid, 2)}, 30)
+    start = _widgets(g)[2]
+    drag(g, start, (100, 100))
+    assert queries.find_shape(session.state, sid).segments[2].rounding is None
+
+
+def test_nodes_win_over_widgets_and_widgets_over_segments():
+    session, g, sid = _square_setup()
+    g.pixel_size = 0.2
+    assert g.hover((100, 100)) is CursorType.NODE
+    position = _widgets(g)[2]
+    assert g.hover(position) is CursorType.CORNER
+
+
+def test_widgets_hide_while_dragging_nodes():
+    session, g, sid = _square_setup()
+    g.press((0, 0), NONE)
+    g.move((5, 5), NONE)
+    (overlay,) = g.overlay.nodes
+    assert overlay.widgets == ()
+    g.release((5, 5), NONE)
+
+
+def test_double_click_on_a_widget_asks_for_exact_values():
+    session, g, sid = _square_setup()
+    asked = []
+    g.toolbox.context.edit_corners = asked.append
+    node_editing.set_node_selection(session, {(sid, 0)})
+    position = _widgets(g)[0]
+    g.double_click(position, NONE)
+    assert asked == [{(sid, 0)}]
+    depth = session.undo_count
+    assert len(queries.find_shape(session.state, sid).segments) == 5 and session.undo_count == depth
+
+
+def test_limited_corners_are_reported():
+    session, g, sid = _square_setup()
+    corner_ops.set_radius(session, {(sid, 1), (sid, 2)}, 80)
+    (overlay,) = g.overlay.nodes
+    assert overlay.limited == {1, 2}

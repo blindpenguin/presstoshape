@@ -3,12 +3,13 @@
 from collections.abc import Iterator
 
 from presstoshape.editing import containers
-from presstoshape.geometry import transforms
+from presstoshape.geometry import corners, transforms
 from presstoshape.models.app_state import AppState, Layer
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
     ImageShape,
+    PathShape,
     RectShape,
     Shape,
     TextShape,
@@ -78,7 +79,9 @@ def can_combine(state: AppState) -> bool:
 
 def can_object_to_path(state: AppState) -> bool:
     return any(
-        isinstance(shape, (RectShape, EllipseShape, TextShape, CompositeShape)) for shape in selected_shapes(state)
+        isinstance(shape, (RectShape, EllipseShape, TextShape, CompositeShape))
+        or (isinstance(shape, PathShape) and corners.has_rounding(shape.segments))
+        for shape in selected_shapes(state)
     )
 
 

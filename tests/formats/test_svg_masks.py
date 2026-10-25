@@ -272,7 +272,9 @@ def test_nan_and_infinite_geometry_never_leaks_into_clips():
     for shape in leaves(_shapes(clip + '<rect width="50" height="50" clip-path="url(#c)"/>')):
         outline = area_outline(shape)
         if outline:
-            assert all(math.isfinite(v) for segment in outline for v in vars(segment).values())
+            assert all(
+                math.isfinite(v) for segment in outline for v in vars(segment).values() if isinstance(v, (int, float))
+            )
 
 
 # --- masks ---------------------------------------------------------------------------------------

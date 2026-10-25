@@ -35,6 +35,7 @@ from presstoshape.models.shapes import (
     PathShape,
     RadialGradient,
     RectShape,
+    Rounding,
     Style,
     TextShape,
 )
@@ -122,6 +123,13 @@ def test_corner_nodes_round_trip_and_are_left_out_when_absent():
     assert "corners" not in encode_document(_sample_document())["layers"][2]["shapes"][0]
 
 
+def test_live_corners_round_trip():
+    path = PathShape(7, (MoveTo(0, 0), LineTo(5, 0, rounding=Rounding(2.5, "chamfer")), LineTo(5, 5), Close()), RED)
+    document = Document(layers=[Layer("L", True, [path])], next_id=8)
+    assert encode_document(document)["layers"][0]["shapes"][0]["roundings"] == [[1, 2.5, "chamfer"]]
+    assert _round_trip(document).layers[0].shapes[0] == path
+
+
 def test_next_id_is_raised_above_existing_ids():
     encoded = encode_document(_sample_document())
     encoded["next_id"] = 2
@@ -171,6 +179,10 @@ def _broken(change) -> str:
         (lambda doc: doc["layers"][2]["shapes"][0].update(corners=[0, 9]), "shapes[0].corners[1]"),
         (lambda doc: doc["layers"][2]["shapes"][0].update(corners=[1.5]), "shapes[0].corners[0]"),
         (lambda doc: doc["layers"][2]["shapes"][0].update(corners="1"), "shapes[0].corners"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(roundings=[[3, 5, "round"]]), "roundings[0][0]"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(roundings=[[1, -5, "round"]]), "roundings[0][1]"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(roundings=[[1, 5, "wavy"]]), "roundings[0][2]"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(roundings=[[1, 5]]), "roundings[0]"),
     ],
 )
 def test_damaged_documents_name_the_broken_place(change, where):

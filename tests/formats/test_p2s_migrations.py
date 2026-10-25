@@ -22,6 +22,7 @@ from presstoshape.models.shapes import (
     PathShape,
     RadialGradient,
     RectShape,
+    Rounding,
     Style,
     TextShape,
 )
@@ -355,3 +356,30 @@ def test_v11_sample_opens_to_the_expected_document():
 def test_v10_sample_opens_in_version_11_without_corners():
     document, _state = read_p2s((SAMPLES / "v10.p2s").read_bytes())
     assert expected_v10()[0] == document
+
+
+def expected_v12() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v12.p2s holds: a square with a round, an inverted and a chamfered live corner
+    (one of them also a corner node), and a plain open path."""
+    square = PathShape(
+        1,
+        (
+            MoveTo(0.0, 0.0),
+            LineTo(80.0, 0.0, rounding=Rounding(10.0)),
+            LineTo(80.0, 80.0, corner=True, rounding=Rounding(12.5, "inverted")),
+            LineTo(0.0, 80.0, rounding=Rounding(6.0, "chamfer")),
+            Close(),
+        ),
+        Style(),
+    )
+    open_path = PathShape(2, (MoveTo(0.0, 90.0), LineTo(50.0, 90.0)), Style())
+    document = Document(width=100.0, height=100.0, layers=[Layer("Layer 1", True, [square, open_path])], next_id=3)
+    return document, SavedState(zoom_percent=100)
+
+
+def test_v12_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v12.p2s").read_bytes()) == expected_v12()
+
+
+def test_v11_sample_opens_in_version_12_without_live_corners():
+    assert read_p2s((SAMPLES / "v11.p2s").read_bytes()) == expected_v11()

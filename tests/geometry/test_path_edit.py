@@ -1,11 +1,12 @@
 import math
+from dataclasses import replace
 
 import pytest
 
 from presstoshape.geometry import nodes, path_edit
 from presstoshape.geometry.pen_paths import PenNode, pen_segments
 from presstoshape.geometry.segments import ellipse_segments, rect_segments
-from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo
+from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, Rounding
 
 RECT = rect_segments(0, 0, 10, 10)
 ELLIPSE = ellipse_segments(0, 0, 10, 5)
@@ -345,3 +346,37 @@ def test_combine_and_split_are_inverse():
 
 def test_split_drops_lone_moves():
     assert path_edit.split((MoveTo(5, 5), *OPEN)) == [OPEN]
+
+
+# --- roundings ------------------------------------------------------------------------
+
+R = Rounding(4.0)
+
+
+def rounded_at(segments, *indices):
+    out = list(segments)
+    for i in indices:
+        out[i] = replace(out[i], rounding=R)
+    return tuple(out)
+
+
+def roundings(segments):
+    return {i for i, s in enumerate(segments) if getattr(s, "rounding", None) is not None}
+
+
+def test_roundings_kept_by_corner_reverse_close_and_combine():
+    square = rounded_at(RECT, 0, 2)
+    assert roundings(path_edit.set_node_type(square, {0}, "corner").segments) == {0, 2}
+    assert roundings(path_edit.reverse(square).segments) == {0, 2}
+    assert roundings(path_edit.close_subpaths(rounded_at(OPEN, 1)).segments) == {1}
+    assert roundings(path_edit.combine([square, rounded_at(OPEN, 1)])) == {0, 2, 6}
+    assert [roundings(part) for part in path_edit.split(path_edit.combine([square, square]))] == [{0, 2}, {0, 2}]
+
+
+def test_roundings_cleared_by_smooth_break_and_merge():
+    square = rounded_at(RECT, 0, 2)
+    assert roundings(path_edit.set_node_type(square, {2}, "smooth").segments) == {0}
+    assert roundings(path_edit.break_at(square, {2}).segments) == {2}
+    assert roundings(path_edit.break_at(rounded_at(OPEN, 1, 2), {1}).segments) == {3}
+    merged = path_edit.join_ends(rounded_at(OPEN, 0, 3), 0, 3, with_segment=False)
+    assert roundings(merged.segments) == set()

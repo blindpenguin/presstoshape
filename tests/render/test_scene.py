@@ -214,6 +214,17 @@ def test_corner_nodes_are_diamonds_smooth_nodes_squares():
         assert (_pixel(surface, 52, 47) == (255, 255, 255, 255)) is inside
 
 
+def test_corner_widgets_are_rings_in_the_warning_colour_when_limited():
+    segments = (MoveTo(0, 0),)
+    overlay = NodeOverlay(segments, widgets=((0, (30.0, 30.0)), (1, (70.0, 30.0))), limited=frozenset({1}))
+    surface = _render_overlay(_doc(), Overlay(nodes=(overlay,)), 1.0)
+    # Centre dot in the ring colour: selection (green) or warning (red, the default).
+    r, g, b, _a = _pixel(surface, 30, 30)
+    assert g > 200 and r < 80 and b < 80
+    r, g, b, _a = _pixel(surface, 70, 30)
+    assert r > 200 and g < 120 and b < 120
+
+
 def _ring(shape_id=10, style=Style(fill="#ff0000", stroke=None)):
     outer = RectShape(1, 20, 20, 60, 60, style)
     hole = RectShape(2, 40, 40, 20, 20, style)

@@ -6,6 +6,7 @@ from presstoshape.editing.operations import (  # noqa: F401
     booleans,
     clipboard,
     composites,
+    corners,
     documents,
     edit_mode,
     groups,

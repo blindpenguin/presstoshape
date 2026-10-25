@@ -35,6 +35,7 @@ _CUSTOM = {
     CursorType.PEN_ADD: icons.CURSOR_PEN_ADD,
     CursorType.PEN_CLOSE: icons.CURSOR_PEN_CLOSE,
     CursorType.PEN_CONTINUE: icons.CURSOR_PEN_CONTINUE,
+    CursorType.CORNER: icons.CURSOR_CORNER,
 }
 
 

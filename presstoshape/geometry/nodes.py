@@ -10,7 +10,7 @@ import math
 from dataclasses import dataclass, replace
 
 from presstoshape.geometry.boxes import Point
-from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, Segment
+from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, Rounding, Segment
 
 ControlRef = tuple[int, int]
 Segments = tuple[Segment, ...]
@@ -78,6 +78,7 @@ class Anchor:
     corner: bool = False
     source: int | None = None
     mark: bool = False
+    rounding: Rounding | None = None
 
 
 class Topology:
@@ -296,7 +297,7 @@ def insert_node(segments: Segments, index: int, t: float) -> tuple[Segments, int
         b = _lerp(c1, c2, t)
         c = _lerp(c2, p3, t)
         ab, bc = _lerp(a, b, t), _lerp(b, c, t)
-        out[index : index + 1] = [CubicTo(*a, *ab, *p), CubicTo(*bc, *c, *p3, corner=s.corner)]
+        out[index : index + 1] = [CubicTo(*a, *ab, *p), replace(s, c1x=bc[0], c1y=bc[1], c2x=c[0], c2y=c[1])]
     elif isinstance(s, LineTo):
         out[index : index + 1] = [LineTo(*p), s]
     elif isinstance(s, Close):
@@ -332,7 +333,7 @@ def delete_nodes(segments: Segments, indices) -> Segments | None:
 
 def anchors_and_edges(segments: Segments, sp: _Subpath) -> tuple[list[Anchor], list[Edge]]:
     first = segments[sp.start]
-    anchors = [Anchor(_end(first), first.corner, sp.start)]
+    anchors = [Anchor(_end(first), first.corner, sp.start, rounding=first.rounding)]
     edges: list[Edge] = []
     for i in range(sp.start + 1, sp.end):
         s = segments[i]
@@ -342,7 +343,7 @@ def anchors_and_edges(segments: Segments, sp: _Subpath) -> tuple[list[Anchor], l
             continue
         edges.append(((s.c1x, s.c1y), (s.c2x, s.c2y)) if isinstance(s, CubicTo) else None)
         if i != sp.alias:
-            anchors.append(Anchor(_end(s), s.corner, i))
+            anchors.append(Anchor(_end(s), s.corner, i, rounding=s.rounding))
     return anchors, edges
 
 
@@ -350,7 +351,7 @@ def rebuild(anchors: list[Anchor], edges: list[Edge], keep: list[int], closed: b
     """Segments for the kept anchors (indices into `anchors`); edges between them merge into one."""
     n = len(anchors)
     first = anchors[keep[0]]
-    out: list[Segment] = [MoveTo(*first.point, corner=first.corner)]
+    out: list[Segment] = [MoveTo(*first.point, corner=first.corner, rounding=first.rounding)]
     pairs = list(zip(keep, keep[1:]))
     if closed:
         pairs.append((keep[-1], keep[0]))
@@ -359,14 +360,16 @@ def rebuild(anchors: list[Anchor], edges: list[Edge], keep: list[int], closed: b
         merged = [edges[k % n] for k in span]
         target = anchors[b].point
         # Back at the start of a closed subpath the flag lives on the MoveTo.
-        corner = anchors[b].corner and not (closed and b == keep[0])
+        at_start = closed and b == keep[0]
+        corner = anchors[b].corner and not at_start
+        rounding = None if at_start else anchors[b].rounding
         if all(e is None for e in merged):
             if not (closed and b == keep[0]):
-                out.append(LineTo(*target, corner=corner))
+                out.append(LineTo(*target, corner=corner, rounding=rounding))
             continue
         c1 = merged[0][0] if merged[0] is not None else anchors[a].point
         c2 = merged[-1][1] if merged[-1] is not None else target
-        out.append(CubicTo(*c1, *c2, *target, corner=corner))
+        out.append(CubicTo(*c1, *c2, *target, corner=corner, rounding=rounding))
     if closed:
         out.append(Close())
     return out

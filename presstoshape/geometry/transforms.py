@@ -5,7 +5,7 @@ from dataclasses import replace
 
 import pathops
 
-from presstoshape.geometry import affine, booleans
+from presstoshape.geometry import affine, booleans, corners
 from presstoshape.geometry.affine import Affine
 from presstoshape.geometry.aspect import visible_box
 from presstoshape.geometry.boxes import Point
@@ -45,7 +45,7 @@ def outline(shape: Shape) -> tuple[Segment, ...] | None:
         case EllipseShape(cx=cx, cy=cy, rx=rx, ry=ry):
             segments = ellipse_segments(cx, cy, rx, ry)
         case PathShape(segments=segments):
-            pass
+            segments = corners.rounded(segments)
         case ImageShape():
             segments = rect_segments(*visible_box(shape), 0.0, 0.0)
         case TextShape() | GroupShape():
