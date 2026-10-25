@@ -7,6 +7,18 @@ from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import Literal, get_args
 
+CornerKind = Literal["round", "inverted", "chamfer"]
+CORNER_KINDS: tuple[CornerKind, ...] = get_args(CornerKind)
+
+
+@dataclass(frozen=True)
+class Rounding:
+    """A live corner: the node stays sharp in the data, the drawn outline is rounded (see geometry/corners.py)."""
+
+    # Document px; the radius of the circle a round corner follows.
+    radius: float
+    kind: CornerKind = "round"
+
 
 @dataclass(frozen=True)
 class MoveTo:
@@ -14,6 +26,7 @@ class MoveTo:
     y: float
     # A corner node keeps its handles independent (no smooth mirroring), even when they happen to line up.
     corner: bool = False
+    rounding: Rounding | None = None
 
 
 @dataclass(frozen=True)
@@ -21,6 +34,7 @@ class LineTo:
     x: float
     y: float
     corner: bool = False
+    rounding: Rounding | None = None
 
 
 @dataclass(frozen=True)
@@ -32,6 +46,7 @@ class CubicTo:
     x: float
     y: float
     corner: bool = False
+    rounding: Rounding | None = None
 
 
 @dataclass(frozen=True)

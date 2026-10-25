@@ -17,6 +17,8 @@ ET.register_namespace("sodipodi", SODIPODI_NS)
 ET.register_namespace("xlink", XLINK_NS)
 COMPOSITE = f"{{{PRESSTOSHAPE_NS}}}composite"
 MODE = f"{{{PRESSTOSHAPE_NS}}}mode"
+# Live corners: the original path data of a path whose `d` is the rounded outline (formats/svg_corners.py).
+CORNERS = f"{{{PRESSTOSHAPE_NS}}}corners"
 PART_MODES = ("add", "subtract", "intersect", "exclude")
 GROUPMODE = f"{{{INKSCAPE_NS}}}groupmode"
 LABEL = f"{{{INKSCAPE_NS}}}label"

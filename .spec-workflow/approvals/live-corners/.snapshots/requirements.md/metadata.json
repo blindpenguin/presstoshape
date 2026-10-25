@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/live-corners/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T19:40:05.260Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792957205244_mvg0nm6a3",
+      "approvalTitle": "Live corners: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T19:40:16.959Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792957205244_mvg0nm6a3",
+      "approvalTitle": "Live corners: requirements"
+    }
+  ]
+}

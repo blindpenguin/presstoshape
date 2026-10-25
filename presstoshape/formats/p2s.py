@@ -19,6 +19,7 @@ from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
+    CORNER_KINDS,
     IDENTITY_TRANSFORM,
     MAX_STOPS,
     Aspect,
@@ -44,6 +45,7 @@ from presstoshape.models.shapes import (
     PathShape,
     RadialGradient,
     RectShape,
+    Rounding,
     Segment,
     Shape,
     SpreadMethod,
@@ -258,6 +260,13 @@ def _encode_shape(shape: Shape) -> dict[str, Any]:
             corners = [index for index, segment in enumerate(segments) if getattr(segment, "corner", False)]
             if corners:
                 fields["corners"] = corners
+            roundings = [
+                [index, _number(segment.rounding.radius), segment.rounding.kind]
+                for index, segment in enumerate(segments)
+                if getattr(segment, "rounding", None) is not None
+            ]
+            if roundings:
+                fields["roundings"] = roundings
         case TextShape(x=x, y=y, text=text, font_size=font_size):
             fields = {"type": "text", "id": shape.id, **_numbers(x=x, y=y), "text": text}
             fields["font_size"] = _number(font_size)
@@ -484,6 +493,25 @@ def _with_corners(segments: tuple[Segment, ...], fields: dict[str, Any], where: 
     return tuple(out)
 
 
+def _with_roundings(segments: tuple[Segment, ...], fields: dict[str, Any], where: str) -> tuple[Segment, ...]:
+    if "roundings" not in fields:
+        return segments
+    out = list(segments)
+    for position, value in enumerate(read_list(fields["roundings"], f"{where}.roundings")):
+        here = f"{where}.roundings[{position}]"
+        items = read_list(value, here)
+        if len(items) != 3:
+            raise _damaged(here, _("should be [index, radius, kind]"))
+        index = read_number(items[0], f"{here}[0]")
+        if index != int(index) or not 0 <= index < len(out) or isinstance(out[int(index)], Close):
+            raise _damaged(f"{here}[0]", _("should be the index of a node segment"))
+        radius = read_number(items[1], f"{here}[1]", minimum=0.0)
+        if items[2] not in CORNER_KINDS:
+            raise _damaged(f"{here}[2]", _one_of(CORNER_KINDS))
+        out[int(index)] = replace(out[int(index)], rounding=Rounding(radius, items[2]) if radius > 0 else None)
+    return tuple(out)
+
+
 class MediaTable:
     """The pictures of a file or clipboard payload by digest, one `ImageData` per distinct picture however often
     it is used. `load(digest)` fetches a blob lazily and returns None when it is absent or damaged; each such
@@ -558,7 +586,8 @@ def _decode_shape(fields: dict[str, Any], where: str, media: MediaTable) -> Shap
         case "path":
             items = read_list(_field(fields, "segments", where), f"{where}.segments")
             segments = tuple(_decode_segment(item, f"{where}.segments[{index}]") for index, item in enumerate(items))
-            return PathShape(shape_id, _with_corners(segments, fields, where), style, transform)
+            segments = _with_roundings(_with_corners(segments, fields, where), fields, where)
+            return PathShape(shape_id, segments, style, transform)
         case "text":
             return TextShape(
                 shape_id,

@@ -4,7 +4,7 @@ import pytest
 
 from presstoshape.geometry import nodes
 from presstoshape.geometry.segments import ellipse_segments, rect_segments
-from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo
+from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, Rounding
 
 RECT = rect_segments(0, 0, 10, 10)
 ELLIPSE = ellipse_segments(0, 0, 10, 5)
@@ -149,3 +149,24 @@ def test_insert_move_and_delete_keep_corner_flags():
 def test_delete_keeps_corner_of_closed_start():
     deleted = nodes.delete_nodes(_cornered(ELLIPSE, 0), {2})
     assert deleted[0].corner and not any(s.corner for s in deleted[1:] if not isinstance(s, Close))
+
+
+# --- rounding -----------------------------------------------------------------
+
+
+def test_insert_move_and_delete_keep_roundings():
+    r = Rounding(5.0, "chamfer")
+    rounded = (*SMOOTH[:2], replace(SMOOTH[2], rounding=r))
+    inserted, _index = nodes.insert_node(rounded, 2, 0.5)
+    assert [s.rounding for s in inserted] == [None, None, None, r]
+    assert nodes.move_nodes(rounded, {2}, 1, 1)[2].rounding == r
+    open_rounded = (OPEN[0], OPEN[1], replace(OPEN[2], rounding=r), OPEN[3])
+    assert [s.rounding for s in nodes.delete_nodes(open_rounded, {1})] == [None, r, None]
+    assert [s.rounding for s in nodes.delete_nodes(open_rounded, {2})] == [None, None, None]
+
+
+def test_closed_start_rounding_lives_on_moveto():
+    r = Rounding(3.0)
+    rounded = (replace(ELLIPSE[0], rounding=r), *ELLIPSE[1:])
+    deleted = nodes.delete_nodes(rounded, {2})
+    assert deleted[0].rounding == r and all(getattr(s, "rounding", None) is None for s in deleted[1:])

@@ -187,6 +187,21 @@ def node_at(segments, point: Point, zoom: float, controls=()) -> tuple[str, obje
     return None if best is None else best[1]
 
 
+WIDGET_PX = 7.0
+_WIDGET_GRAB_PX = 5.0
+
+
+def widget_at(widgets, point: Point, zoom: float) -> int | None:
+    """The node index of the live-corner widget under `point`, nearest first."""
+    reach = _WIDGET_GRAB_PX / zoom
+    best: tuple[float, int] | None = None
+    for index, (x, y) in widgets:
+        dist = math.hypot(point[0] - x, point[1] - y)
+        if dist <= reach and (best is None or dist < best[0]):
+            best = (dist, index)
+    return None if best is None else best[1]
+
+
 def _inside(frame: Frame, point: Point) -> bool:
     try:
         lx, ly = affine.apply(affine.invert(frame.transform), *point)

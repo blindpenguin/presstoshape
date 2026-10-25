@@ -178,7 +178,7 @@ Every level has the same definition of done:
 - [ ] **Knife / scissors tool**, eraser.
 - [ ] **Shape builder** (drag across regions to merge or remove; Composites and divide are the base).
 - [ ] **Node tool extras**: align nodes, add nodes by count, auto-smooth nodes. (Node types corner/smooth/symmetric, make line/curve as buttons done 2026-10-25, spec `path-structure`; corner nodes are saved, in SVG as Inkscape's `sodipodi:nodetypes`.)
-- [ ] **Corner rounding** on any path node (live corners).
+- [x] **Corner rounding** on any path node (live corners): round, inverted or chamfered, dragged from a widget inside the corner or typed in; saved in `.p2s` and in SVG metadata, with the rounded outline as the path (done 2026-10-25, spec `live-corners`). Still open: live corners on rectangles converted with Object to Path, scaling radii when resizing.
 
 ### Text
 - [ ] **Multi-line and area text** (text in a box with wrapping), line height. (Left/centre/right alignment of single lines done.) Area text has no SVG 1.1 form: SVG 2 `shape-inside` or positioned tspans on save.

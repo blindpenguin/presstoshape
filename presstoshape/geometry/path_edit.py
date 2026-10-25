@@ -148,7 +148,7 @@ def _set_types(sub: Sub, indices: set[int], kind: NodeKind) -> Sub:
     for k, anchor in enumerate(sub.anchors):
         if anchor.source not in indices:
             continue
-        anchors[k] = replace(anchor, corner=False)
+        anchors[k] = replace(anchor, corner=False, rounding=None)
         new = _smooth_handles(sub, k, kind == "symmetric")
         if new is not None:
             handles[k] = new
@@ -242,7 +242,8 @@ def _rotated_open(sub: Sub, k: int) -> Sub:
     """A closed subpath opened at anchor `k`: it starts there and ends on a marked copy of it."""
     n = len(sub.anchors)
     order = [(k + i) % n for i in range(n)]
-    start = replace(sub.anchors[k], mark=True)
+    # A node turned into two ends can't be rounded any more.
+    start = replace(sub.anchors[k], mark=True, rounding=None)
     anchors = (start, *(sub.anchors[i] for i in order[1:]), replace(start, source=None))
     return Sub(anchors, tuple(sub.edges[i] for i in order), False)
 
@@ -259,9 +260,9 @@ def _pieces(sub: Sub, cuts: list[int]) -> list[Sub]:
     for begin, end in zip(bounds, bounds[1:]):
         anchors = list(sub.anchors[begin : end + 1])
         if begin in inner:
-            anchors[0] = replace(anchors[0], source=None, mark=True)
+            anchors[0] = replace(anchors[0], source=None, mark=True, rounding=None)
         if end in inner:
-            anchors[-1] = replace(anchors[-1], mark=True)
+            anchors[-1] = replace(anchors[-1], mark=True, rounding=None)
         pieces.append(Sub(tuple(anchors), sub.edges[begin:end], False))
     return pieces
 

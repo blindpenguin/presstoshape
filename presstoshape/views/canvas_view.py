@@ -8,6 +8,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractScrollArea, QDialog, QInputDialog, QWidget
 
 from presstoshape.editing import containers
+from presstoshape.editing.operations import corners as corner_ops
 from presstoshape.editing.operations import guides, view
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
@@ -25,6 +26,7 @@ from presstoshape.tools.base import CursorType, Mods, ToolContext
 from presstoshape.tools.registry import Toolbox
 from presstoshape.tools.snapper import Snapper
 from presstoshape.views import theme
+from presstoshape.views.corner_dialog import CornerDialog
 from presstoshape.views.cursors import qt_cursor
 from presstoshape.views.guide_dialog import GuideDialog
 from presstoshape.views.ruler_view import RULER_SIZE, Ruler
@@ -42,6 +44,7 @@ _COLORS = CanvasColors(
     guide=theme.GUIDE,
     grid=theme.GRID,
     snap=theme.SNAP,
+    warning=theme.WARNING,
     mask_outline=theme.MASK_OUTLINE,
 )
 
@@ -72,7 +75,14 @@ class CanvasView(QAbstractScrollArea):
         self._picture = DocumentPicture(self._cache)
         self._edit_mode = EditModeDrawing(self._cache)
         self._toolbox = Toolbox(
-            ToolContext(session, self._cache, self._repaint, self._ask_text, edit_guide=self._edit_guide)
+            ToolContext(
+                session,
+                self._cache,
+                self._repaint,
+                self._ask_text,
+                edit_guide=self._edit_guide,
+                edit_corners=self._edit_corners,
+            )
         )
         self._vp = Viewport()
         self._residual = (0.0, 0.0)
@@ -322,6 +332,16 @@ class CanvasView(QAbstractScrollArea):
             guides.delete_guide(self._session, guide_id)
         else:
             guides.move_guide(self._session, guide_id, dialog.position)
+
+    def _edit_corners(self, refs: set[tuple[int, int]]) -> None:
+        state = self._state
+        values = corner_ops.corner_values(state, refs) if state else None
+        if state is None or values is None:
+            return
+        kind, radius = values
+        dialog = CornerDialog(kind or "round", radius or 0.0, state.document.unit, state.document.dpi, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            corner_ops.set_corners(self._session, refs, dialog.kind, dialog.radius)
 
     # --- view navigation ----------------------------------------------------
 

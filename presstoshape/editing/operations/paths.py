@@ -14,7 +14,7 @@ from presstoshape.editing.operations._document import (
 )
 from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
-from presstoshape.geometry import affine, nodes, path_edit, transforms
+from presstoshape.geometry import affine, corners, nodes, path_edit, transforms
 from presstoshape.geometry.path_edit import Edited, Segments
 from presstoshape.geometry.pen_paths import PenNode, pen_segments
 from presstoshape.geometry.segments import transform_segments
@@ -30,7 +30,8 @@ EndRef = tuple[int, int]
 
 def to_path(shape: Shape) -> Shape:
     if isinstance(shape, PathShape):
-        return shape
+        # Live corners become real nodes.
+        return replace(shape, segments=corners.rounded(shape.segments))
     if isinstance(shape, TextShape):
         local = from_skia_path(text_path(shape))
         segments = transform_segments(local, lambda x, y: affine.apply(shape.transform, x, y))

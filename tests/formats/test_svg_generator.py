@@ -23,6 +23,7 @@ from presstoshape.models.shapes import (
     PathShape,
     RadialGradient,
     RectShape,
+    Rounding,
     Style,
     TextShape,
 )
@@ -295,6 +296,28 @@ DOCUMENTS = {
             "luminance",
             [RectShape(9, 220, 160, 160, 120, Style(fill="#ffffff", stroke=None))],
             region=(250.0, 180.0, 100.0, 80.0),
+        ),
+    ),
+    "live corners": _doc(
+        PathShape(
+            1,
+            (
+                MoveTo(20, 20, rounding=Rounding(30)),
+                LineTo(180, 20, rounding=Rounding(20, "inverted")),
+                LineTo(180, 140, rounding=Rounding(25, "chamfer")),
+                LineTo(20, 140, rounding=Rounding(200)),
+                Close(),
+            ),
+            _stroked(),
+        ),
+        PathShape(
+            2,
+            (
+                MoveTo(220, 40),
+                CubicTo(260, 0, 320, 0, 360, 40, rounding=Rounding(15)),
+                LineTo(300, 260),
+            ),
+            _stroked(),
         ),
     ),
     "hidden content": _doc(

@@ -30,7 +30,15 @@ from presstoshape.models.shapes import (
     mask_children,
 )
 from presstoshape.render.gradients import gradient_shader
-from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, START_EXTRA_PX, Frame, handle_points
+from presstoshape.render.handles import (
+    CONTROL_PX,
+    HANDLE_PX,
+    NODE_PX,
+    START_EXTRA_PX,
+    WIDGET_PX,
+    Frame,
+    handle_points,
+)
 from presstoshape.render.images import device_scale, draw_image, pixel_scale
 from presstoshape.render.masks import mask_filter, shape_area
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
@@ -321,6 +329,22 @@ def _draw_frame(canvas: skia.Canvas, frame: Frame, zoom: float, color: int) -> N
 _DIAMOND_SCALE = 1.35
 
 
+def _draw_widgets(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: int, warning: int) -> None:
+    """Live-corner widgets: small rings inside the corners, in the warning colour where the radius doesn't fit."""
+    white = skia.Paint(Color=skia.ColorWHITE, AntiAlias=True)
+    radius = WIDGET_PX / 2 / zoom
+    for index, (x, y) in overlay.widgets:
+        ring = skia.Paint(
+            Color=warning if index in overlay.limited else color,
+            Style=skia.Paint.kStroke_Style,
+            StrokeWidth=1.5 / zoom,
+            AntiAlias=True,
+        )
+        canvas.drawCircle(x, y, radius, white)
+        canvas.drawCircle(x, y, radius, ring)
+        canvas.drawCircle(x, y, radius / 3, skia.Paint(Color=ring.getColor(), AntiAlias=True))
+
+
 def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: int) -> None:
     segments = overlay.segments
     white = skia.Paint(Color=skia.ColorWHITE, AntiAlias=True)
@@ -484,6 +508,8 @@ def draw_overlays(
         _draw_frame(canvas, overlay.frame, zoom, selection_color)
     for node_overlay in overlay.nodes:
         _draw_nodes(canvas, node_overlay, zoom, selection_color)
+        if node_overlay.widgets:
+            _draw_widgets(canvas, node_overlay, zoom, selection_color, parse_color(colors.warning))
     if overlay.preview is not None:
         segments, style = overlay.preview
         path = to_skia_path(segments)

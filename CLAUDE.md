@@ -68,9 +68,10 @@ presstoshape/
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   ├── nodes.py              # path node editing
 │   ├── path_edit.py          # path structure: node types, break/join, close/open, reverse, combine/split
+│   ├── corners.py            # live corners: rounded outline (used by transforms.outline), corner widget math
 │   └── fitting.py            # freehand strokes → cubic beziers (Pencil)
 ├── formats/                  # svg.py (SVG write + public read API), svg_reader.py (cascade, <use>, text lines), css.py (<style> subset),
-│                             # svg_values.py / svg_names.py / svg_page.py / svg_notes.py (import notes for the report dialog), svg_nodetypes.py (corner nodes as `sodipodi:nodetypes`),
+│                             # svg_values.py / svg_names.py / svg_page.py / svg_notes.py (import notes for the report dialog), svg_nodetypes.py (corner nodes as `sodipodi:nodetypes`), svg_corners.py (live corners in path metadata),
 │                             # image_info.py (picture header probe: type, size, limits, digest) + svg_images.py (`<image>` sources, never the network),
 │                             # p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
 │                             # clipboard.py (shape payload for copy/paste, not migrated: falls back to SVG)
@@ -99,7 +100,7 @@ presstoshape/
     ├── settings/             # Settings window: dialog + one page per category (PAGES in dialog.py)
     ├── cursors.py            # CursorType -> QCursor
     ├── skia_surface.py       # GL / raster Skia surface widgets
-    └── *_view.py / widgets.py / theme.py / icon_engine.py / export_dialog.py
+    └── *_view.py / widgets.py / theme.py / icon_engine.py / export_dialog.py / corner_dialog.py
 ```
 
 Rules:
@@ -121,6 +122,7 @@ Rules:
 - Shapes are frozen; change them with `dataclasses.replace`. Undo snapshots copy layer lists only and share shape objects.
 - Coordinates are document pixels (1/`Document.dpi` inch) everywhere below the views. `Document.unit` only changes how lengths are shown and entered: convert at the widget boundary (`views/unit_fields.LengthSpinBox`, `geometry/units`), never in operations, geometry or rendering.
 - Shape `transform` stays canonical: go through `geometry.transforms` (`transform_shape`, `translate`, `with_rotation`) rather than composing matrices onto shapes by hand. Paths keep an identity transform (baked into segments).
+- A path's segments are its nodes; what is drawn is `transforms.outline` (it rounds live corners, `geometry/corners.py`). Code that draws, measures or combines a path goes through `outline` / `area_outline`, never `path.segments` directly; node editing works on the segments. Per-node data (`corner`, `rounding`) lives on the segment that ends at the node and survives edits through `dataclasses.replace`.
 - Tools decide cursors as `CursorType` (Qt-free, tested); only `views/cursors.py` maps them to Qt.
 - Snapping: tools build a `Snapper` once per gesture (`ToolContext.snapper(...)`, targets from the visible area) and ask it for corrected points/offsets while dragging; Ctrl ignores it; its hits go into `Overlay.snap` for feedback. The math lives in `geometry/snapping.py`, never per frame over all shapes.
 - Guides and the grid belong to the `Document` (undoable, saved); show/lock/snap toggles are view state on `AppState` (rulers and snapping remembered in app settings, grid/guides visibility in `.p2s` working state). Commands with a check mark register a `checked` callback.

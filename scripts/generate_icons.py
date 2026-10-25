@@ -53,6 +53,7 @@ ICONS = {
     "cursor_pen_add": "crosshair",
     "cursor_pen_close": "circle-dot",
     "cursor_pen_continue": "arrow-guide",
+    "cursor_corner": "border-corner-rounded",
     "settings": "settings",
     "settings_language": "language",
     "settings_canvas": "artboard",

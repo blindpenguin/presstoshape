@@ -15,10 +15,13 @@ from PySide6.QtWidgets import (
 
 from presstoshape.editing import containers
 from presstoshape.editing.operations import composites, view
+from presstoshape.editing.operations import corners as corner_ops
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState, Tool
+from presstoshape.models.shapes import CORNER_KINDS
 from presstoshape.views.actions import AppActions
+from presstoshape.views.corner_dialog import kind_box
 from presstoshape.views.keymap import NODE_STRUCTURE_IDS, NODE_TYPE_IDS, SUBPATH_IDS
 from presstoshape.views.selection_view import SelectionOptions
 from presstoshape.views.style_editor import FILL, FILL_RULE, OPACITY, STROKE, STROKE_OPTIONS, WIDTH, StyleEditor
@@ -26,6 +29,9 @@ from presstoshape.views.unit_fields import LengthSpinBox, font_unit
 from presstoshape.views.widgets import PartModeBox
 
 _ICON_SIZE = QSize(20, 20)
+# The corner radius field shows "Mixed" at this value, below any real radius.
+_MIXED_RADIUS = -1.0
+_MAX_CORNER_PX = 100_000.0
 
 _FIELDS = {
     Tool.RECTANGLE: (FILL, STROKE, WIDTH, OPACITY, STROKE_OPTIONS),
@@ -82,7 +88,7 @@ class ToolOptionsPanel(QStackedWidget):
         self._smoothing_value: QLabel | None = None
         # Drawing tools show the mode new parts get while a Composite is being edited.
         self._part_modes: dict[Tool, tuple[QFormLayout, PartModeBox]] = {}
-        self._pages[Tool.NODE] = self._node_page(actions)
+        self._pages[Tool.NODE] = self._node_page(session, actions)
         for tool, fields in _FIELDS.items():
             editor = StyleEditor(fields, lambda changes, t=tool: view.set_tool_style(session, t, **changes))
             if tool is not Tool.TEXT:
@@ -123,8 +129,9 @@ class ToolOptionsPanel(QStackedWidget):
         layout.addWidget(self._smoothing_value)
         return row
 
-    def _node_page(self, actions: AppActions) -> QWidget:
-        """The node and subpath commands as buttons sharing the menu's actions, above the gesture hint."""
+    def _node_page(self, session: Session, actions: AppActions) -> QWidget:
+        """The node and subpath commands as buttons sharing the menu's actions, the selected corners' live-corner
+        kind and radius, and the gesture hint."""
         page = QWidget()
         layout = QVBoxLayout(page)
         for command_ids in (NODE_TYPE_IDS, NODE_STRUCTURE_IDS, SUBPATH_IDS):
@@ -138,6 +145,19 @@ class ToolOptionsPanel(QStackedWidget):
                 grid.addWidget(button, 0, index)
             grid.setColumnStretch(len(command_ids), 1)
             layout.addLayout(grid)
+        form = QFormLayout()
+        self._corner_kind = kind_box()
+        self._corner_kind.activated.connect(
+            lambda index: corner_ops.set_kind(
+                session, corner_ops.selected_corners(session.state), self._corner_kind.itemData(index)
+            )
+        )
+        self._corner_radius = LengthSpinBox(_MIXED_RADIUS, _MAX_CORNER_PX)
+        self._corner_radius.setSpecialValueText(_("Mixed"))
+        self._corner_radius.px_changed.connect(partial(self._on_corner_radius, session))
+        form.addRow(_("Corner"), self._corner_kind)
+        form.addRow(_("Radius"), self._corner_radius)
+        layout.addLayout(form)
         hint = QLabel(_(_HINTS[Tool.NODE]))
         hint.setWordWrap(True)
         hint.setEnabled(False)
@@ -147,6 +167,21 @@ class ToolOptionsPanel(QStackedWidget):
         self.addWidget(page)
         return page
 
+    def _on_corner_radius(self, session: Session, px: float) -> None:
+        if px > _MIXED_RADIUS:
+            corner_ops.set_radius(session, corner_ops.selected_corners(session.state), px, merge_key="corner_radius")
+
+    def _refresh_corners(self, state: AppState) -> None:
+        values = corner_ops.selected_corner_values(state)
+        self._corner_kind.setEnabled(values is not None)
+        self._corner_radius.setEnabled(values is not None)
+        kind, radius = values if values is not None else (None, 0.0)
+        self._corner_kind.blockSignals(True)
+        self._corner_kind.setCurrentIndex(CORNER_KINDS.index(kind) if kind is not None else -1)
+        self._corner_kind.blockSignals(False)
+        self._corner_radius.set_unit(state.document.unit, state.document.dpi)
+        self._corner_radius.set_px(radius if radius is not None else _MIXED_RADIUS)
+
     def refresh(self, state: AppState) -> None:
         tool = state.active_tool
         self.setCurrentWidget(self._pages[tool])
@@ -154,6 +189,7 @@ class ToolOptionsPanel(QStackedWidget):
             self._selection.refresh(state)
             return
         if tool is Tool.NODE:
+            self._refresh_corners(state)
             return
         document = state.document
         self._editors[tool].set_unit(document.unit, document.dpi)

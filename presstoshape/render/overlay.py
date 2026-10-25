@@ -22,6 +22,7 @@ class CanvasColors:
     grid: str = "#64748b"
     snap: str = "#f97316"
     mask_outline: str = "#a855f7"
+    warning: str = "#ef4444"
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,9 @@ class NodeOverlay:
     controls: frozenset[tuple[int, int]] = frozenset()
     # Extra (anchor, handle) arms with no segment of their own yet, e.g. the Pen's handle being dragged out.
     handles: tuple[tuple[Point, Point], ...] = ()
+    # Live-corner widgets as (node index, position); nodes in `limited` are drawn smaller than their radius.
+    widgets: tuple[tuple[int, Point], ...] = ()
+    limited: frozenset[int] = frozenset()
 
 
 @dataclass(frozen=True)

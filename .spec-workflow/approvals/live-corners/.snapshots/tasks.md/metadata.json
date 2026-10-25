@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/live-corners/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T19:43:13.675Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792957393667_dr0q1rvqr",
+      "approvalTitle": "Live corners: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T19:43:31.922Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792957393667_dr0q1rvqr",
+      "approvalTitle": "Live corners: tasks"
+    }
+  ]
+}

@@ -15,7 +15,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import unquote
 
-from presstoshape.formats import css
+from presstoshape.formats import css, svg_corners
 from presstoshape.formats.svg_conditions import is_drawable, passes, switch_choice
 from presstoshape.formats.svg_gradients import Resolved, resolve_gradient
 from presstoshape.formats.svg_images import ImageBudget, box_size, load_image
@@ -797,7 +797,12 @@ class _Reader:
         """One element as a shape; a path carrying a Composite definition becomes that Composite."""
         if tag == "path" and el.find(f"{q('metadata')}/{COMPOSITE}") is not None:
             return self._composite(el, style, m, opacity)
-        return self._shape(tag, el, style, m, opacity)
+        shape = self._shape(tag, el, style, m, opacity)
+        if tag == "path" and isinstance(shape, PathShape):
+            live = svg_corners.restored(el, shape.segments, m)
+            if live is not None:
+                return replace(shape, segments=live)
+        return shape
 
     def _composite(self, el: ET.Element, style: dict[str, str], m: Affine, opacity: float) -> Shape | None:
         """The stored parts if they still produce the path's visible result, else the plain path with a note."""

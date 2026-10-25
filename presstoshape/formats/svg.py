@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 from dataclasses import replace
 
+from presstoshape.formats import svg_corners
 from presstoshape.formats.svg_mask_defs import masked_group_element
 from presstoshape.formats.svg_namedview import namedview_element
 from presstoshape.formats.svg_names import (
@@ -27,6 +28,7 @@ from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
 from presstoshape.formats.svg_paint import PaintDefs
 from presstoshape.formats.svg_reader import read_shapes_svg, read_svg, read_svg_with_notes
+from presstoshape.geometry import corners
 from presstoshape.geometry.affine import Affine, as_rotation, is_identity
 from presstoshape.geometry.aspect import DEFAULT
 from presstoshape.geometry.boxes import Rect
@@ -228,7 +230,12 @@ def _untransformed_element(shape: Shape, defs: PaintDefs) -> ET.Element:
             attrs = {"cx": _num(cx), "cy": _num(cy), "rx": _num(rx), "ry": _num(ry)}
             return ET.Element(q("ellipse"), attrs | style)
         case PathShape(segments=segments):
-            element = ET.Element(q("path"), {"d": path_d(segments)} | style)
+            element = ET.Element(q("path"), {"d": path_d(corners.rounded(segments))} | style)
+            live = svg_corners.metadata(segments, path_d)
+            if live is not None:
+                # Node types would describe the original nodes, not `d`; the metadata keeps them.
+                element.append(live)
+                return element
             types = node_types(segments)
             if types is not None:
                 element.set(NODETYPES, types)

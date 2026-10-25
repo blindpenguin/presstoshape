@@ -100,7 +100,7 @@ Geometry per type:
 |---|---|
 | `rect` | `x`, `y`, `width` ≥ 0, `height` ≥ 0; optional `rx`, `ry` ≥ 0 (corner radii, default 0, clamped to half the size when drawn) |
 | `ellipse` | `cx`, `cy`, `rx` ≥ 0, `ry` ≥ 0 |
-| `path` | `segments`: list of `["M", x, y]` (move), `["L", x, y]` (line), `["C", c1x, c1y, c2x, c2y, x, y]` (cubic bezier), `["Z"]` (close). Optional `corners`: indices of the segments whose end node is a corner (its handles move independently even when they line up); a closed subpath's start node is its `M`. Paths keep an identity transform: transforms are applied to the points. |
+| `path` | `segments`: list of `["M", x, y]` (move), `["L", x, y]` (line), `["C", c1x, c1y, c2x, c2y, x, y]` (cubic bezier), `["Z"]` (close). Optional `corners`: indices of the segments whose end node is a corner (its handles move independently even when they line up); a closed subpath's start node is its `M`. Optional `roundings`: live corners as `[segment index, radius, kind]` with kind `"round"`, `"inverted"` or `"chamfer"`; the path is drawn with those corners rounded while its segments stay as they are. Paths keep an identity transform: transforms are applied to the points. |
 | `text` | `x`, `y` (the anchor point on the baseline), `text` (single line), `font_size` > 0; optional `anchor`: `"start"` (default), `"middle"` or `"end"`, which point of the line sits at `x`, as SVG's `text-anchor` |
 | `composite` | `parts`: list of shapes, bottom to top (may include Composites); `modes`: one per part, each `"add"`, `"subtract"`, `"intersect"` or `"exclude"`. The first part is the base, so its mode is ignored. Composites keep an identity transform; their parts carry the transforms. |
 | `image` | `x`, `y`, `width` ≥ 0, `height` ≥ 0 (the viewport box, as SVG's `<image>`), `media` (digest of the picture, see [Media](#media)); optional `aspect`: an alignment `"none"` or `"xMinYMin"` … `"xMaxYMax"`, optionally followed by `" slice"` (default `"xMidYMid"`, meet), as SVG's `preserveAspectRatio`; optional `opacity` 0 to 1 (default 1); optional `reference`, written only as `true`: a dimmed guide picture that is never exported. Images have no `style`; their `transform` is stored like any shape's. |
@@ -184,6 +184,7 @@ Undo history and the active tool are not stored.
 | 9 | nightlies from October 2026 | Optional `masking` on groups: the group is a clipping or opacity mask. Version 8 files need no change. |
 | 10 | nightlies from October 2026 | Shape type `image` and the `media/` entries holding its pictures. Version 9 files need no change. |
 | 11 | nightlies from October 2026 | Optional `corners` on paths. Version 10 files need no change (no corner nodes). |
+| 12 | nightlies from October 2026 | Optional `roundings` (live corners) on paths. Version 11 files need no change (no live corners). |
 
 Rules for changing the format:
 

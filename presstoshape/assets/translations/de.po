@@ -392,6 +392,38 @@ msgstr "Modus ändern"
 msgid "Mode: {mode}"
 msgstr "Modus: {mode}"
 
+#: presstoshape/editing/operations/corners.py
+msgid "Round corners"
+msgstr "Ecken abrunden"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Corner rounding"
+msgstr "Eckenrundung"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Remove Corner &Rounding"
+msgstr "&Rundung entfernen"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Remove corner rounding"
+msgstr "Eckenrundung entfernen"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Removed corner rounding"
+msgstr "Eckenrundung entfernt"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Appl&y Corner Rounding"
+msgstr "Eckenrundung an&wenden"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Apply corner rounding"
+msgstr "Eckenrundung anwenden"
+
+#: presstoshape/editing/operations/corners.py
+msgid "Applied corner rounding"
+msgstr "Eckenrundung angewendet"
+
 #: presstoshape/editing/operations/documents.py
 msgid "Unknown unit {unit}"
 msgstr "Unbekannte Einheit {unit}"
@@ -1596,6 +1628,10 @@ msgid "should be the index of a node segment"
 msgstr "sollte der Index eines Knotensegments sein"
 
 #: presstoshape/formats/p2s.py
+msgid "should be [index, radius, kind]"
+msgstr "sollte [Index, Radius, Art] sein"
+
+#: presstoshape/formats/p2s.py
 msgid "A picture is missing or damaged and shows as a placeholder."
 msgstr "Ein Bild fehlt oder ist beschädigt und erscheint als Platzhalter."
 
@@ -2017,6 +2053,35 @@ msgstr "Ein einzelnes Objekt wird immer an der Zeichenfläche ausgerichtet"
 #: presstoshape/views/canvas_view.py
 msgid "Text:"
 msgstr "Text:"
+
+#: presstoshape/views/corner_dialog.py
+msgctxt "corner"
+msgid "Round"
+msgstr "Rund"
+
+#: presstoshape/views/corner_dialog.py
+msgctxt "corner"
+msgid "Inverted"
+msgstr "Invertiert"
+
+#: presstoshape/views/corner_dialog.py
+msgctxt "corner"
+msgid "Chamfer"
+msgstr "Abgeschrägt"
+
+#: presstoshape/views/corner_dialog.py
+#: presstoshape/views/tool_options_view.py
+msgid "Corner"
+msgstr "Ecke"
+
+#: presstoshape/views/corner_dialog.py
+msgid "Kind"
+msgstr "Art"
+
+#: presstoshape/views/corner_dialog.py
+#: presstoshape/views/tool_options_view.py
+msgid "Radius"
+msgstr "Radius"
 
 #: presstoshape/views/edit_bar_view.py
 msgid "Editing:"
@@ -2471,6 +2536,7 @@ msgid "Rotation"
 msgstr "Drehung"
 
 #: presstoshape/views/selection_view.py
+#: presstoshape/views/tool_options_view.py
 msgid "Mixed"
 msgstr "Gemischt"
 

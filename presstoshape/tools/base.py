@@ -49,6 +49,7 @@ class CursorType(Enum):
     PEN_ADD = auto()
     PEN_CLOSE = auto()
     PEN_CONTINUE = auto()
+    CORNER = auto()
 
 
 def resize_cursor_type(angle_deg: float) -> CursorType:
@@ -74,6 +75,8 @@ class ToolContext:
     pointer_off_canvas: bool = False
     # Opens the guide position dialog; a dialog, so the view provides it.
     edit_guide: Callable[[int], None] = lambda guide_id: None
+    # Opens the live-corner dialog for these (path id, node index) corners; a dialog, so the view provides it.
+    edit_corners: Callable[[set[tuple[int, int]]], None] = lambda refs: None
 
     @property
     def state(self) -> AppState:
