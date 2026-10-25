@@ -44,7 +44,7 @@ _FIELDS = {
 _HINTS = {
     Tool.NODE: N_(
         "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select "
-        "several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, "
+        "several. Alt+drag a handle to break a smooth node, or to pull a handle out of its node. Double-click a segment to add a node, "
         "Delete removes selected nodes. Corner nodes are diamonds, smooth ones squares; the larger node marks where "
         "each path starts."
     ),

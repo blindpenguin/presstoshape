@@ -8,7 +8,7 @@ from presstoshape.editing.operations import corners as corner_ops
 from presstoshape.geometry import nodes
 from presstoshape.geometry.segments import rect_segments
 from presstoshape.models.app_state import Tool
-from presstoshape.models.shapes import LineTo, MoveTo, Rounding
+from presstoshape.models.shapes import CubicTo, LineTo, MoveTo, Rounding
 from presstoshape.tools.base import CursorType, Mods
 from tests.helpers import drag, setup_tools
 
@@ -51,6 +51,22 @@ def test_node_drag_commits_one_move():
     moved = queries.find_shape(session.state, sid).segments[1]
     assert (moved.x, moved.y) == (110, 20)
     assert session.undo_count == depth + 1
+
+
+def test_selected_node_drags_even_with_retracted_handles():
+    session, g = setup_tools()
+    segments = (MoveTo(0, 0), CubicTo(0, 0, 100, 0, 100, 0), CubicTo(100, 0, 200, 100, 200, 100))
+    sid = shapes.add_drawn_path(session, segments, Tool.PEN)
+    view.select_tool(session, Tool.NODE)
+    g.set_tool(Tool.NODE)
+    drag(g, (100, 0), (100, 0))
+    drag(g, (100, 0), (110, 20))
+    moved = queries.find_shape(session.state, sid).segments[1]
+    assert (moved.x, moved.y, moved.c2x, moved.c2y) == (110, 20, 110, 20)
+    drag(g, (110, 20), (140, 20), alt=True)
+    pulled = queries.find_shape(session.state, sid).segments
+    assert (pulled[1].x, pulled[1].y) == (110, 20)
+    assert (pulled[1].c2x, pulled[1].c2y) == (140, 20) or (pulled[2].c1x, pulled[2].c1y) == (140, 20)
 
 
 def test_control_drag_keeps_smooth_unless_alt():

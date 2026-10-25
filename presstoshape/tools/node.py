@@ -142,7 +142,7 @@ class NodeTool(BaseTool):
         self._cursor = self.hover(point)
         for path in reversed(self._edited()):
             controls = nodes.visible_controls(path.segments, self._selected_nodes(path.id))
-            pick = node_at(path.segments, point, self._context.zoom, controls)
+            pick = node_at(path.segments, point, self._context.zoom, controls, prefer_controls=mods.alt)
             if pick is None:
                 continue
             pick_type, target = pick

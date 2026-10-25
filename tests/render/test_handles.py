@@ -107,14 +107,24 @@ def test_opposite_handles():
     assert Handle.W.opposite is Handle.E
 
 
-def test_node_at_prefers_controls_and_respects_zoom():
+def test_node_at_picks_the_nearest_and_respects_zoom():
     from presstoshape.models.shapes import CubicTo
 
-    segments = (MoveTo(0, 0), CubicTo(2, 0, 50, 0, 60, 0))
+    segments = (MoveTo(0, 0), CubicTo(4, 0, 50, 0, 60, 0))
     assert node_at(segments, (1, 0), 1.0) == ("node", 0)
-    assert node_at(segments, (1, 0), 1.0, {(1, 1)}) == ("control", (1, 1))
+    assert node_at(segments, (1, 0), 1.0, {(1, 1)}) == ("node", 0)
+    assert node_at(segments, (3, 0), 1.0, {(1, 1)}) == ("control", (1, 1))
+    assert node_at(segments, (1, 0), 1.0, {(1, 1)}, prefer_controls=True) == ("control", (1, 1))
     assert node_at(segments, (5, 0), 1.0) == ("node", 0)
     assert node_at(segments, (5, 0), 4.0) is None
+
+
+def test_node_at_prefers_the_node_under_a_retracted_handle():
+    from presstoshape.models.shapes import CubicTo
+
+    segments = (MoveTo(0, 0), CubicTo(0, 0, 50, 0, 60, 0))
+    assert node_at(segments, (0, 0), 1.0, {(1, 1)}) == ("node", 0)
+    assert node_at(segments, (0, 0), 1.0, {(1, 1)}, prefer_controls=True) == ("control", (1, 1))
     assert node_at(segments, (30, 0), 1.0) is None
 
 

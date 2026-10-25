@@ -166,25 +166,29 @@ CONTROL_PX = 6.0
 _NODE_GRAB_PX = 6.0
 
 
-def node_at(segments, point: Point, zoom: float, controls=()) -> tuple[str, object] | None:
+def node_at(
+    segments, point: Point, zoom: float, controls=(), prefer_controls: bool = False
+) -> tuple[str, object] | None:
     """("control", ref) for a visible control or ("node", index) for an anchor within grab distance, else None.
 
-    Controls win over anchors, since a control often sits right on top of its anchor.
+    The nearest one wins and anchors win ties, so a node stays draggable while its handles sit on or near it;
+    `prefer_controls` picks any control in reach first, to pull a handle out of its anchor.
     """
     reach = _NODE_GRAB_PX / zoom
-    best: tuple[float, tuple[str, object]] | None = None
+    best_node: tuple[float, tuple[str, object]] | None = None
+    for info in nodes.nodes(segments):
+        dist = math.hypot(point[0] - info.point[0], point[1] - info.point[1])
+        if dist <= reach and (best_node is None or dist < best_node[0]):
+            best_node = (dist, ("node", info.index))
+    best_control: tuple[float, tuple[str, object]] | None = None
     for ref in controls:
         cx, cy = nodes.control_point(segments, ref)
         dist = math.hypot(point[0] - cx, point[1] - cy)
-        if dist <= reach and (best is None or dist < best[0]):
-            best = (dist, ("control", ref))
-    if best is not None:
-        return best[1]
-    for info in nodes.nodes(segments):
-        dist = math.hypot(point[0] - info.point[0], point[1] - info.point[1])
-        if dist <= reach and (best is None or dist < best[0]):
-            best = (dist, ("node", info.index))
-    return None if best is None else best[1]
+        if dist <= reach and (best_control is None or dist < best_control[0]):
+            best_control = (dist, ("control", ref))
+    if best_control is not None and (prefer_controls or best_node is None or best_control[0] < best_node[0]):
+        return best_control[1]
+    return None if best_node is None else best_node[1]
 
 
 WIDGET_PX = 7.0
