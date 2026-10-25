@@ -106,12 +106,32 @@ def test_end_nodes_only_lose_the_corner_flag():
     assert result == OPEN
 
 
-def test_corner_keeps_handles_and_sets_the_flag():
+def test_corner_pulls_the_handles_into_the_node():
     result = path_edit.set_node_type(ELLIPSE, {0, 2}, "corner").segments
-    assert same_shape(result, ELLIPSE)
+    for index, point in ((0, (10, 0)), (2, (-10, 0))):
+        assert all(h == pytest.approx(point) for h in handles(result, index))
+        assert not info(result, index).smooth
+    # The other end of each segment keeps its handle, so the neighbours stay smooth curves.
     assert [n.smooth for n in nodes.nodes(result)] == [False, True, False, True]
     back = path_edit.set_node_type(result, {0, 2}, "smooth").segments
     assert all(n.smooth for n in nodes.nodes(back))
+
+
+def test_corner_on_both_ends_makes_a_line():
+    curved = path_edit.make_curves(RECT, {0, 1, 2, 3}).segments
+    result = path_edit.set_node_type(curved, {0, 1, 2, 3}, "corner").segments
+    assert result == (
+        MoveTo(0, 0, corner=True),
+        LineTo(10, 0, corner=True),
+        LineTo(10, 10, corner=True),
+        LineTo(0, 10, corner=True),
+        Close(),
+    )
+
+
+def test_corner_on_a_line_node_only_sets_the_flag():
+    result = path_edit.set_node_type(OPEN, {1}, "corner").segments
+    assert result[1].corner and same_shape(result, OPEN)
 
 
 def test_degenerate_node_is_left_unchanged():

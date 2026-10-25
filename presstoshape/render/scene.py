@@ -318,6 +318,9 @@ def _draw_frame(canvas: skia.Canvas, frame: Frame, zoom: float, color: int) -> N
         canvas.drawRect(square, border)
 
 
+_DIAMOND_SCALE = 1.35
+
+
 def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: int) -> None:
     segments = overlay.segments
     white = skia.Paint(Color=skia.ColorWHITE, AntiAlias=True)
@@ -340,9 +343,17 @@ def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: i
     for info in path_nodes.nodes(segments):
         x, y = info.point
         h = start_half if isinstance(segments[info.index], MoveTo) else half
-        square = skia.Rect.MakeLTRB(x - h, y - h, x + h, y + h)
-        canvas.drawRect(square, filled if info.index in overlay.selected else white)
-        canvas.drawRect(square, border)
+        fill = filled if info.index in overlay.selected else white
+        if info.smooth:
+            square = skia.Rect.MakeLTRB(x - h, y - h, x + h, y + h)
+            canvas.drawRect(square, fill)
+            canvas.drawRect(square, border)
+            continue
+        # Corner nodes are diamonds (as in Inkscape), a bit larger so they look as big as the squares.
+        d = h * _DIAMOND_SCALE
+        diamond = skia.Path.Polygon([(x, y - d), (x + d, y), (x, y + d), (x - d, y)], True)
+        canvas.drawPath(diamond, fill)
+        canvas.drawPath(diamond, border)
 
 
 def _live(shape: Shape, overlay: Overlay) -> Shape:

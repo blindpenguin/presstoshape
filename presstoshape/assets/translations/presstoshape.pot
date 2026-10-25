@@ -2797,7 +2797,7 @@ msgid "Dash offset"
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes. The larger square marks where each path starts."
+msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes. Corner nodes are diamonds, smooth ones squares; the larger node marks where each path starts."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py

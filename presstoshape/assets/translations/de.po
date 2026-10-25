@@ -2798,8 +2798,8 @@ msgid "Dash offset"
 msgstr "Strichversatz"
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes. The larger square marks where each path starts."
-msgstr "Einen Pfad anklicken, um seine Knoten zu bearbeiten. Knoten oder ihre Anfasser ziehen; Umschalt+Klick oder ein Rahmen wählt mehrere aus. Alt+Ziehen an einem Anfasser macht aus einem glatten Knoten eine Ecke. Doppelklick auf ein Segment fügt einen Knoten ein, Entf löscht die ausgewählten Knoten. Das größere Quadrat zeigt, wo ein Pfad beginnt."
+msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes. Corner nodes are diamonds, smooth ones squares; the larger node marks where each path starts."
+msgstr "Einen Pfad anklicken, um seine Knoten zu bearbeiten. Knoten oder ihre Anfasser ziehen; Umschalt+Klick oder ein Rahmen wählt mehrere aus. Alt+Ziehen an einem Anfasser macht aus einem glatten Knoten eine Ecke. Doppelklick auf ein Segment fügt einen Knoten ein, Entf löscht die ausgewählten Knoten. Eckknoten sind Rauten, glatte Knoten Quadrate; der größere Knoten zeigt, wo ein Pfad beginnt."
 
 #: presstoshape/views/tool_options_view.py
 msgid "Drag to draw. Shift: square."

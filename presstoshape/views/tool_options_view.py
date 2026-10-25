@@ -39,7 +39,8 @@ _HINTS = {
     Tool.NODE: N_(
         "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select "
         "several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, "
-        "Delete removes selected nodes. The larger square marks where each path starts."
+        "Delete removes selected nodes. Corner nodes are diamonds, smooth ones squares; the larger node marks where "
+        "each path starts."
     ),
     Tool.RECTANGLE: N_("Drag to draw. Shift: square."),
     Tool.ELLIPSE: N_("Drag to draw. Shift: circle."),

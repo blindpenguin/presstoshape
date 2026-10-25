@@ -118,18 +118,40 @@ def _smooth_handles(sub: Sub, k: int, symmetric: bool) -> tuple[Point, Point] | 
     return (p[0] - dx * len_in, p[1] - dy * len_in), (p[0] + dx * len_out, p[1] + dy * len_out)
 
 
+def _retracted(sub: Sub, chosen: set[int]) -> Sub:
+    """Corner as in Illustrator: the chosen nodes' handles go back into the node; a segment left with no handle
+    sticking out on either end becomes a line."""
+    anchors = list(sub.anchors)
+    corners = set()
+    for k, anchor in enumerate(sub.anchors):
+        if anchor.source in chosen:
+            anchors[k] = replace(anchor, corner=True)
+            corners.add(k)
+    edges = list(sub.edges)
+    for e, edge in enumerate(sub.edges):
+        a, b = sub.edge_ends(e)
+        if edge is None or (a not in corners and b not in corners):
+            continue
+        pa, pb = sub.anchors[a].point, sub.anchors[b].point
+        c1 = pa if a in corners else edge[0]
+        c2 = pb if b in corners else edge[1]
+        edges[e] = None if _dist(c1, pa) < _TINY and _dist(c2, pb) < _TINY else (c1, c2)
+    return Sub(tuple(anchors), tuple(edges), sub.closed)
+
+
 def _set_types(sub: Sub, indices: set[int], kind: NodeKind) -> Sub:
+    if kind == "corner":
+        return _retracted(sub, indices)
     anchors = list(sub.anchors)
     # Computed from the unchanged subpath, so neighbouring selected nodes don't see each other's new handles.
     handles: dict[int, tuple[Point, Point]] = {}
     for k, anchor in enumerate(sub.anchors):
         if anchor.source not in indices:
             continue
-        anchors[k] = replace(anchor, corner=kind == "corner")
-        if kind != "corner":
-            new = _smooth_handles(sub, k, kind == "symmetric")
-            if new is not None:
-                handles[k] = new
+        anchors[k] = replace(anchor, corner=False)
+        new = _smooth_handles(sub, k, kind == "symmetric")
+        if new is not None:
+            handles[k] = new
     edges = list(sub.edges)
     for e, edge in enumerate(sub.edges):
         a, b = sub.edge_ends(e)
@@ -146,9 +168,10 @@ def _set_types(sub: Sub, indices: set[int], kind: NodeKind) -> Sub:
 
 
 def set_node_type(segments: Segments, indices, kind: NodeKind) -> Edited:
-    """Corner only sets the flag. Smooth lines both handles up through the node (along their average direction,
-    or the direction between the neighbours when a handle is missing); symmetric also evens their lengths. Line
-    segments next to a smoothed node become curves; end nodes of open subpaths only lose the corner flag."""
+    """Corner pulls the nodes' handles back into them (as Illustrator does); segments left without handles become
+    lines. Smooth lines both handles up through the node (along their average direction, or the direction between
+    the neighbours when a handle is missing); symmetric also evens their lengths. Line segments next to a smoothed
+    node become curves; end nodes of open subpaths only lose the corner flag."""
     chosen = set(indices)
     return from_subs([_set_types(sub, chosen, kind) for sub in to_subs(segments)])
 
