@@ -255,6 +255,9 @@ def _encode_shape(shape: Shape) -> dict[str, Any]:
             fields = {"type": "ellipse", "id": shape.id, **_numbers(cx=cx, cy=cy, rx=rx, ry=ry)}
         case PathShape(segments=segments):
             fields = {"type": "path", "id": shape.id, "segments": [_encode_segment(segment) for segment in segments]}
+            corners = [index for index, segment in enumerate(segments) if getattr(segment, "corner", False)]
+            if corners:
+                fields["corners"] = corners
         case TextShape(x=x, y=y, text=text, font_size=font_size):
             fields = {"type": "text", "id": shape.id, **_numbers(x=x, y=y), "text": text}
             fields["font_size"] = _number(font_size)
@@ -469,6 +472,18 @@ def _decode_segment(value: Any, where: str) -> Segment:
             return Close()
 
 
+def _with_corners(segments: tuple[Segment, ...], fields: dict[str, Any], where: str) -> tuple[Segment, ...]:
+    if "corners" not in fields:
+        return segments
+    out = list(segments)
+    for position, value in enumerate(read_list(fields["corners"], f"{where}.corners")):
+        index = read_number(value, f"{where}.corners[{position}]")
+        if index != int(index) or not 0 <= index < len(out) or isinstance(out[int(index)], Close):
+            raise _damaged(f"{where}.corners[{position}]", _("should be the index of a node segment"))
+        out[int(index)] = replace(out[int(index)], corner=True)
+    return tuple(out)
+
+
 class MediaTable:
     """The pictures of a file or clipboard payload by digest, one `ImageData` per distinct picture however often
     it is used. `load(digest)` fetches a blob lazily and returns None when it is absent or damaged; each such
@@ -543,7 +558,7 @@ def _decode_shape(fields: dict[str, Any], where: str, media: MediaTable) -> Shap
         case "path":
             items = read_list(_field(fields, "segments", where), f"{where}.segments")
             segments = tuple(_decode_segment(item, f"{where}.segments[{index}]") for index, item in enumerate(items))
-            return PathShape(shape_id, segments, style, transform)
+            return PathShape(shape_id, _with_corners(segments, fields, where), style, transform)
         case "text":
             return TextShape(
                 shape_id,

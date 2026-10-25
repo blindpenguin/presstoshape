@@ -296,3 +296,137 @@ def test_closed_pen_path_round_trips_through_svg_and_p2s():
     assert decode_document(json.loads(json.dumps(encode_document(document)))).layers[0].shapes[0] == path
     reread = [s for layer in read_svg(write_svg(document)).layers for s in layer.shapes][0]
     assert reread.segments == path.segments
+
+
+# --- continuing and joining existing paths --------------------------------------------
+
+EXISTING = (MoveTo(0, 0), LineTo(100, 0))
+
+
+def _with_paths(*segment_lists):
+    session, g = _pen()
+    ids = [shapes.add_drawn_path(session, segments, Tool.PEN) for segments in segment_lists]
+    selection.set_selection(session, set())
+    return session, g, ids
+
+
+def _points(path):
+    return [n.point for n in nodes.nodes(path.segments)]
+
+
+def test_hovering_an_open_end_shows_continue():
+    session, g, _ids = _with_paths(EXISTING)
+    assert g.hover((100, 1)) is CursorType.PEN_CONTINUE
+    assert g.hover((50, 0)) is CursorType.CROSS
+    g.move((100, 1), NONE)
+    assert any(overlay.selected for overlay in g.overlay.nodes)
+
+
+def test_continue_from_the_end_keeps_style_id_and_is_one_step():
+    session, g, (sid,) = _with_paths(EXISTING)
+    restyled = replace(_path(session), style=replace(_path(session).style, stroke="#ff0000"))
+    session.state.document.layers[0].shapes = [restyled]
+    depth = session.undo_count
+    _clicks(g, (100, 0), (100, 100), (0, 100))
+    assert g.key("enter")
+    path = _path(session)
+    assert path.id == sid and path.style == restyled.style
+    assert _points(path) == [(0, 0), (100, 0), (100, 100), (0, 100)]
+    assert session.undo_count == depth + 1 and session.undo_label == "Continue path"
+    assert session.state.selection == {sid}
+
+
+def test_continue_from_the_start_reverses_the_path():
+    session, g, (sid,) = _with_paths(EXISTING)
+    _clicks(g, (0, 0), (0, 50))
+    assert g.key("enter")
+    assert _points(_path(session)) == [(100, 0), (0, 0), (0, 50)]
+
+
+def test_drag_on_the_end_node_shapes_its_handles():
+    session, g, _ids = _with_paths((MoveTo(0, 0), CubicTo(30, -30, 70, -30, 100, 0)))
+    drag(g, (100, 0), (130, 30))
+    _click(g, (200, 0))
+    assert g.key("enter")
+    segments = _path(session).segments
+    assert (segments[1].c2x, segments[1].c2y) == (70, -30)
+    assert (segments[2].c1x, segments[2].c1y) == (130, 30)
+    session2, g2, _ids = _with_paths((MoveTo(0, 0), CubicTo(30, -30, 70, -30, 100, 0)))
+    g2.press((100, 0), NONE)
+    g2.move((130, 30), NONE)
+    g2.release((130, 30), NONE)
+    _click(g2, (200, 0))
+    assert g2.key("enter")
+    # Mirrored: the existing incoming handle turns to the opposite side.
+    assert (_path(session2).segments[1].c2x, _path(session2).segments[1].c2y) == (70, -30)
+
+
+def test_closing_onto_the_other_end_of_the_continued_path():
+    session, g, (sid,) = _with_paths((MoveTo(0, 0), LineTo(100, 0), LineTo(100, 100)))
+    _clicks(g, (100, 100), (0, 100))
+    assert g.hover((0, 0)) is CursorType.PEN_CLOSE
+    _click(g, (0, 0))
+    path = _path(session)
+    assert isinstance(path.segments[-1], Close)
+    assert _points(path) == [(0, 0), (100, 0), (100, 100), (0, 100)]
+
+
+def test_joining_onto_another_path_keeps_the_higher_one():
+    session, g, (low, high) = _with_paths(EXISTING, (MoveTo(0, 100), LineTo(100, 100)))
+    _clicks(g, (100, 0), (150, 50))
+    _click(g, (100, 100))
+    (path,) = all_shapes(session)
+    assert path.id == high
+    assert session.undo_label == "Join paths"
+    assert sorted(_points(path)) == sorted([(0, 0), (100, 0), (150, 50), (100, 100), (0, 100)])
+    session.undo()
+    assert len(all_shapes(session)) == 2
+
+
+def test_a_new_path_can_end_on_an_open_end():
+    session, g, (sid,) = _with_paths(EXISTING)
+    _clicks(g, (50, 50), (100, 50))
+    _click(g, (100, 0))
+    path = _path(session)
+    assert path.id == sid
+    assert sorted(_points(path)) == sorted([(0, 0), (100, 0), (100, 50), (50, 50)])
+
+
+def test_escape_while_continuing_keeps_the_original():
+    session, g, _ids = _with_paths(EXISTING)
+    before = _path(session)
+    depth = session.undo_count
+    _clicks(g, (100, 0), (100, 100))
+    g.escape()
+    assert _path(session) == before and session.undo_count == depth
+
+
+def test_closed_hidden_and_locked_paths_are_not_continued():
+    square = (MoveTo(0, 0), LineTo(100, 0), LineTo(100, 100), Close())
+    session, g, (sid,) = _with_paths(square)
+    assert g.hover((100, 0)) is CursorType.CROSS
+    session2, g2, (sid2,) = _with_paths(EXISTING)
+    session2.state.document.layers[0].shapes = [replace(_path(session2), locked=True)]
+    session2.revision += 1
+    assert g2.hover((100, 0)) is CursorType.CROSS
+
+
+def test_own_first_node_wins_over_an_open_end_there():
+    session, g, _ids = _with_paths(EXISTING)
+    _clicks(g, (100, 0), (100, 100), (200, 100))
+    # The continued end is not offered again; the other path end is (0, 0).
+    assert g.hover((100, 0)) is CursorType.PEN_ADD
+
+
+def test_only_paths_of_the_entered_group_are_continued():
+    session, g, (outside, inside) = _with_paths(EXISTING, (MoveTo(0, 100), LineTo(100, 100)))
+    selection.set_selection(session, {inside})
+    groups.group(session)
+    [group_id] = session.state.selection
+    edit_mode.enter(session, group_id)
+    assert g.hover((100, 0)) is CursorType.CROSS
+    assert g.hover((100, 100)) is CursorType.PEN_CONTINUE
+    _clicks(g, (100, 100), (150, 150))
+    assert g.key("enter")
+    group = next(s for s in all_shapes(session) if s.id == group_id)
+    assert [n.point for n in nodes.nodes(group.children[0].segments)][-1] == (150, 150)

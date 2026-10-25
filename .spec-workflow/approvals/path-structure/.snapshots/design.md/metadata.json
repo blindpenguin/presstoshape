@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/path-structure/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T18:52:46.718Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792954366706_xxz77zqd5",
+      "approvalTitle": "Path structure: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T18:53:08.838Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792954366706_xxz77zqd5",
+      "approvalTitle": "Path structure: design"
+    }
+  ]
+}

@@ -851,6 +851,114 @@ msgid_plural "Deleted {count} nodes"
 msgstr[0] "{count} Knoten gelöscht"
 msgstr[1] "{count} Knoten gelöscht"
 
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Corner"
+msgstr "&Ecke"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make nodes corner"
+msgstr "Knoten zu Ecken machen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nodes are corners now"
+msgstr "Die Knoten sind jetzt Ecken"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Smooth"
+msgstr "&Glatt"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make nodes smooth"
+msgstr "Knoten glätten"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nodes are smooth now"
+msgstr "Die Knoten sind jetzt glatt"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "S&ymmetric"
+msgstr "&Symmetrisch"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make nodes symmetric"
+msgstr "Knoten symmetrisch machen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nodes are symmetric now"
+msgstr "Die Knoten sind jetzt symmetrisch"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make &Line"
+msgstr "Zu &Linie"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make segments lines"
+msgstr "Segmente zu Linien machen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Segments are straight now"
+msgstr "Die Segmente sind jetzt gerade"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make C&urve"
+msgstr "Zu &Kurve"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make segments curves"
+msgstr "Segmente zu Kurven machen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Segments are curves now"
+msgstr "Die Segmente sind jetzt Kurven"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Break at Nodes"
+msgstr "An Knoten &trennen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Break path"
+msgstr "Pfad trennen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Broke the path"
+msgstr "Pfad getrennt"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Delete Segment"
+msgstr "Segment l&öschen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Delete segment"
+msgstr "Segment löschen"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Deleted a segment"
+msgstr "Segment gelöscht"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Join Nodes"
+msgstr "Knoten &verbinden"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Join nodes"
+msgstr "Knoten verbinden"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Joined two nodes"
+msgstr "Zwei Knoten verbunden"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Join with Se&gment"
+msgstr "Mit Segment ver&binden"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Join with segment"
+msgstr "Mit Segment verbinden"
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Joined two nodes with a segment"
+msgstr "Zwei Knoten mit einem Segment verbunden"
+
 #: presstoshape/editing/operations/paths.py
 msgid "&Object to Path"
 msgstr "&Objekt in Pfad umwandeln"
@@ -862,6 +970,74 @@ msgstr "Objekt in Pfad umwandeln"
 #: presstoshape/editing/operations/paths.py
 msgid "Converted to paths"
 msgstr "In Pfade umgewandelt"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Co&mbine"
+msgstr "Kom&binieren"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Combine"
+msgstr "Kombinieren"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Combined {count} object"
+msgid_plural "Combined {count} objects"
+msgstr[0] "{count} Objekt kombiniert"
+msgstr[1] "{count} Objekte kombiniert"
+
+#: presstoshape/editing/operations/paths.py
+msgid "&Split Path"
+msgstr "Pfad &zerlegen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Split Path"
+msgstr "Pfad zerlegen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Split into {count} path"
+msgid_plural "Split into {count} paths"
+msgstr[0] "In {count} Pfad zerlegt"
+msgstr[1] "In {count} Pfade zerlegt"
+
+#: presstoshape/editing/operations/paths.py
+msgid "C&lose Path"
+msgstr "Pfad &schließen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Close Path"
+msgstr "Pfad schließen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "O&pen Path"
+msgstr "Pfad ö&ffnen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Open Path"
+msgstr "Pfad öffnen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Rev&erse Direction"
+msgstr "Richtung umk&ehren"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Reverse Direction"
+msgstr "Richtung umkehren"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Join paths"
+msgstr "Pfade verbinden"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Continue path"
+msgstr "Pfad fortsetzen"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Joined paths"
+msgstr "Pfade verbunden"
+
+#: presstoshape/editing/operations/paths.py
+msgid "Continued a path"
+msgstr "Pfad fortgesetzt"
 
 #: presstoshape/editing/operations/recovery.py
 #: presstoshape/views/main_window.py
@@ -1414,6 +1590,10 @@ msgstr "sollte 6 Zahlen enthalten"
 #: presstoshape/formats/p2s.py
 msgid "should be a path segment like [\"L\", x, y]"
 msgstr "sollte ein Pfadsegment wie [\"L\", x, y] sein"
+
+#: presstoshape/formats/p2s.py
+msgid "should be the index of a node segment"
+msgstr "sollte der Index eines Knotensegments sein"
 
 #: presstoshape/formats/p2s.py
 msgid "A picture is missing or damaged and shows as a placeholder."
@@ -2018,6 +2198,10 @@ msgid "&Path"
 msgstr "&Pfad"
 
 #: presstoshape/views/keymap.py
+msgid "Selected &Nodes"
+msgstr "Ausgewählte K&noten"
+
+#: presstoshape/views/keymap.py
 msgid "&Object"
 msgstr "&Objekt"
 
@@ -2614,8 +2798,8 @@ msgid "Dash offset"
 msgstr "Strichversatz"
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes."
-msgstr "Einen Pfad anklicken, um seine Knoten zu bearbeiten. Knoten oder ihre Anfasser ziehen; Umschalt+Klick oder ein Rahmen wählt mehrere aus. Alt+Ziehen an einem Anfasser macht aus einem glatten Knoten eine Ecke. Doppelklick auf ein Segment fügt einen Knoten ein, Entf löscht die ausgewählten Knoten."
+msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes. The larger square marks where each path starts."
+msgstr "Einen Pfad anklicken, um seine Knoten zu bearbeiten. Knoten oder ihre Anfasser ziehen; Umschalt+Klick oder ein Rahmen wählt mehrere aus. Alt+Ziehen an einem Anfasser macht aus einem glatten Knoten eine Ecke. Doppelklick auf ein Segment fügt einen Knoten ein, Entf löscht die ausgewählten Knoten. Das größere Quadrat zeigt, wo ein Pfad beginnt."
 
 #: presstoshape/views/tool_options_view.py
 msgid "Drag to draw. Shift: square."
@@ -2626,8 +2810,8 @@ msgid "Drag to draw. Shift: circle."
 msgstr "Ziehen zum Zeichnen. Umschalt: Kreis."
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click: corner point. Drag: curve. Click the first point to close.\nDouble-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\nShift: 45° steps. Alt while dragging: break the handles."
-msgstr "Klicken: Eckpunkt. Ziehen: Kurve. Ersten Punkt anklicken zum Schließen.\nDoppelklick / Eingabe: abschließen. Rücktaste: letzten Punkt entfernen. Esc: abbrechen.\nUmschalt: 45°-Schritte. Alt beim Ziehen: Anfasser getrennt bewegen."
+msgid "Click: corner point. Drag: curve. Click the first point to close.\nStart or end on the open end of a path to continue or join it.\nDouble-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\nShift: 45° steps. Alt while dragging: break the handles."
+msgstr "Klicken: Eckpunkt. Ziehen: Kurve. Ersten Punkt anklicken zum Schließen.\nAm offenen Ende eines Pfads beginnen oder enden, um ihn fortzusetzen oder zu verbinden.\nDoppelklick / Eingabe: abschließen. Rücktaste: letzten Punkt entfernen. Esc: abbrechen.\nUmschalt: 45°-Schritte. Alt beim Ziehen: Anfasser getrennt bewegen."
 
 #: presstoshape/views/tool_options_view.py
 msgid "Drag to draw. Smoothing: how calm the line comes out, from following your hand closely to flowing curves with few nodes. End near the start to close the shape."

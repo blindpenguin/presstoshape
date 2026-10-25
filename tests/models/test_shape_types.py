@@ -18,6 +18,8 @@ LEAF_SAFE = {
     "tools/snapper.py",
     "editing/operations/booleans.py",
     "formats/svg_masks.py",
+    # Combine accepts only paths, rectangles and ellipses.
+    "editing/operations/paths.py",
 }
 
 # Real image behaviour arrives with the named task of spec svg-conformance-level5; remove the entry there.

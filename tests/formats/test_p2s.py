@@ -114,6 +114,14 @@ def test_identity_transform_is_left_out_and_segments_are_compact():
     assert encoded["layers"][0]["shapes"][0]["transform"] == list(ROTATED)
 
 
+def test_corner_nodes_round_trip_and_are_left_out_when_absent():
+    path = PathShape(7, (MoveTo(0, 0, corner=True), LineTo(5, 0), CubicTo(1, 2, 3, 4, 5, 6, corner=True)), RED)
+    document = Document(layers=[Layer("L", True, [path])], next_id=8)
+    assert encode_document(document)["layers"][0]["shapes"][0]["corners"] == [0, 2]
+    assert _round_trip(document).layers[0].shapes[0] == path
+    assert "corners" not in encode_document(_sample_document())["layers"][2]["shapes"][0]
+
+
 def test_next_id_is_raised_above_existing_ids():
     encoded = encode_document(_sample_document())
     encoded["next_id"] = 2
@@ -159,6 +167,10 @@ def _broken(change) -> str:
         (lambda doc: doc["layers"][3]["shapes"][0].update(hidden="yes"), "shapes[0].hidden"),
         (lambda doc: doc["layers"][3]["shapes"][2]["parts"][0].update(locked=1), "parts[0].locked"),
         (lambda doc: doc["layers"][3].update(locked="no"), "document.layers[3].locked"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(corners=[3]), "shapes[0].corners[0]"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(corners=[0, 9]), "shapes[0].corners[1]"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(corners=[1.5]), "shapes[0].corners[0]"),
+        (lambda doc: doc["layers"][2]["shapes"][0].update(corners="1"), "shapes[0].corners"),
     ],
 )
 def test_damaged_documents_name_the_broken_place(change, where):

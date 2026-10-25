@@ -18,6 +18,7 @@ from presstoshape.models.shapes import (
     Gradient,
     GroupShape,
     ImageShape,
+    MoveTo,
     PathShape,
     RectShape,
     Shape,
@@ -29,7 +30,7 @@ from presstoshape.models.shapes import (
     mask_children,
 )
 from presstoshape.render.gradients import gradient_shader
-from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, Frame, handle_points
+from presstoshape.render.handles import CONTROL_PX, HANDLE_PX, NODE_PX, START_EXTRA_PX, Frame, handle_points
 from presstoshape.render.images import device_scale, draw_image, pixel_scale
 from presstoshape.render.masks import mask_filter, shape_area
 from presstoshape.render.overlay import CanvasColors, NodeOverlay, Overlay
@@ -334,9 +335,12 @@ def _draw_nodes(canvas: skia.Canvas, overlay: NodeOverlay, zoom: float, color: i
         canvas.drawCircle(cx, cy, radius, white)
         canvas.drawCircle(cx, cy, radius, border)
     half = NODE_PX / 2 / zoom
+    # Each subpath's first node is drawn larger, so its direction can be seen.
+    start_half = (NODE_PX + START_EXTRA_PX) / 2 / zoom
     for info in path_nodes.nodes(segments):
         x, y = info.point
-        square = skia.Rect.MakeLTRB(x - half, y - half, x + half, y + half)
+        h = start_half if isinstance(segments[info.index], MoveTo) else half
+        square = skia.Rect.MakeLTRB(x - h, y - h, x + h, y + h)
         canvas.drawRect(square, filled if info.index in overlay.selected else white)
         canvas.drawRect(square, border)
 

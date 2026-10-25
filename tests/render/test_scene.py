@@ -196,6 +196,14 @@ def test_selected_node_is_filled_unselected_is_white():
     assert _pixel(surface, 80, 20) == (0, 255, 0, 255)
 
 
+def test_subpath_start_nodes_are_drawn_larger():
+    segments = (MoveTo(20, 20), LineTo(80, 20), MoveTo(20, 60), LineTo(80, 60))
+    surface = _render_overlay(_doc(), Overlay(nodes=(NodeOverlay(segments),)), 1.0)
+    for y in (20, 60):
+        assert _pixel(surface, 20, y + 4) == (255, 255, 255, 255)
+        assert _pixel(surface, 80, y + 4) != (255, 255, 255, 255)
+
+
 def _ring(shape_id=10, style=Style(fill="#ff0000", stroke=None)):
     outer = RectShape(1, 20, 20, 60, 60, style)
     hole = RectShape(2, 40, 40, 20, 20, style)

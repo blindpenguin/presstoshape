@@ -77,6 +77,20 @@ KEYMAP: dict[str, Binding] = {
     "path.exclude": Binding(("Ctrl+Alt+X", "Ctrl+^"), icons.EXCLUDE),
     "path.divide": Binding(("Ctrl+/", "Ctrl+Alt+V"), icons.DIVIDE),
     "path.object_to_path": Binding("Ctrl+Shift+C"),
+    "path.node_corner": Binding(icon=icons.NODE_CORNER),
+    "path.node_smooth": Binding(icon=icons.NODE_SMOOTH),
+    "path.node_symmetric": Binding(icon=icons.NODE_SYMMETRIC),
+    "path.make_line": Binding(icon=icons.MAKE_LINE),
+    "path.make_curve": Binding(icon=icons.MAKE_CURVE),
+    "path.break_nodes": Binding(icon=icons.BREAK_NODES),
+    "path.join_nodes": Binding(icon=icons.JOIN_NODES),
+    "path.join_segment": Binding(icon=icons.JOIN_SEGMENT),
+    "path.delete_segment": Binding(icon=icons.DELETE_SEGMENT),
+    "path.close": Binding(icon=icons.PATH_CLOSE),
+    "path.open": Binding(icon=icons.PATH_OPEN),
+    "path.reverse": Binding(icon=icons.PATH_REVERSE),
+    "path.combine": Binding(icon=icons.PATH_COMBINE),
+    "path.split": Binding(icon=icons.PATH_SPLIT),
     "view.zoom_in": Binding(("+", "="), icons.ZOOM_IN),
     "view.zoom_out": Binding("-", icons.ZOOM_OUT),
     "view.zoom_fit": Binding("5", icons.ZOOM_FIT),
@@ -128,6 +142,9 @@ COMPOSITE_IDS: list[str | None | tuple[str, list[str]]] = [
     "path.release_composite",
     "path.flatten_composite",
 ]
+NODE_TYPE_IDS = ["path.node_corner", "path.node_smooth", "path.node_symmetric", "path.make_line", "path.make_curve"]
+NODE_STRUCTURE_IDS = ["path.break_nodes", "path.join_nodes", "path.join_segment", "path.delete_segment"]
+SUBPATH_IDS = ["path.close", "path.open", "path.reverse"]
 CLIP_IDS = ["object.clip.make", "object.clip.release"]
 MASK_IDS: list[str | None | tuple[str, list[str]]] = [
     "object.mask.make",
@@ -203,7 +220,22 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
             "edit.settings",
         ],
     ),  # fmt: skip
-    (N_("&Path"), [*BOOLEAN_IDS, None, *COMPOSITE_IDS, None, "path.object_to_path"]),
+    (
+        N_("&Path"),
+        [
+            *BOOLEAN_IDS,
+            None,
+            *COMPOSITE_IDS,
+            None,
+            "path.combine",
+            "path.split",
+            None,
+            *SUBPATH_IDS,
+            (N_("Selected &Nodes"), [*NODE_TYPE_IDS, None, *NODE_STRUCTURE_IDS]),
+            None,
+            "path.object_to_path",
+        ],
+    ),
     (
         N_("&Object"),
         [

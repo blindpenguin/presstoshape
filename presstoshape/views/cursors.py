@@ -34,6 +34,7 @@ _CUSTOM = {
     CursorType.NODE_INSERT: icons.CURSOR_NODE_INSERT,
     CursorType.PEN_ADD: icons.CURSOR_PEN_ADD,
     CursorType.PEN_CLOSE: icons.CURSOR_PEN_CLOSE,
+    CursorType.PEN_CONTINUE: icons.CURSOR_PEN_CONTINUE,
 }
 
 
