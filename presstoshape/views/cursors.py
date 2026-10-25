@@ -1,4 +1,5 @@
-"""CursorType -> QCursor. Rotate, node-insert and the Pen's are vector cursors drawn from the app's Tabler icons."""
+"""CursorType -> QCursor. Rotate, node-insert, corner and the Pen's are vector cursors: a pointer arrow (the hotspot)
+with the action's Tabler icon as a badge."""
 
 from functools import cache
 from pathlib import Path
@@ -10,9 +11,19 @@ from PySide6.QtSvg import QSvgRenderer
 from presstoshape import icons
 from presstoshape.tools.base import CursorType
 
-_SIZE_PX = 24
+# Custom cursors are a pointer arrow, whose tip is the exact point a click hits, with the action's icon as a badge
+# below and right of it. Sizes in logical px.
+_SIZE_PX = 32
+_BADGE = QRectF(13, 13, 18, 18)
 _INK = "#18181b"
 _HALO = "#ffffff"
+# A classic pointer with its tip at the hotspot.
+_ARROW = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    '<path d="M 1.5 1.5 L 1.5 19 L 6 14.6 L 9.2 21.8 L 12 20.6 L 8.9 13.6 L 15 13.6 Z" '
+    'fill="{fill}" stroke="{stroke}" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+)
+_HOTSPOT = (2, 2)
 
 _SHAPES = {
     CursorType.ARROW: Qt.CursorShape.ArrowCursor,
@@ -50,11 +61,13 @@ def _svg_cursor(path: Path, dpr: float) -> QCursor:
     source = path.read_text()
     pixmap = QPixmap(round(_SIZE_PX * dpr), round(_SIZE_PX * dpr))
     pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    # A wide white stroke under the dark one keeps the cursor visible on any fill.
-    halo = source.replace("currentColor", _HALO).replace('stroke-width="2"', 'stroke-width="4.5"')
-    for svg in (halo, source.replace("currentColor", _INK)):
-        QSvgRenderer(QByteArray(svg.encode())).render(painter, QRectF(pixmap.rect()))
-    painter.end()
     pixmap.setDevicePixelRatio(dpr)
-    return QCursor(pixmap, _SIZE_PX // 2, _SIZE_PX // 2)
+    painter = QPainter(pixmap)
+    full = QRectF(0, 0, _SIZE_PX, _SIZE_PX)
+    QSvgRenderer(QByteArray(_ARROW.format(fill=_INK, stroke=_HALO).encode())).render(painter, full)
+    # A wide white stroke under the dark one keeps the badge visible on any fill.
+    halo = source.replace("currentColor", _HALO).replace('stroke-width="2"', 'stroke-width="5"')
+    for svg in (halo, source.replace("currentColor", _INK)):
+        QSvgRenderer(QByteArray(svg.encode())).render(painter, _BADGE)
+    painter.end()
+    return QCursor(pixmap, *_HOTSPOT)
