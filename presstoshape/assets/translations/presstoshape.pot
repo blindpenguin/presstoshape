@@ -2625,7 +2625,7 @@ msgid "Drag to draw. Shift: circle."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."
+msgid "Click: corner point. Drag: curve. Click the first point to close.\nDouble-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\nShift: 45° steps. Alt while dragging: break the handles."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py

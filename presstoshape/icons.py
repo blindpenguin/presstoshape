@@ -79,3 +79,5 @@ IMAGE_REFERENCES_HIDDEN = _DIR / "image_references_hidden.svg"
 
 CURSOR_ROTATE = _DIR / "cursor_rotate.svg"
 CURSOR_NODE_INSERT = _DIR / "cursor_node_insert.svg"
+CURSOR_PEN_ADD = _DIR / "cursor_pen_add.svg"
+CURSOR_PEN_CLOSE = _DIR / "cursor_pen_close.svg"

@@ -18,3 +18,13 @@ def box_from_drag(start: Point, end: Point, square: bool = False) -> Rect:
         side = max(abs(w), abs(h))
         w, h = math.copysign(side, w), math.copysign(side, h)
     return min(start[0], start[0] + w), min(start[1], start[1] + h), abs(w), abs(h)
+
+
+def constrain_angle(origin: Point, point: Point, step_deg: float = 45.0) -> Point:
+    """`point` projected onto the nearest ray from `origin` at a multiple of `step_deg` (Shift-drawing)."""
+    dx, dy = point[0] - origin[0], point[1] - origin[1]
+    step = math.radians(step_deg)
+    angle = round(math.atan2(dy, dx) / step) * step
+    ux, uy = math.cos(angle), math.sin(angle)
+    length = dx * ux + dy * uy
+    return origin[0] + length * ux, origin[1] + length * uy

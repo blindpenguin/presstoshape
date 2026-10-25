@@ -2626,8 +2626,8 @@ msgid "Drag to draw. Shift: circle."
 msgstr "Ziehen zum Zeichnen. Umschalt: Kreis."
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click to add points.\nDouble-click / Enter: finish.\nEsc: cancel."
-msgstr "Klicken, um Punkte hinzuzufügen.\nDoppelklick / Eingabe: abschließen.\nEsc: abbrechen."
+msgid "Click: corner point. Drag: curve. Click the first point to close.\nDouble-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\nShift: 45° steps. Alt while dragging: break the handles."
+msgstr "Klicken: Eckpunkt. Ziehen: Kurve. Ersten Punkt anklicken zum Schließen.\nDoppelklick / Eingabe: abschließen. Rücktaste: letzten Punkt entfernen. Esc: abbrechen.\nUmschalt: 45°-Schritte. Alt beim Ziehen: Anfasser getrennt bewegen."
 
 #: presstoshape/views/tool_options_view.py
 msgid "Drag to draw. Smoothing: how calm the line comes out, from following your hand closely to flowing curves with few nodes. End near the start to close the shape."

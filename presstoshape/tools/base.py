@@ -45,6 +45,9 @@ class CursorType(Enum):
     # Dragging a horizontal guide moves it up and down; a vertical one left and right.
     GUIDE_HORIZONTAL = auto()
     GUIDE_VERTICAL = auto()
+    # Pen: a click adds a node to the open path / closes it on its first node.
+    PEN_ADD = auto()
+    PEN_CLOSE = auto()
 
 
 def resize_cursor_type(angle_deg: float) -> CursorType:
@@ -159,3 +162,7 @@ class BaseTool:
 
     def cancel(self) -> None:
         pass
+
+    def leave(self) -> None:
+        """Another tool was chosen; by default the running gesture is dropped."""
+        self.cancel()

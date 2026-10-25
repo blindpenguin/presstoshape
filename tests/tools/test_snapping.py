@@ -191,3 +191,18 @@ def test_a_locked_shape_is_a_snap_target_but_a_hidden_one_is_not():
         g.move((518, 210), NONE)
         assert any(hit.axis == "x" and hit.target == "centre" for hit in g.overlay.snap) == snaps
         g.release((518, 210), NONE)
+
+
+def test_snapper_with_points_snaps_to_added_points_and_keeps_the_rest():
+    session, g = setup_tools()
+    guides.add_guide(session, "vertical", 250)
+    snapper = g.toolbox.context.snapper().with_points([(400, 300)])
+    assert snapper.point((402, 299)) == (400, 300)
+    assert snapper.point((252, 77))[0] == 250
+
+
+def test_snapper_off_stays_off_with_points():
+    session, g = setup_tools()
+    session.state.snapping = replace(session.state.snapping, enabled=False)
+    snapper = g.toolbox.context.snapper().with_points([(400, 300)])
+    assert snapper.point((402, 299)) == (402, 299)

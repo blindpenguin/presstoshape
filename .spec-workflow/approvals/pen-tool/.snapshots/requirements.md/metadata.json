@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/pen-tool/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T18:25:54.946Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792952754919_9wr0blvqg",
+      "approvalTitle": "Pen tool: requirements (straight by default, drag for curves, closing paths)"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T18:27:20.617Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792952754919_9wr0blvqg",
+      "approvalTitle": "Pen tool: requirements (straight by default, drag for curves, closing paths)"
+    }
+  ]
+}

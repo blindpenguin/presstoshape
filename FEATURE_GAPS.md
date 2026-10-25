@@ -134,6 +134,7 @@ Every level has the same definition of done:
 ### Shapes and tools
 - [ ] **Line tool**, polygon and star tool. (Rounded rectangle corners done, one radius for all corners; per-corner radii and on-canvas corner handles still open.)
 - [x] **Pencil / freehand tool** with smoothing (F). Base for tablet pressure and brushes.
+- [x] **Bezier pen** (P): click for corners and straight lines, drag for curves, Alt breaks handles, click the first node to close, Backspace removes the last node. Still open: continuing or joining an existing path from its end, adding/removing nodes with the pen.
 - [ ] **Eyedropper**: pick fill/stroke from a shape (and color from the canvas).
 - [ ] **Zoom tool and hand tool**, Space+drag to pan from any tool.
 
