@@ -2,14 +2,18 @@
 
 Clicking the first node closes the path; double-click or Enter finishes it open, Backspace removes the last
 node, Esc discards it. Shift keeps lines and handles at 45° steps, Alt while dragging breaks the handles.
+Starting on the open end of an existing path continues that path; clicking an open end while drawing joins the
+path there.
 """
 
 import math
 
-from presstoshape.editing.operations import shapes
+from presstoshape.editing.operations import paths, shapes
+from presstoshape.editing.operations.paths import EndRef
 from presstoshape.geometry.boxes import Point, constrain_angle
 from presstoshape.geometry.pen_paths import PenNode, mirrored, pen_segments, with_drag
 from presstoshape.models.app_state import Tool
+from presstoshape.models.shapes import MoveTo
 from presstoshape.render.overlay import NodeOverlay, Overlay
 from presstoshape.tools.base import BaseTool, CursorType, Mods, ToolContext
 from presstoshape.tools.snapper import Snapper
@@ -29,6 +33,10 @@ class PenTool(BaseTool):
         self._closing = False
         self._pointer: Point | None = None
         self._snapper: Snapper | None = None
+        # The open end of an existing path the drawing continues from; its node is the first pen node.
+        self._start: EndRef | None = None
+        # Open ends of pickable paths, for the document revision they were collected at.
+        self._ends: tuple[int, list[tuple[EndRef, Point]]] | None = None
 
     @property
     def active(self) -> bool:
@@ -38,15 +46,19 @@ class PenTool(BaseTool):
     def overlay(self) -> Overlay:
         state = self._context.state
         selection = frozenset(state.selection)
+        target = self._end_at(self._pointer) if self._pressed is None else None
+        # The open end under the pointer, where a click continues or joins a path.
+        marks = (NodeOverlay((MoveTo(*target[1]),), frozenset({0})),) if target is not None else ()
         if not self._nodes:
-            return Overlay(selection)
+            return Overlay(selection, nodes=marks)
         on_first = self._closing or (self._pressed is None and self._over_first(self._pointer))
         if on_first:
             preview = pen_segments(self._nodes, closed=True)
         elif self._pressed is not None or self._pointer is None:
             preview = pen_segments(self._nodes)
         else:
-            preview = pen_segments([*self._nodes, PenNode(self._pointer)])
+            end = target[1] if target is not None else self._pointer
+            preview = pen_segments([*self._nodes, PenNode(end)])
         segments = pen_segments(self._nodes)
         node = self._nodes[0] if self._closing else self._nodes[-1]
         handles = tuple((node.point, handle) for handle in (node.handle_in, node.handle_out) if handle is not None)
@@ -55,7 +67,7 @@ class PenTool(BaseTool):
         return Overlay(
             selection,
             preview=(preview, state.tool_styles[Tool.PEN]) if len(preview) > 1 else None,
-            nodes=(nodes,),
+            nodes=(nodes, *marks),
             snap=snap,
         )
 
@@ -66,6 +78,16 @@ class PenTool(BaseTool):
         self._dragging = False
         self._closing = False
         self._pressed = None
+        target = self._end_at(point)
+        if target is not None and not self._nodes:
+            self._start, anchor = target
+            self._nodes = [PenNode(anchor)]
+            self._pressed = anchor
+            return
+        if target is not None and not self._over_first(point):
+            self._nodes.append(PenNode(target[1]))
+            self._commit(closed=False, end=target[0])
+            return
         if self._over_first(point):
             self._closing = True
             self._pressed = point
@@ -80,6 +102,10 @@ class PenTool(BaseTool):
 
     def move(self, point: Point, mods: Mods) -> None:
         if not self._nodes:
+            hovered = self._end_at(self._pointer) is not None or self._end_at(point) is not None
+            self._pointer = point
+            if hovered:
+                self._context.repaint()
             return
         if self._pressed is None:
             self._pointer = point if self._over_first(point) else self._position(point, mods)
@@ -106,9 +132,10 @@ class PenTool(BaseTool):
             self._commit(closed=False)
 
     def hover(self, point: Point) -> CursorType:
+        on_end = self._end_at(point) is not None
         if not self._nodes:
-            return CursorType.CROSS
-        return CursorType.PEN_CLOSE if self._over_first(point) else CursorType.PEN_ADD
+            return CursorType.PEN_CONTINUE if on_end else CursorType.CROSS
+        return CursorType.PEN_CLOSE if on_end or self._over_first(point) else CursorType.PEN_ADD
 
     def key(self, name: str) -> bool:
         if not self._nodes or self._pressed is not None:
@@ -133,12 +160,30 @@ class PenTool(BaseTool):
         self._closing = False
         self._pointer = None
         self._snapper = None
+        self._start = None
 
-    def _commit(self, closed: bool) -> None:
-        nodes = self._nodes
+    def _commit(self, closed: bool, end: EndRef | None = None) -> None:
+        nodes, start = self._nodes, self._start
         self.cancel()
-        if len(nodes) >= 2:
+        if len(nodes) < 2:
+            return
+        if start is not None or end is not None:
+            paths.continue_path(self._context.session, nodes, start, end)
+        else:
             shapes.add_drawn_path(self._context.session, pen_segments(nodes, closed), Tool.PEN)
+
+    def _end_at(self, point: Point | None) -> tuple[EndRef, Point] | None:
+        """The open path end under `point` that a click would continue from or join, topmost first. While
+        continuing, the end being continued is left out (its subpath's other end closes it)."""
+        if point is None:
+            return None
+        revision = self._context.session.revision
+        if self._ends is None or self._ends[0] != revision:
+            self._ends = (revision, paths.open_ends(self._context.session))
+        for ref, anchor in self._ends[1]:
+            if ref != self._start and self._near(point, anchor):
+                return ref, anchor
+        return None
 
     def _drag_handles(self, point: Point, mods: Mods) -> None:
         index = 0 if self._closing else len(self._nodes) - 1
@@ -158,6 +203,8 @@ class PenTool(BaseTool):
         return self._snapper.point(point, ignore=mods.ctrl)
 
     def _over_first(self, point: Point | None) -> bool:
+        if self._start is not None:
+            return False
         return point is not None and len(self._nodes) >= 2 and self._near(point, self._nodes[0].point)
 
     def _near(self, a: Point, b: Point) -> bool:

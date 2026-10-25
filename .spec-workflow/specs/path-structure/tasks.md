@@ -1,0 +1,72 @@
+# Tasks Document
+
+- [x] 1. Corner flag on segments
+  - Files: presstoshape/models/shapes.py, presstoshape/geometry/nodes.py, presstoshape/geometry/segments.py, tests/geometry/test_nodes.py, tests/geometry/test_segments.py
+  - `corner: bool = False` as last field of `MoveTo`, `LineTo`, `CubicTo` (closed-subpath alias: flag on the MoveTo); `_is_smooth` is False for flagged nodes; `move_control(..., keep_smooth=False)` sets the flag on the handle's node; `insert_node`, `delete_nodes`/`_rebuild`, `move_nodes`, `transform_segments` keep flags; make `_Topology`, `_anchors_and_edges`, `_rebuild` public under the names in design.md (callers updated)
+  - Purpose: the stored node type behind Corner (Req 1.5)
+  - _Leverage: geometry/nodes topology and anchor/edge form_
+  - _Requirements: 1.5, 1.9_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer experienced in computational geometry | Task: Add the corner flag per design.md "Corner flag on segments"; tests: flagged node with collinear handles is not smooth and move_control doesn't mirror; Alt move sets the flag; insert/delete/move/transform keep flags; positional constructors unchanged | Restrictions: pure Python, no Qt; don't touch booleans/fitting (fresh geometry has no flags) | Success: full suite green (equality changes must not break existing tests), ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 2. Corner flag in .p2s v11, SVG and clipboard
+  - Files: presstoshape/formats/p2s.py, presstoshape/formats/p2s_migrations.py, presstoshape/formats/svg.py, presstoshape/formats/svg_reader.py, docs/file-format.md, tests/formats/samples/v11.p2s, tests/formats/test_p2s.py, tests/formats/test_svg.py, tests/formats/fixtures (Inkscape-saved path with sodipodi:nodetypes)
+  - `.p2s`: optional `"corners": [segment indices]` on paths, validated on read; `CURRENT_VERSION = 11`, no-op migration 10 → 11, sample, docs row. SVG: write `sodipodi:nodetypes` (`c`/`s`/`z`) in Inkscape's layout when a path has a flagged or smooth node; read `c` on collinear handles as the flag; ignore on length mismatch
+  - Purpose: flags survive save, reopen, copy/paste and Inkscape round trips
+  - _Leverage: _encode_segment/_decode_segment, existing sodipodi attributes (insensitive), sample generation used for v10_
+  - _Requirements: 1.5, NFR Reliability_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer experienced in file formats and SVG | Task: Implement per design.md "Persistence of the corner flag"; verify the nodetypes layout against a path saved by Inkscape (open/closed, with and without explicit closing segment) and use it as a fixture | Restrictions: explicit encoders, never generic over dataclass fields; old samples must still open; no import note for mismatched nodetypes | Success: round-trip tests (p2s, SVG, clipboard) green, resvg generator check green, ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 3. geometry/path_edit.py: working form, node types, lines/curves
+  - Files: presstoshape/geometry/path_edit.py, tests/geometry/test_path_edit.py
+  - `Anchor`, `Sub`, `Edited`; `to_subs` / `from_subs`; `set_node_type` (corner / smooth / symmetric math and fallbacks), `make_lines`, `make_curves`; helpers `end_nodes`, `adjacent`
+  - Purpose: the base every structural command builds on (Req 1)
+  - _Leverage: nodes.topology / anchors_and_edges / rebuild from task 1_
+  - _Requirements: 1.2, 1.3, 1.4, 1.6, 1.7, 1.8_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer experienced in bezier geometry | Task: Implement per design.md; tests: to_subs/from_subs round trip on open, closed (with and without explicit closing segment), compound and Pen-made paths; smooth on two handles (collinear, lengths kept), on one/no handle (neighbour direction, thirds), symmetric equal lengths, end nodes one side only, degenerate cases unchanged; make_curves keeps the shape (sampled points), make_lines only between selected adjacent nodes | Restrictions: pure, no Qt; only to_subs/from_subs know about MoveTo/Close | Success: tests and architecture test green, ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 4. geometry/path_edit.py: break, join, delete segment, open/close, reverse, combine/split
+  - Files: presstoshape/geometry/path_edit.py, tests/geometry/test_path_edit.py
+  - `break_at`, `join` (merge at midpoint or with segment; same subpath closes, different subpaths/paths concatenate with reversal as needed), `delete_segments`, `close_subpaths`, `open_subpaths`, `reverse`, `split`, `combine`, each returning index maps where design.md says so
+  - Purpose: pure structural edits (Req 2–6)
+  - _Leverage: task 3 working form_
+  - _Requirements: 2.1–2.4, 3.1–3.5, 4.1, 4.2, 5.1–5.3, 6.1, 6.2_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer experienced in bezier geometry | Task: Implement per design.md; tests for every case in the requirements: break in closed (opens there) and open (two subpaths) subpaths, end nodes ignored; join all four end combinations (start/end × start/end), same subpath closes, handles kept, midpoint merge; delete segment opens/splits and drops single-node subpaths; close merges coincident ends; reverse keeps the drawn shape and closed start node, twice = identity; combine/split inverse; index maps correct | Restrictions: pure, no Qt | Success: tests green, ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 5. Node commands as operations
+  - Files: presstoshape/editing/operations/node_editing.py, presstoshape/editing/queries.py (if can_run helpers belong there), tests/editing/test_node_editing.py
+  - The nine `@operation`s from design.md (`path.node_corner` … `path.delete_segment`) with `can_run` per selection; one undo step each with the labels from design.md; node selection kept/mapped; join across two paths in the same container keeps the higher path's id, style and slot and removes the other
+  - Purpose: Node commands usable from menu and buttons (Req 1–4)
+  - _Leverage: _edit_path, _edited_path, _document.replace_with/remove_shapes, editing/containers_
+  - _Requirements: 1.1, 1.9, 2.5, 3.5–3.7, 4.2_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer familiar with the session/operations architecture | Task: Implement per design.md "Node commands"; tests through the session fixture: can_run per selection, undo label and restore (segments + node selection), join across paths (style, stacking, removed path, selection), refused across containers, inside an entered group and a Composite, empty path removed after delete segment | Restrictions: reach shapes only through editing/containers; plain values in, no dialogs | Success: tests green, ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 6. Path commands: Combine, Split, Close, Open, Reverse
+  - Files: presstoshape/editing/operations/paths.py, tests/editing/test_paths.py
+  - `path.combine`, `path.split`, `path.close`, `path.open`, `path.reverse` per design.md (Node tool with node selection → subpaths of those nodes; else whole selected paths; Combine converts rects/ellipses, refuses groups/Composites/text/images; Split keeps id for the first, new ids, original slot, part modes in Composites)
+  - Purpose: path-level structure commands (Req 5, 6)
+  - _Leverage: paths.to_path, _document.replace_with/new_id, containers.change_container_
+  - _Requirements: 5.1–5.4, 6.1–6.5_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer familiar with the session/operations architecture | Task: Implement per design.md "Path commands"; tests: can_run, undo, combine stacking/style/ids with mixed paths and rects, split order and selection, part modes kept, close/open/reverse with and without node selection, non-paths ignored | Restrictions: reach shapes only through editing/containers | Success: tests green, ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 7. Node tool: start markers, options buttons, menus, icons
+  - Files: presstoshape/render/overlay.py, presstoshape/render/handles.py (or scene drawing of nodes), presstoshape/tools/node.py, presstoshape/views/tool_options_view.py, presstoshape/views/main_window.py, presstoshape/views/keymap.py, presstoshape/icons.py, scripts/generate_icons.py, presstoshape/assets/icons/*.svg, tests/render, tests/tools/test_node.py
+  - `NodeOverlay.starts` and its drawing; Node page buttons (`QToolButton.setDefaultAction`, `AppActions` passed to `ToolOptionsPanel`); Path menu layout with Nodes submenu; icons; no shortcuts; updated Node hint
+  - Purpose: commands reachable on the canvas and in menus (Req 1.1, 5.5, Usability)
+  - _Leverage: AlignPanel._buttons, NodeOverlay drawing, generate_icons mapping_
+  - _Requirements: 1.1, 5.5, NFR Usability_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: PySide6 developer | Task: Implement per design.md; regenerate icons with `uv run --group dev python scripts/generate_icons.py`; pixel test for the start marker on a CPU surface; QTest scratch script offscreen and on the desktop (GL): buttons enable/disable with node selections and run their commands; screenshot of the Node options page checked by eye | Restrictions: no defensive try/except around Qt calls; no whole-window pixel asserts in pytest; delete scratch files afterwards | Success: suite green (incl. mnemonic-clash test), layout verified. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 8. Pen continues and joins paths
+  - Files: presstoshape/tools/pen.py, presstoshape/tools/base.py (CursorType.PEN_CONTINUE), presstoshape/editing/operations/paths.py (`continue_path`), presstoshape/views/cursors.py, presstoshape/assets/icons (cursor), tests/tools/test_pen.py, tests/editing/test_paths.py
+  - Hover/press on open end nodes of eligible paths starts a continuation (from end, or from start reversed), drag shapes the end's handle; finishing on another eligible end joins, on the own other end closes; commit via one `continue_path` call ("Continue path" / "Join paths"), keeping the continued path's style, id and slot; Esc discards only the tail; snapping excludes the moving end
+  - Purpose: drawing long outlines in several sittings (Req 7)
+  - _Leverage: geometry/pen_paths, path_edit.join, PenTool close detection_
+  - _Requirements: 7.1–7.5_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Python developer experienced in editor input handling | Task: Implement per design.md "Pen continuation"; ToolDriver tests: continue from end and from start, drag on the end node (mirrored and Alt), join onto another path's end (style/stacking of the higher), new path ending on an existing end, close onto own other end, Esc keeps original, cursors, hidden/locked/other-container paths ignored, one undo step; QTest scratch check on both renderers | Restrictions: tools stay Qt-free; nothing written to the document before commit | Success: tests green, ruff clean. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._
+
+- [x] 9. Translations, docs and final check
+  - Files: presstoshape/assets/translations/*, README.md, FAQ.md, FEATURE_GAPS.md, .spec-workflow/steering/product.md, .spec-workflow/steering/structure.md, CLAUDE.md (structure tree: path_edit.py)
+  - `scripts/update_translations.py`, German entries; docs describe node types, break/join, combine/split, Pen continuation; FEATURE_GAPS.md items ticked with what's still open; full suite, ruff check + format, `main.py --self-test`, screenshots en/de
+  - Purpose: complete, documented feature
+  - _Requirements: all_
+  - _Prompt: Implement the task for spec path-structure, first run spec-workflow-guide to get the workflow guide then implement the task: Role: Developer focused on docs | Task: Translate, update docs, run all checks; tell the user what to try by hand | Restrictions: British English, hedged wording, no em dashes in user-facing prose | Success: suite green, docs match behaviour. Before starting set this task to [-] in tasks.md; after finishing log it with log-implementation (with artifacts) and set it to [x]._

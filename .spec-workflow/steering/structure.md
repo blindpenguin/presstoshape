@@ -43,6 +43,7 @@ presstoshape/                   # repo root
     │   ├── booleans.py         # ordered-parts booleans, divide, regions (skia-pathops)
     │   ├── transforms.py       # outline, translate, canonical shape transforms
     │   ├── nodes.py            # path node editing (move, smooth handles, insert, delete)
+    │   ├── path_edit.py        # path structure on anchor/edge subpaths: node types, break, join, close/open, reverse, combine/split
     │   ├── units.py            # px/mm/cm/in/pt conversions at a DPI
     │   ├── align.py / snapping.py / rulers.py   # align/distribute offsets, snap targets and queries, ruler ticks
     │   └── fitting.py          # freehand strokes → cubic beziers (Schneider fit, corners kept)
@@ -170,7 +171,7 @@ Large classes are sectioned with `# --- section ---` comments (e.g. `# --- editi
 - **Assets**: generated files in `presstoshape/assets/` are only changed by their generator scripts.
 
 ## Code Size Guidelines
-- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `formats/svg_reader.py` ≈ 560, a candidate for splitting; `geometry/nodes.py` ≈ 350).
+- **File size**: aim for ≤ ~400 lines; split by responsibility before going past it (current largest: `formats/svg_reader.py` ≈ 560, a candidate for splitting; `geometry/nodes.py` ≈ 370, `geometry/path_edit.py` ≈ 430).
 - **Function/Method size**: aim for ≤ ~40 lines; extract helpers for distinct steps.
 - **Nesting depth**: ≤ 3 levels; prefer early returns and `match` on shape/segment types.
 - **Line length**: 120 characters.

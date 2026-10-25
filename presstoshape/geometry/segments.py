@@ -2,6 +2,7 @@
 
 import math
 from collections.abc import Callable
+from dataclasses import replace
 
 from presstoshape.geometry.boxes import Point
 from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo, Segment
@@ -79,12 +80,12 @@ def transform_segments(segments: tuple[Segment, ...], fn: Callable[[float, float
     out: list[Segment] = []
     for s in segments:
         match s:
-            case MoveTo(x, y):
-                out.append(MoveTo(*fn(x, y)))
-            case LineTo(x, y):
-                out.append(LineTo(*fn(x, y)))
+            case MoveTo(x, y) | LineTo(x, y):
+                nx, ny = fn(x, y)
+                out.append(replace(s, x=nx, y=ny))
             case CubicTo(c1x, c1y, c2x, c2y, x, y):
-                out.append(CubicTo(*fn(c1x, c1y), *fn(c2x, c2y), *fn(x, y)))
+                (a, b), (c, d), (nx, ny) = fn(c1x, c1y), fn(c2x, c2y), fn(x, y)
+                out.append(replace(s, c1x=a, c1y=b, c2x=c, c2y=d, x=nx, y=ny))
             case Close():
                 out.append(s)
     return tuple(out)

@@ -1,15 +1,17 @@
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from presstoshape.editing.operations import view
 from presstoshape.editing.session import Session
 from presstoshape.models.app_state import Tool
+from presstoshape.views.actions import AppActions
 from presstoshape.views.tool_options_view import ToolOptionsPanel
 
 
 def test_pencil_smoothing_slider_follows_and_sets_the_state():
     QApplication.instance() or QApplication([])
     session = Session()
-    panel = ToolOptionsPanel(session)
+    actions = AppActions(QWidget(), session, {})
+    panel = ToolOptionsPanel(session, actions)
     session.subscribe(lambda: panel.refresh(session.state))
     view.select_tool(session, Tool.PENCIL)
     assert panel._smoothing.value() == 50 and panel._smoothing_value.text() == "50"

@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.addToolBar(self._toolbar)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, ToolPalette(self._actions))
 
-        self._tool_options = ToolOptionsPanel(session)
+        self._tool_options = ToolOptionsPanel(session, self._actions)
         # Left dock area sits inside the left toolbar area, so this lands between tool strip and canvas.
         self._tool_dock = self._add_dock("tool", _("Tool"), self._tool_options, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._tool_dock.setFixedWidth(_TOOL_DOCK_WIDTH)

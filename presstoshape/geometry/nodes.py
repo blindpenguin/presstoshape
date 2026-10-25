@@ -69,7 +69,18 @@ def _close(a: Point, b: Point) -> bool:
     return abs(a[0] - b[0]) <= _SAME_POINT and abs(a[1] - b[1]) <= _SAME_POINT
 
 
-class _Topology:
+@dataclass(frozen=True)
+class Anchor:
+    """A node in the anchor/edge form of a subpath; `source` is its node index in the segments it came from.
+    `mark` flags nodes an edit made or changed, which the caller selects afterwards."""
+
+    point: Point
+    corner: bool = False
+    source: int | None = None
+    mark: bool = False
+
+
+class Topology:
     """Which node owns which control, and node aliases, for one segment tuple."""
 
     def __init__(self, segments: Segments) -> None:
@@ -132,9 +143,9 @@ def _set_control(segments: list[Segment], ref: ControlRef, p: Point) -> None:
     segments[ref[0]] = replace(s, c1x=p[0], c1y=p[1]) if ref[1] == 1 else replace(s, c2x=p[0], c2y=p[1])
 
 
-def _is_smooth(segments: Segments, topo: _Topology, node: int) -> bool:
+def _is_smooth(segments: Segments, topo: Topology, node: int) -> bool:
     a, b = topo.incoming(node), topo.outgoing(node)
-    if a is None or b is None:
+    if a is None or b is None or segments[node].corner:
         return False
     anchor = _end(segments[node])
     pa, pb = control_point(segments, a), control_point(segments, b)
@@ -147,7 +158,7 @@ def _is_smooth(segments: Segments, topo: _Topology, node: int) -> bool:
 
 
 def nodes(segments: Segments) -> list[NodeInfo]:
-    topo = _Topology(segments)
+    topo = Topology(segments)
     return [
         NodeInfo(i, _end(segments[i]), topo.controls(i), _is_smooth(segments, topo, i)) for i in topo.node_indices()
     ]
@@ -155,7 +166,7 @@ def nodes(segments: Segments) -> list[NodeInfo]:
 
 def visible_controls(segments: Segments, selected) -> set[ControlRef]:
     """Both controls of every curve segment next to a selected node (what the Node tool shows)."""
-    topo = _Topology(segments)
+    topo = Topology(segments)
     out: set[ControlRef] = set()
     for node in selected:
         if not topo.is_node(node):
@@ -168,17 +179,17 @@ def visible_controls(segments: Segments, selected) -> set[ControlRef]:
 
 def control_anchor(segments: Segments, ref: ControlRef) -> Point:
     """The anchor a control's arm is drawn from."""
-    return _end(segments[_Topology(segments).anchor_of(ref)])
+    return _end(segments[Topology(segments).anchor_of(ref)])
 
 
 def valid_nodes(segments: Segments, indices) -> set[int]:
-    topo = _Topology(segments)
+    topo = Topology(segments)
     return {i for i in indices if topo.is_node(i)}
 
 
 def move_nodes(segments: Segments, indices, dx: float, dy: float) -> Segments:
     """Moves the anchors with their aliases and attached control points."""
-    topo = _Topology(segments)
+    topo = Topology(segments)
     out = list(segments)
     ends: set[int] = set()
     controls: set[ControlRef] = set()
@@ -199,12 +210,15 @@ def move_nodes(segments: Segments, indices, dx: float, dy: float) -> Segments:
 
 
 def move_control(segments: Segments, ref: ControlRef, point: Point, keep_smooth: bool = True) -> Segments:
-    """Moves one control point; a smooth node's opposite control turns with it, keeping its own length."""
-    topo = _Topology(segments)
+    """Moves one control point; a smooth node's opposite control turns with it, keeping its own length. Without
+    `keep_smooth` (the handles are broken on purpose) the node becomes a corner."""
+    topo = Topology(segments)
     node = topo.anchor_of(ref)
     smooth = keep_smooth and _is_smooth(segments, topo, node)
     out = list(segments)
     _set_control(out, ref, point)
+    if not keep_smooth:
+        out[node] = replace(out[node], corner=True)
     opposite = topo.opposite(ref)
     if smooth and opposite is not None:
         ax, ay = _end(segments[node])
@@ -224,7 +238,7 @@ def _segment_start(segments: Segments, i: int) -> Point:
     return _end(segments[i - 1])
 
 
-def _eval(segments: Segments, topo: _Topology, i: int, t: float) -> Point:
+def _eval(segments: Segments, topo: Topology, i: int, t: float) -> Point:
     s = segments[i]
     p0 = _segment_start(segments, i)
     if isinstance(s, CubicTo):
@@ -240,7 +254,7 @@ def _eval(segments: Segments, topo: _Topology, i: int, t: float) -> Point:
 
 def nearest_on_path(segments: Segments, point: Point) -> tuple[int, float, float] | None:
     """(segment index, t, distance) of the closest point on any drawn segment, including implicit closing lines."""
-    topo = _Topology(segments)
+    topo = Topology(segments)
     best: tuple[float, int, float] | None = None
 
     def dist(i: int, t: float) -> float:
@@ -271,7 +285,7 @@ def nearest_on_path(segments: Segments, point: Point) -> tuple[int, float, float
 
 def insert_node(segments: Segments, index: int, t: float) -> tuple[Segments, int]:
     """Splits segment `index` at `t` without changing the shape; returns the new segments and the new node index."""
-    topo = _Topology(segments)
+    topo = Topology(segments)
     s = segments[index]
     p = _eval(segments, topo, index, t)
     out = list(segments)
@@ -282,7 +296,7 @@ def insert_node(segments: Segments, index: int, t: float) -> tuple[Segments, int
         b = _lerp(c1, c2, t)
         c = _lerp(c2, p3, t)
         ab, bc = _lerp(a, b, t), _lerp(b, c, t)
-        out[index : index + 1] = [CubicTo(*a, *ab, *p), CubicTo(*bc, *c, *p3)]
+        out[index : index + 1] = [CubicTo(*a, *ab, *p), CubicTo(*bc, *c, *p3, corner=s.corner)]
     elif isinstance(s, LineTo):
         out[index : index + 1] = [LineTo(*p), s]
     elif isinstance(s, Close):
@@ -299,26 +313,27 @@ def _lerp(a: Point, b: Point, t: float) -> Point:
 # --- deleting -----------------------------------------------------------------
 
 # An edge from one anchor to the next: None for a straight line, else its two control points.
-_Edge = tuple[Point, Point] | None
+Edge = tuple[Point, Point] | None
 
 
 def delete_nodes(segments: Segments, indices) -> Segments | None:
     """Removes nodes, joining their neighbours; subpaths left with fewer than 2 nodes go. None when nothing is left."""
-    topo = _Topology(segments)
+    topo = Topology(segments)
     doomed = {i for i in indices if topo.is_node(i)}
     out: list[Segment] = []
     for sp in topo.subpaths:
-        anchors, edges = _anchors_and_edges(segments, sp)
-        keep = [k for k, (index, _) in enumerate(anchors) if index not in doomed]
+        anchors, edges = anchors_and_edges(segments, sp)
+        keep = [k for k, anchor in enumerate(anchors) if anchor.source not in doomed]
         if len(keep) < 2:
             continue
-        out.extend(_rebuild(anchors, edges, keep, sp.closed))
+        out.extend(rebuild(anchors, edges, keep, sp.closed))
     return tuple(out) or None
 
 
-def _anchors_and_edges(segments: Segments, sp: _Subpath) -> tuple[list[tuple[int, Point]], list[_Edge]]:
-    anchors: list[tuple[int, Point]] = [(sp.start, _end(segments[sp.start]))]
-    edges: list[_Edge] = []
+def anchors_and_edges(segments: Segments, sp: _Subpath) -> tuple[list[Anchor], list[Edge]]:
+    first = segments[sp.start]
+    anchors = [Anchor(_end(first), first.corner, sp.start)]
+    edges: list[Edge] = []
     for i in range(sp.start + 1, sp.end):
         s = segments[i]
         if isinstance(s, Close):
@@ -327,27 +342,31 @@ def _anchors_and_edges(segments: Segments, sp: _Subpath) -> tuple[list[tuple[int
             continue
         edges.append(((s.c1x, s.c1y), (s.c2x, s.c2y)) if isinstance(s, CubicTo) else None)
         if i != sp.alias:
-            anchors.append((i, _end(s)))
+            anchors.append(Anchor(_end(s), s.corner, i))
     return anchors, edges
 
 
-def _rebuild(anchors: list[tuple[int, Point]], edges: list[_Edge], keep: list[int], closed: bool) -> list[Segment]:
+def rebuild(anchors: list[Anchor], edges: list[Edge], keep: list[int], closed: bool) -> list[Segment]:
+    """Segments for the kept anchors (indices into `anchors`); edges between them merge into one."""
     n = len(anchors)
-    out: list[Segment] = [MoveTo(*anchors[keep[0]][1])]
+    first = anchors[keep[0]]
+    out: list[Segment] = [MoveTo(*first.point, corner=first.corner)]
     pairs = list(zip(keep, keep[1:]))
     if closed:
         pairs.append((keep[-1], keep[0]))
     for a, b in pairs:
         span = range(a, b if b > a else b + n)
         merged = [edges[k % n] for k in span]
-        target = anchors[b][1]
+        target = anchors[b].point
+        # Back at the start of a closed subpath the flag lives on the MoveTo.
+        corner = anchors[b].corner and not (closed and b == keep[0])
         if all(e is None for e in merged):
             if not (closed and b == keep[0]):
-                out.append(LineTo(*target))
+                out.append(LineTo(*target, corner=corner))
             continue
-        c1 = merged[0][0] if merged[0] is not None else anchors[a][1]
+        c1 = merged[0][0] if merged[0] is not None else anchors[a].point
         c2 = merged[-1][1] if merged[-1] is not None else target
-        out.append(CubicTo(*c1, *c2, *target))
+        out.append(CubicTo(*c1, *c2, *target, corner=corner))
     if closed:
         out.append(Close())
     return out

@@ -12,12 +12,15 @@ from typing import Literal, get_args
 class MoveTo:
     x: float
     y: float
+    # A corner node keeps its handles independent (no smooth mirroring), even when they happen to line up.
+    corner: bool = False
 
 
 @dataclass(frozen=True)
 class LineTo:
     x: float
     y: float
+    corner: bool = False
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,7 @@ class CubicTo:
     c2y: float
     x: float
     y: float
+    corner: bool = False
 
 
 @dataclass(frozen=True)

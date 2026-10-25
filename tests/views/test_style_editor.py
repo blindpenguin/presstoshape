@@ -1,11 +1,12 @@
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from presstoshape.editing.operations import selection, shapes, view
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
 from presstoshape.models.app_state import Tool
 from presstoshape.models.shapes import Style
+from presstoshape.views.actions import AppActions
 from presstoshape.views.selection_view import SelectionOptions
 from presstoshape.views.style_editor import ALL_FIELDS, StyleEditor
 from presstoshape.views.tool_options_view import ToolOptionsPanel
@@ -137,7 +138,8 @@ def test_alignment_buttons_for_text():
 def test_tool_options_change_the_tool_style():
     QApplication.instance() or QApplication([])
     session = Session()
-    panel = ToolOptionsPanel(session)
+    actions = AppActions(QWidget(), session, {})
+    panel = ToolOptionsPanel(session, actions)
     session.subscribe(lambda: panel.refresh(session.state))
     view.select_tool(session, Tool.PEN)
     panel._editors[Tool.PEN]._cap.activated.emit(2)

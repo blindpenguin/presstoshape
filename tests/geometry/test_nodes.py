@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from presstoshape.geometry import nodes
@@ -16,7 +18,7 @@ def _sample(segments, steps=50):
     for i, s in enumerate(segments):
         if isinstance(s, (LineTo, CubicTo)):
             for k in range(steps + 1):
-                path.append(nodes._eval(segments, nodes._Topology(segments), i, k / steps))
+                path.append(nodes._eval(segments, nodes.Topology(segments), i, k / steps))
     return path
 
 
@@ -61,7 +63,7 @@ def test_alt_control_drag_breaks_smoothness():
 def test_insert_node_on_cubic_keeps_shape():
     inserted, index = nodes.insert_node(SMOOTH, 1, 0.5)
     assert index == 1 and len(inserted) == len(SMOOTH) + 1
-    assert (inserted[1].x, inserted[1].y) == pytest.approx(nodes._eval(SMOOTH, nodes._Topology(SMOOTH), 1, 0.5))
+    assert (inserted[1].x, inserted[1].y) == pytest.approx(nodes._eval(SMOOTH, nodes.Topology(SMOOTH), 1, 0.5))
     original = _sample(SMOOTH, 400)
     for p in _sample(inserted, 20):
         assert min(abs(p[0] - q[0]) + abs(p[1] - q[1]) for q in original) < 0.2
@@ -102,3 +104,48 @@ def test_nearest_on_path():
     assert index == 2 and t == pytest.approx(0.5, abs=1e-3) and dist == pytest.approx(2, abs=1e-3)
     index, t, _ = nodes.nearest_on_path(RECT, (-1, 5))
     assert index == 4 and t == pytest.approx(0.5, abs=1e-3)
+
+
+# --- corner flag --------------------------------------------------------------
+
+
+def _cornered(segments, index):
+    out = list(segments)
+    out[index] = replace(out[index], corner=True)
+    return tuple(out)
+
+
+def test_corner_node_with_collinear_handles_is_not_smooth():
+    assert nodes.nodes(SMOOTH)[1].smooth
+    assert not nodes.nodes(_cornered(SMOOTH, 1))[1].smooth
+
+
+def test_corner_node_handle_moves_alone():
+    moved = nodes.move_control(_cornered(SMOOTH, 1), (2, 1), (30, -20))
+    assert (moved[1].c2x, moved[1].c2y) == (SMOOTH[1].c2x, SMOOTH[1].c2y)
+
+
+def test_closed_subpath_corner_lives_on_moveto():
+    info = nodes.nodes(_cornered(ELLIPSE, 0))
+    assert not info[0].smooth and all(n.smooth for n in info[1:])
+
+
+def test_breaking_handles_marks_the_node_corner():
+    moved = nodes.move_control(SMOOTH, (2, 1), (30, -20), keep_smooth=False)
+    assert moved[1].corner and not moved[2].corner
+    closed = nodes.move_control(ELLIPSE, (1, 1), (12, 3), keep_smooth=False)
+    assert closed[0].corner and not closed[4].corner
+
+
+def test_insert_move_and_delete_keep_corner_flags():
+    cornered = _cornered(_cornered(SMOOTH, 1), 2)
+    inserted, index = nodes.insert_node(cornered, 1, 0.5)
+    assert [s.corner for s in inserted[1:]] == [False, True, True]
+    assert nodes.move_nodes(cornered, {1}, 1, 1)[1].corner
+    deleted = nodes.delete_nodes(_cornered(OPEN, 2), {1})
+    assert [s.corner for s in deleted] == [False, True, False]
+
+
+def test_delete_keeps_corner_of_closed_start():
+    deleted = nodes.delete_nodes(_cornered(ELLIPSE, 0), {2})
+    assert deleted[0].corner and not any(s.corner for s in deleted[1:] if not isinstance(s, Close))

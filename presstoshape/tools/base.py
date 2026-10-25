@@ -48,6 +48,7 @@ class CursorType(Enum):
     # Pen: a click adds a node to the open path / closes it on its first node.
     PEN_ADD = auto()
     PEN_CLOSE = auto()
+    PEN_CONTINUE = auto()
 
 
 def resize_cursor_type(angle_deg: float) -> CursorType:

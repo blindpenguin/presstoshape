@@ -1,7 +1,13 @@
 import pytest
 
 from presstoshape.geometry.boxes import box_from_drag
-from presstoshape.geometry.segments import ellipse_segments, rect_segments, segments_bounds, smooth_segments
+from presstoshape.geometry.segments import (
+    ellipse_segments,
+    rect_segments,
+    segments_bounds,
+    smooth_segments,
+    transform_segments,
+)
 from presstoshape.models.shapes import Close, CubicTo, LineTo, MoveTo
 from tests.helpers import bbox
 
@@ -60,3 +66,10 @@ def test_segments_bounds_reach_the_curve_not_the_control_points():
 def test_segments_bounds_of_an_ellipse_are_exact():
     x, y, w, h = segments_bounds(ellipse_segments(10, 20, 5, 3))
     assert all(abs(a - b) < 0.01 for a, b in zip((x, y, w, h), (5, 17, 10, 6)))
+
+
+def test_transform_segments_keeps_corner_flags():
+    segments = (MoveTo(0, 0, corner=True), LineTo(1, 0), CubicTo(1, 1, 2, 2, 3, 3, corner=True), Close())
+    moved = transform_segments(segments, lambda x, y: (x + 1, y))
+    assert [getattr(s, "corner", None) for s in moved] == [True, False, True, None]
+    assert moved[2] == CubicTo(2, 1, 3, 2, 4, 3, corner=True)

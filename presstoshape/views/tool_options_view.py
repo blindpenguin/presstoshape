@@ -1,17 +1,31 @@
 from functools import partial
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QSlider, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtWidgets import (
+    QFormLayout,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QSlider,
+    QStackedWidget,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from presstoshape.editing import containers
 from presstoshape.editing.operations import composites, view
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState, Tool
+from presstoshape.views.actions import AppActions
+from presstoshape.views.keymap import NODE_STRUCTURE_IDS, NODE_TYPE_IDS, SUBPATH_IDS
 from presstoshape.views.selection_view import SelectionOptions
 from presstoshape.views.style_editor import FILL, FILL_RULE, OPACITY, STROKE, STROKE_OPTIONS, WIDTH, StyleEditor
 from presstoshape.views.unit_fields import LengthSpinBox, font_unit
 from presstoshape.views.widgets import PartModeBox
+
+_ICON_SIZE = QSize(20, 20)
 
 _FIELDS = {
     Tool.RECTANGLE: (FILL, STROKE, WIDTH, OPACITY, STROKE_OPTIONS),
@@ -25,12 +39,13 @@ _HINTS = {
     Tool.NODE: N_(
         "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select "
         "several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, "
-        "Delete removes selected nodes."
+        "Delete removes selected nodes. The larger square marks where each path starts."
     ),
     Tool.RECTANGLE: N_("Drag to draw. Shift: square."),
     Tool.ELLIPSE: N_("Drag to draw. Shift: circle."),
     Tool.PEN: N_(
         "Click: corner point. Drag: curve. Click the first point to close.\n"
+        "Start or end on the open end of a path to continue or join it.\n"
         "Double-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\n"
         "Shift: 45° steps. Alt while dragging: break the handles."
     ),
@@ -55,7 +70,7 @@ TITLES = {
 class ToolOptionsPanel(QStackedWidget):
     """One page per tool: the selection's properties for Select, the new-shape style for drawing tools."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, actions: AppActions) -> None:
         super().__init__()
         self._selection = SelectionOptions(session)
         self.addWidget(self._selection)
@@ -66,7 +81,7 @@ class ToolOptionsPanel(QStackedWidget):
         self._smoothing_value: QLabel | None = None
         # Drawing tools show the mode new parts get while a Composite is being edited.
         self._part_modes: dict[Tool, tuple[QFormLayout, PartModeBox]] = {}
-        self._pages[Tool.NODE] = self._hint_page(_(_HINTS[Tool.NODE]))
+        self._pages[Tool.NODE] = self._node_page(actions)
         for tool, fields in _FIELDS.items():
             editor = StyleEditor(fields, lambda changes, t=tool: view.set_tool_style(session, t, **changes))
             if tool is not Tool.TEXT:
@@ -107,12 +122,25 @@ class ToolOptionsPanel(QStackedWidget):
         layout.addWidget(self._smoothing_value)
         return row
 
-    def _hint_page(self, text: str) -> QWidget:
+    def _node_page(self, actions: AppActions) -> QWidget:
+        """The node and subpath commands as buttons sharing the menu's actions, above the gesture hint."""
         page = QWidget()
         layout = QVBoxLayout(page)
-        hint = QLabel(text)
+        for command_ids in (NODE_TYPE_IDS, NODE_STRUCTURE_IDS, SUBPATH_IDS):
+            grid = QGridLayout()
+            grid.setSpacing(2)
+            for index, command_id in enumerate(command_ids):
+                button = QToolButton()
+                button.setDefaultAction(actions[command_id])
+                button.setIconSize(_ICON_SIZE)
+                button.setAutoRaise(True)
+                grid.addWidget(button, 0, index)
+            grid.setColumnStretch(len(command_ids), 1)
+            layout.addLayout(grid)
+        hint = QLabel(_(_HINTS[Tool.NODE]))
         hint.setWordWrap(True)
         hint.setEnabled(False)
+        layout.addSpacing(8)
         layout.addWidget(hint)
         layout.addStretch(1)
         self.addWidget(page)

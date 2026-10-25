@@ -160,6 +160,8 @@ def handle_direction(frame: Frame, handle: Handle) -> float:
 
 
 NODE_PX = 7.0
+# How much larger a subpath's start node is drawn.
+START_EXTRA_PX = 4.0
 CONTROL_PX = 6.0
 _NODE_GRAB_PX = 6.0
 

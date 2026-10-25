@@ -146,3 +146,8 @@ def test_a_picture_that_is_not_what_its_digest_says_pastes_as_a_placeholder():
     payload["media"][digest] = "AAAA"
     (shape,), notes = decode_shapes_with_notes(json.dumps(payload).encode())
     assert shape.data.mime == MISSING_MIME and notes
+
+
+def test_corner_nodes_survive_the_clipboard():
+    path = PathShape(1, (MoveTo(0, 0), CubicTo(0, 10, 10, 10, 20, 0, corner=True), LineTo(30, 0)), Style())
+    assert decode_shapes(encode_shapes([path])) == [path]

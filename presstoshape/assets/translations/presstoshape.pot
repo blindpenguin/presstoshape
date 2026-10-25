@@ -850,6 +850,114 @@ msgid_plural "Deleted {count} nodes"
 msgstr[0] ""
 msgstr[1] ""
 
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Corner"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make nodes corner"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nodes are corners now"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Smooth"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make nodes smooth"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nodes are smooth now"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "S&ymmetric"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make nodes symmetric"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Nodes are symmetric now"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make &Line"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make segments lines"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Segments are straight now"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make C&urve"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Make segments curves"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Segments are curves now"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Break at Nodes"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Break path"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Broke the path"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Delete Segment"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Delete segment"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Deleted a segment"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "&Join Nodes"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Join nodes"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Joined two nodes"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Join with Se&gment"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Join with segment"
+msgstr ""
+
+#: presstoshape/editing/operations/node_editing.py
+msgid "Joined two nodes with a segment"
+msgstr ""
+
 #: presstoshape/editing/operations/paths.py
 msgid "&Object to Path"
 msgstr ""
@@ -860,6 +968,74 @@ msgstr ""
 
 #: presstoshape/editing/operations/paths.py
 msgid "Converted to paths"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Co&mbine"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Combine"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Combined {count} object"
+msgid_plural "Combined {count} objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "&Split Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Split Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Split into {count} path"
+msgid_plural "Split into {count} paths"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "C&lose Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Close Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "O&pen Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Open Path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Rev&erse Direction"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Reverse Direction"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Join paths"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Continue path"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Joined paths"
+msgstr ""
+
+#: presstoshape/editing/operations/paths.py
+msgid "Continued a path"
 msgstr ""
 
 #: presstoshape/editing/operations/recovery.py
@@ -1412,6 +1588,10 @@ msgstr ""
 
 #: presstoshape/formats/p2s.py
 msgid "should be a path segment like [\"L\", x, y]"
+msgstr ""
+
+#: presstoshape/formats/p2s.py
+msgid "should be the index of a node segment"
 msgstr ""
 
 #: presstoshape/formats/p2s.py
@@ -2017,6 +2197,10 @@ msgid "&Path"
 msgstr ""
 
 #: presstoshape/views/keymap.py
+msgid "Selected &Nodes"
+msgstr ""
+
+#: presstoshape/views/keymap.py
 msgid "&Object"
 msgstr ""
 
@@ -2613,7 +2797,7 @@ msgid "Dash offset"
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes."
+msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node. Double-click a segment to add a node, Delete removes selected nodes. The larger square marks where each path starts."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
@@ -2625,7 +2809,7 @@ msgid "Drag to draw. Shift: circle."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py
-msgid "Click: corner point. Drag: curve. Click the first point to close.\nDouble-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\nShift: 45° steps. Alt while dragging: break the handles."
+msgid "Click: corner point. Drag: curve. Click the first point to close.\nStart or end on the open end of a path to continue or join it.\nDouble-click / Enter: finish. Backspace: remove the last point. Esc: cancel.\nShift: 45° steps. Alt while dragging: break the handles."
 msgstr ""
 
 #: presstoshape/views/tool_options_view.py

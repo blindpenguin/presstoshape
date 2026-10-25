@@ -11,7 +11,18 @@ from dataclasses import replace
 
 from presstoshape.formats.svg_mask_defs import masked_group_element
 from presstoshape.formats.svg_namedview import namedview_element
-from presstoshape.formats.svg_names import COMPOSITE, GROUPMODE, INSENSITIVE, LABEL, MODE, XLINK_HREF, XML_SPACE, q
+from presstoshape.formats.svg_names import (
+    COMPOSITE,
+    GROUPMODE,
+    INSENSITIVE,
+    LABEL,
+    MODE,
+    NODETYPES,
+    XLINK_HREF,
+    XML_SPACE,
+    q,
+)
+from presstoshape.formats.svg_nodetypes import node_types
 from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
 from presstoshape.formats.svg_paint import PaintDefs
@@ -217,7 +228,11 @@ def _untransformed_element(shape: Shape, defs: PaintDefs) -> ET.Element:
             attrs = {"cx": _num(cx), "cy": _num(cy), "rx": _num(rx), "ry": _num(ry)}
             return ET.Element(q("ellipse"), attrs | style)
         case PathShape(segments=segments):
-            return ET.Element(q("path"), {"d": path_d(segments)} | style)
+            element = ET.Element(q("path"), {"d": path_d(segments)} | style)
+            types = node_types(segments)
+            if types is not None:
+                element.set(NODETYPES, types)
+            return element
         case CompositeShape(parts=parts, modes=modes):
             element = ET.Element(q("path"), {"d": path_d(outline(shape) or ())} | style)
             definition = ET.SubElement(ET.SubElement(element, q("metadata")), COMPOSITE)

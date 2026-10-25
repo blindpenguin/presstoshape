@@ -67,9 +67,10 @@ presstoshape/
 │   ├── booleans.py           # ordered-parts booleans, divide, regions (skia-pathops)
 │   ├── transforms.py         # outline, translate, canonical shape transforms
 │   ├── nodes.py              # path node editing
+│   ├── path_edit.py          # path structure: node types, break/join, close/open, reverse, combine/split
 │   └── fitting.py            # freehand strokes → cubic beziers (Pencil)
 ├── formats/                  # svg.py (SVG write + public read API), svg_reader.py (cascade, <use>, text lines), css.py (<style> subset),
-│                             # svg_values.py / svg_names.py / svg_page.py / svg_notes.py (import notes for the report dialog),
+│                             # svg_values.py / svg_names.py / svg_page.py / svg_notes.py (import notes for the report dialog), svg_nodetypes.py (corner nodes as `sodipodi:nodetypes`),
 │                             # image_info.py (picture header probe: type, size, limits, digest) + svg_images.py (`<image>` sources, never the network),
 │                             # p2s.py + p2s_migrations.py (native .p2s, docs/file-format.md),
 │                             # clipboard.py (shape payload for copy/paste, not migrated: falls back to SVG)

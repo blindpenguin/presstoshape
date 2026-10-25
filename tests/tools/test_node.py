@@ -63,7 +63,7 @@ def test_control_drag_keeps_smooth_unless_alt():
 def test_double_click_on_segment_inserts_node():
     session, g, sid = _node_setup()
     path = queries.find_shape(session.state, sid)
-    on_curve = nodes._eval(path.segments, nodes._Topology(path.segments), 2, 0.5)
+    on_curve = nodes._eval(path.segments, nodes.Topology(path.segments), 2, 0.5)
     g.double_click(on_curve, NONE)
     assert len(queries.find_shape(session.state, sid).segments) == len(path.segments) + 1
     assert session.state.node_selection == {(sid, 2)}
@@ -87,7 +87,7 @@ def test_node_hover_types_and_hint_for_rect():
     session, g, sid = _node_setup()
     assert g.hover((100, 0)) is CursorType.NODE
     path = queries.find_shape(session.state, sid)
-    on_curve = nodes._eval(path.segments, nodes._Topology(path.segments), 2, 0.5)
+    on_curve = nodes._eval(path.segments, nodes.Topology(path.segments), 2, 0.5)
     assert g.hover(on_curve) is CursorType.NODE_INSERT
     assert g.hover((500, 500)) is CursorType.ARROW
     assert g.hint is None

@@ -13,7 +13,7 @@ Editor priorities:
 - **P2**: core professional depth; needed for real projects.
 - **P3**: advanced, or a later differentiator.
 
-PressToShape today (2026-10-21): align/distribute, rulers, guides, grid, snapping, groups (with opacity), select / node / pen / pencil / rectangle (rounded corners) / ellipse / text (left/centre/right alignment) tools, transform handles, fill + stroke + width, opacity (object, fill, stroke), fill rule, line caps/joins/dashes, layers, object hide/lock + layer tree, booleans + divide, Composites, raise/lower, undo, clipboard (copy/cut/paste/paste in place/duplicate, Alt+drag), native `.p2s` + SVG open/save (CSS styles, `<use>`/`<symbol>`, tspan lines, import notes dialog), PNG export with DPI, crash recovery + backup on save, New Document dialog with presets, units (px/mm/cm/in/pt) and DPI, recent files, Settings window, English + German UI with user translations, nightlies.
+PressToShape today (2026-10-25): align/distribute, rulers, guides, grid, snapping, groups (with opacity), select / node (node types, break/join, combine/split) / pen (continues paths) / pencil / rectangle (rounded corners) / ellipse / text (left/centre/right alignment) tools, transform handles, fill + stroke + width, opacity (object, fill, stroke), fill rule, line caps/joins/dashes, layers, object hide/lock + layer tree, booleans + divide, Composites, raise/lower, undo, clipboard (copy/cut/paste/paste in place/duplicate, Alt+drag), native `.p2s` + SVG open/save (CSS styles, `<use>`/`<symbol>`, tspan lines, import notes dialog), PNG export with DPI, crash recovery + backup on save, New Document dialog with presets, units (px/mm/cm/in/pt) and DPI, recent files, Settings window, English + German UI with user translations, nightlies.
 
 ## SVG conformance
 
@@ -134,7 +134,7 @@ Every level has the same definition of done:
 ### Shapes and tools
 - [ ] **Line tool**, polygon and star tool. (Rounded rectangle corners done, one radius for all corners; per-corner radii and on-canvas corner handles still open.)
 - [x] **Pencil / freehand tool** with smoothing (F). Base for tablet pressure and brushes.
-- [x] **Bezier pen** (P): click for corners and straight lines, drag for curves, Alt breaks handles, click the first node to close, Backspace removes the last node. Still open: continuing or joining an existing path from its end, adding/removing nodes with the pen.
+- [x] **Bezier pen** (P): click for corners and straight lines, drag for curves, Alt breaks handles, click the first node to close, Backspace removes the last node, start on an open end to continue a path, click an open end to join (done 2026-10-25, spec `path-structure`). Still open: adding/removing nodes with the pen.
 - [ ] **Eyedropper**: pick fill/stroke from a shape (and color from the canvas).
 - [ ] **Zoom tool and hand tool**, Space+drag to pan from any tool.
 
@@ -173,11 +173,11 @@ Every level has the same definition of done:
 - [ ] **Global/linked colors**: change one swatch, every user updates.
 
 ### Paths
-- [ ] **Stroke to path**, **offset path** (inset/outset), **simplify**, reverse direction.
-- [ ] **Join / break / cut paths**, close path, combine and split compound paths.
+- [ ] **Stroke to path**, **offset path** (inset/outset), **simplify**. (Reverse direction done 2026-10-25, spec `path-structure`.)
+- [x] **Join / break paths**, delete segment, close/open path, combine and split compound paths (done 2026-10-25, spec `path-structure`). Split doesn't keep holes with their outer shape (each subpath becomes its own path).
 - [ ] **Knife / scissors tool**, eraser.
 - [ ] **Shape builder** (drag across regions to merge or remove; Composites and divide are the base).
-- [ ] **Node tool extras**: node types (corner/smooth/symmetric) buttons, align nodes, add nodes by count.
+- [ ] **Node tool extras**: align nodes, add nodes by count, auto-smooth nodes. (Node types corner/smooth/symmetric, make line/curve as buttons done 2026-10-25, spec `path-structure`; corner nodes are saved, in SVG as Inkscape's `sodipodi:nodetypes`.)
 - [ ] **Corner rounding** on any path node (live corners).
 
 ### Text

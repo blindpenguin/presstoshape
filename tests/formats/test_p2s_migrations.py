@@ -8,7 +8,9 @@ from presstoshape.models.app_state import Document, Layer, Tool
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     Aspect,
+    Close,
     CompositeShape,
+    CubicTo,
     EllipseShape,
     GradientStop,
     GroupShape,
@@ -325,3 +327,31 @@ def test_v10_sample_opens_to_the_expected_document():
 def test_v9_sample_opens_in_version_10_without_pictures():
     document, _state = read_p2s((SAMPLES / "v9.p2s").read_bytes())
     assert not any(isinstance(shape, ImageShape) for layer in document.layers for shape in layer.shapes)
+
+
+def expected_v11() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v11.p2s holds: a closed path with a corner start node and a corner node whose
+    handles line up, and an open path without corners."""
+    closed = PathShape(
+        1,
+        (
+            MoveTo(0.0, 0.0, corner=True),
+            CubicTo(10.0, -10.0, 20.0, -10.0, 30.0, 0.0, corner=True),
+            CubicTo(40.0, 10.0, 50.0, 10.0, 60.0, 0.0),
+            LineTo(30.0, 40.0),
+            Close(),
+        ),
+        Style(),
+    )
+    open_path = PathShape(2, (MoveTo(0.0, 60.0), CubicTo(10.0, 50.0, 20.0, 70.0, 30.0, 60.0)), Style())
+    document = Document(width=100.0, height=100.0, layers=[Layer("Layer 1", True, [closed, open_path])], next_id=3)
+    return document, SavedState(zoom_percent=100)
+
+
+def test_v11_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v11.p2s").read_bytes()) == expected_v11()
+
+
+def test_v10_sample_opens_in_version_11_without_corners():
+    document, _state = read_p2s((SAMPLES / "v10.p2s").read_bytes())
+    assert expected_v10()[0] == document

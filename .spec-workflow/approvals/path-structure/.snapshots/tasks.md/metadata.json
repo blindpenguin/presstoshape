@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/path-structure/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T18:53:58.280Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792954438271_xo8dfhn00",
+      "approvalTitle": "Path structure: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T18:54:50.487Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792954438271_xo8dfhn00",
+      "approvalTitle": "Path structure: tasks"
+    }
+  ]
+}

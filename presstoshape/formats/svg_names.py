@@ -22,6 +22,7 @@ GROUPMODE = f"{{{INKSCAPE_NS}}}groupmode"
 LABEL = f"{{{INKSCAPE_NS}}}label"
 # Inkscape marks locked objects and layers with sodipodi:insensitive="true".
 INSENSITIVE = f"{{{SODIPODI_NS}}}insensitive"
+NODETYPES = f"{{{SODIPODI_NS}}}nodetypes"
 XLINK_HREF = f"{{{XLINK_NS}}}href"
 XML_BASE = "{http://www.w3.org/XML/1998/namespace}base"
 XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"

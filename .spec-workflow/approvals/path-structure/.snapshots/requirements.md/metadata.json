@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/path-structure/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-25T18:50:02.467Z",
+      "trigger": "initial",
+      "approvalId": "approval_1792954202448_ctzt7h4ve",
+      "approvalTitle": "Path structure: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-25T18:51:05.623Z",
+      "trigger": "approved",
+      "approvalId": "approval_1792954202448_ctzt7h4ve",
+      "approvalTitle": "Path structure: requirements"
+    }
+  ]
+}

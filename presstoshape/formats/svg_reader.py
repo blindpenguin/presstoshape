@@ -39,6 +39,7 @@ from presstoshape.formats.svg_names import (
     INSENSITIVE,
     LABEL,
     MODE,
+    NODETYPES,
     PART_MODES,
     SVG_PREFIX,
     XLINK_HREF,
@@ -47,6 +48,7 @@ from presstoshape.formats.svg_names import (
     q,
 )
 from presstoshape.formats.svg_nodes import Nodes
+from presstoshape.formats.svg_nodetypes import with_node_types
 from presstoshape.formats.svg_notes import Note, NoteCollector
 from presstoshape.formats.svg_page import Page, read_page
 from presstoshape.formats.svg_properties import normalize
@@ -1018,6 +1020,7 @@ class _Reader:
             segments, cut = parse_path_data(el.get("d", ""))
             if cut:
                 self.notes.add(Note.PATH_ERROR)
+            segments = with_node_types(segments, el.get(NODETYPES))
             return self._path_with_box(segments, m, paint) if segments else (None, None)
 
         return None, None
