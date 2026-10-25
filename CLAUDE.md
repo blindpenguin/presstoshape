@@ -20,6 +20,12 @@ Python SVG editor built on [PySide6](https://doc.qt.io/qtforpython-6/) (Qt 6 Wid
 - Dashboard: `scripts/spec_dashboard.sh` (reads the pinned version from `.mcp.json`; `--port N`, `--no-open`) → http://localhost:5000. The user runs it; don't start long-running servers yourself.
 - Bump the pinned version deliberately (check the changelog), never switch to `@latest` — npx would run unreviewed new code on every launch.
 
+## Git workflow
+
+- One-person project: commit directly to `main`, no pull requests and no merge commits. Don't create a branch just to commit.
+- One commit per finished feature or fix, with a descriptive message. Run `uv run ruff check .`, `uv run ruff format .` and `uv run pytest` before committing; nothing else gates `main` (the nightly runs the tests again before packaging).
+- A branch only for large multi-session work that would leave `main` half-done: keep it local, then fast-forward or squash it into `main`.
+
 ## Libraries
 
 - **PySide6** — UI, input and the canvas GL context. Import from `PySide6.QtWidgets` etc.; never mix with PyQt5/6 (different bindings, incompatible objects).
