@@ -65,6 +65,13 @@ def test_every_old_version_has_a_migration_and_a_sample():
         assert (SAMPLES / f"v{version}.p2s").is_file()
 
 
+def test_every_version_is_documented():
+    format_doc = (Path(__file__).resolve().parents[2] / "docs" / "file-format.md").read_text(encoding="utf-8")
+    versions = format_doc.split("\n## Versions\n")[1].split("\n## ")[0]
+    for version in range(1, CURRENT_VERSION + 1):
+        assert f"\n| {version} |" in versions, f"docs/file-format.md has no Versions row for {version}"
+
+
 def test_current_version_payload_passes_unchanged():
     payload = {"format_version": CURRENT_VERSION, "document": {}}
     assert upgrade(payload, CURRENT_VERSION) == payload
