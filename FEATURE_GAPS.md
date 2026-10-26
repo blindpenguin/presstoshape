@@ -13,7 +13,7 @@ Editor priorities:
 - **P2**: core professional depth; needed for real projects.
 - **P3**: advanced, or a later differentiator.
 
-PressToShape today (2026-10-26): align/distribute, rulers, guides, grid, snapping, groups (with opacity), select / node (node types, break/join, combine/split) / pen (continues paths) / pencil / rectangle (rounded corners) / ellipse / text (left/centre/right alignment) / eyedropper tools, transform handles, Colour panel (HSV picker, hex, recent colours, document swatches, personal swatch library, `.gpl` palettes), fill + stroke + width, opacity (object, fill, stroke), fill rule, line caps/joins/dashes, layers, object hide/lock + layer tree, booleans + divide, Composites, raise/lower, undo, pictures (place, drop, paste, references), clipboard (copy/cut/paste/paste in place/duplicate, Alt+drag), native `.p2s` + SVG open/save (CSS styles, `<use>`/`<symbol>`, tspan lines, import notes dialog), PNG export with DPI, crash recovery + backup on save, New Document dialog with presets, units (px/mm/cm/in/pt) and DPI, recent files, Settings window, English + German UI with user translations, nightlies.
+PressToShape today (2026-10-26): align/distribute, rulers, guides, grid, snapping, groups (with opacity), select / node (node types, break/join, combine/split) / pen (continues paths) / pencil / rectangle (rounded corners) / ellipse / text (left/centre/right alignment) / eyedropper tools, transform handles, Colour panel (HSV picker, hex, recent colours, document swatches, personal swatch library, palette files incl. Lospec formats), fill + stroke + width, opacity (object, fill, stroke), fill rule, line caps/joins/dashes, layers, object hide/lock + layer tree, booleans + divide, Composites, raise/lower, undo, pictures (place, drop, paste, references), clipboard (copy/cut/paste/paste in place/duplicate, Alt+drag), native `.p2s` + SVG open/save (CSS styles, `<use>`/`<symbol>`, tspan lines, import notes dialog), PNG export with DPI, crash recovery + backup on save, New Document dialog with presets, units (px/mm/cm/in/pt) and DPI, recent files, Settings window, English + German UI with user translations, nightlies.
 
 ## SVG conformance
 
@@ -141,7 +141,7 @@ Every level has the same definition of done:
 ### Style
 - [x] **Opacity** per object and per fill/stroke.
 - [x] **Stroke options**: caps, joins, miter limit, dashes, dash offset. Still open: alignment (inside/center/outside); arrowheads → SVG Level 6.
-- [x] **Color picker**: docked Colour panel with fill/stroke pair (X, Shift+X), HSV picker, HSV/RGB numbers, hex and colour names, alpha, recent colours, document swatches (saved in `.p2s` and as Inkscape swatches in SVG) and a personal swatch library with `.gpl` import/export (done 2026-10-26, spec `colour-panel`). Still open: HSL and CMYK modes, gradient stop editing in the panel, dragging swatches onto shapes.
+- [x] **Color picker**: docked Colour panel with fill/stroke pair (X, Shift+X), HSV picker, HSV/RGB numbers, hex and colour names, alpha, recent colours, document swatches (saved in `.p2s` and as Inkscape swatches in SVG) and a personal swatch library with palette import/export (`.gpl`, `.hex`, JASC `.pal`, Paint.NET `.txt`; PNG palette images import), covering Lospec's downloads (done 2026-10-26, spec `colour-panel`). Still open: Adobe `.ase`/`.aco`. Still open: HSL and CMYK modes, gradient stop editing in the panel, dragging swatches onto shapes.
 
 ### Layout and precision
 - [x] **Align and distribute** (to selection or artboard; Align panel). Key object still open.

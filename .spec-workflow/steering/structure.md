@@ -59,7 +59,7 @@ presstoshape/                   # repo root
     │   ├── svg_namedview.py    # guides and grid in sodipodi:namedview (read and write)
     │   ├── css.py              # the CSS subset of <style> sheets: simple selectors, cascade, !important
     │   ├── svg_swatches.py     # document swatches as Inkscape swatches (inkscape:swatch, osb:paint)
-    │   ├── gpl.py / swatch_library.py   # GIMP palettes; the personal swatch library file (JSON)
+    │   ├── gpl.py / palettes.py / swatch_library.py   # palette files (GIMP, hex, JASC, Paint.NET, palette images); the swatch library (JSON)
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
     │   └── p2s_migrations.py   # upgrades older .p2s format versions
     ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay, guides (+ grid), sample (colour under a point)

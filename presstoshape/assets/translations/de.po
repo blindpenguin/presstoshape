@@ -2138,8 +2138,28 @@ msgid "Text:"
 msgstr "Text:"
 
 #: presstoshape/views/colour_panel.py
+msgid "Palettes (*.gpl *.hex *.pal *.txt *.png)"
+msgstr "Paletten (*.gpl *.hex *.pal *.txt *.png)"
+
+#: presstoshape/views/colour_panel.py
 msgid "GIMP palette (*.gpl)"
 msgstr "GIMP-Palette (*.gpl)"
+
+#: presstoshape/views/colour_panel.py
+msgid "Hex palette (*.hex)"
+msgstr "Hex-Palette (*.hex)"
+
+#: presstoshape/views/colour_panel.py
+msgid "JASC palette (*.pal)"
+msgstr "JASC-Palette (*.pal)"
+
+#: presstoshape/views/colour_panel.py
+msgid "Paint.NET palette (*.txt)"
+msgstr "Paint.NET-Palette (*.txt)"
+
+#: presstoshape/views/colour_panel.py
+msgid "Palette image (*.png)"
+msgstr "Palettenbild (*.png)"
 
 #: presstoshape/views/colour_panel.py
 #: presstoshape/views/selection_view.py

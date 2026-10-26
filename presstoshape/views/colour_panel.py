@@ -4,7 +4,7 @@ personal library. It edits the active paint of whatever queries.colour_target na
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, QSize, Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -28,7 +28,14 @@ from presstoshape.editing import queries
 from presstoshape.editing.operations import colours, swatches
 from presstoshape.editing.operations.swatches import Palette
 from presstoshape.editing.session import Session
-from presstoshape.formats.gpl import read_gpl, write_gpl
+from presstoshape.formats.palettes import (
+    READ_SUFFIXES,
+    WRITE_SUFFIXES,
+    PaletteColor,
+    colors_from_pixels,
+    read_palette,
+    write_palette,
+)
 from presstoshape.geometry.colours import HSV, hex_to_rgb, hsv_for, hsv_to_hex, parse_hex_input
 from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState
@@ -41,7 +48,15 @@ from presstoshape.views.paint_pair import PaintPair
 from presstoshape.views.swatch_grid import Cell, SwatchGrid, swatch_tooltip
 
 _ICON_SIZE = QSize(18, 18)
-_PALETTE_FILTER = N_("GIMP palette (*.gpl)")
+_ALL_PALETTES_FILTER = N_("Palettes (*.gpl *.hex *.pal *.txt *.png)")
+# Export type per suffix, in dialog order.
+_PALETTE_FILTERS = {
+    ".gpl": N_("GIMP palette (*.gpl)"),
+    ".hex": N_("Hex palette (*.hex)"),
+    ".pal": N_("JASC palette (*.pal)"),
+    ".txt": N_("Paint.NET palette (*.txt)"),
+}
+_IMAGE_PALETTE_FILTER = N_("Palette image (*.png)")
 # Number field ranges and labels per mode.
 _NUMBERS = {
     "hsv": ((N_("H"), 360), (N_("S"), 100), (N_("V"), 100)),
@@ -434,11 +449,12 @@ class ColourPanel(QWidget):
         return menu
 
     def _import(self, palette: Palette) -> None:
-        path, _chosen = QFileDialog.getOpenFileName(self, _("Import Palette"), "", _(_PALETTE_FILTER))
+        filters = [_(_ALL_PALETTES_FILTER), *(_(text) for text in _PALETTE_FILTERS.values()), _(_IMAGE_PALETTE_FILTER)]
+        path, _chosen = QFileDialog.getOpenFileName(self, _("Import Palette"), "", ";;".join(filters))
         if not path:
             return
         try:
-            colors = read_gpl(Path(path).read_text(encoding="utf-8", errors="replace"))
+            colors = _read_palette_file(Path(path))
         except (OSError, ValueError):
             QMessageBox.warning(
                 self,
@@ -446,19 +462,31 @@ class ColourPanel(QWidget):
                 _("{name} is not a palette file PressToShape can read.").format(name=Path(path).name),
             )
             return
-        swatches.import_swatches(self._session, palette, [(name, color, 1.0) for name, color in colors])
+        swatches.import_swatches(self._session, palette, colors)
 
     def _export(self, palette: Palette) -> None:
-        path, _chosen = QFileDialog.getSaveFileName(self, _("Export Palette"), "", _(_PALETTE_FILTER))
+        filters = {_(text): suffix for suffix, text in _PALETTE_FILTERS.items()}
+        path, chosen = QFileDialog.getSaveFileName(self, _("Export Palette"), "", ";;".join(filters))
         if not path:
             return
         target = Path(path)
-        if not target.suffix:
-            target = target.with_suffix(".gpl")
-        items = swatches.palette_swatches(self._session, palette)
+        if target.suffix.lower() not in WRITE_SUFFIXES:
+            target = target.with_name(target.name + filters.get(chosen, ".gpl"))
+        items = [(s.name, s.color, s.opacity) for s in swatches.palette_swatches(self._session, palette)]
         try:
-            target.write_text(write_gpl(target.stem, [(s.name, s.color) for s in items]), encoding="utf-8")
+            target.write_text(write_palette(target.suffix, target.stem, items), encoding="utf-8")
         except OSError as error:
             QMessageBox.warning(
                 self, _("Export Palette"), _("{name}: {error}").format(name=target.name, error=error.strerror or error)
             )
+
+
+def _read_palette_file(path: Path) -> list[PaletteColor]:
+    """Palette text files by their header or suffix; images (Lospec's PNG palettes) by their pixel colours."""
+    if path.suffix.lower() in READ_SUFFIXES:
+        return read_palette(path.suffix, path.read_text(encoding="utf-8", errors="replace"))
+    image = QImage(str(path))
+    if image.isNull():
+        raise ValueError("not a palette file or image")
+    image = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    return colors_from_pixels(image.width(), image.height(), bytes(image.constBits())[: image.sizeInBytes()])

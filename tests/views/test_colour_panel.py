@@ -159,3 +159,23 @@ def test_document_swatch_click_applies_colour_and_opacity(window):
     window_._colour._apply_swatch("document", swatch.id)
     style = all_shapes(session)[0].style
     assert (style.fill, style.fill_opacity) == ("#ff0000", 0.5)
+
+
+def test_palette_images_and_files_import(tmp_path):
+    from PySide6.QtGui import QColor, QImage
+
+    from presstoshape.views.colour_panel import _read_palette_file
+
+    QApplication.instance() or QApplication([])
+    image = QImage(16, 8, QImage.Format.Format_RGBA8888)
+    image.fill(QColor("#1d2b53"))
+    for x in range(8, 16):
+        for y in range(8):
+            image.setPixelColor(x, y, QColor("#ffccaa"))
+    image.save(str(tmp_path / "palette-8x.png"))
+    assert [color for _n, color, _o in _read_palette_file(tmp_path / "palette-8x.png")] == ["#1d2b53", "#ffccaa"]
+    (tmp_path / "p.hex").write_text("000000\r\n", encoding="utf-8")
+    assert _read_palette_file(tmp_path / "p.hex") == [("", "#000000", 1.0)]
+    (tmp_path / "notes.doc").write_bytes(b"nothing")
+    with pytest.raises(ValueError):
+        _read_palette_file(tmp_path / "notes.doc")
