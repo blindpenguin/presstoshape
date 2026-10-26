@@ -20,6 +20,7 @@ from presstoshape.formats.p2s import (
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION
 from presstoshape.formats.svg import read_svg
 from presstoshape.models.app_state import Document, Layer, Tool
+from presstoshape.models.colours import Swatch
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     Close,
@@ -624,3 +625,37 @@ def test_damaged_masking_is_refused(change, field):
     change(encoded["masking"])
     with pytest.raises(P2sError, match=field):
         p2s.decode_shape(encoded, "shape")
+
+
+def test_swatches_round_trip():
+    document = Document(swatches=(Swatch(3, "Rose", "#e11d48"), Swatch(4, "", "#0ea5e9", 0.25)), next_id=5)
+    assert _round_trip(document) == document
+    assert "swatches" not in encode_document(Document())
+
+
+@pytest.mark.parametrize(
+    "change, where",
+    [
+        (lambda doc: doc["swatches"][0].update(color="red"), "swatches[0].color"),
+        (lambda doc: doc["swatches"][0].update(color="#12345"), "swatches[0].color"),
+        (lambda doc: doc["swatches"][0].update(opacity=2), "swatches[0].opacity"),
+        (lambda doc: doc["swatches"][0].update(name=3), "swatches[0].name"),
+        (lambda doc: doc["swatches"][0].update(id=5), "id twice"),
+        (lambda doc: doc["swatches"][0].pop("id"), "swatches[0]"),
+    ],
+)
+def test_damaged_swatches_name_the_broken_place(change, where):
+    document = Document(
+        layers=[Layer("L", True, [RectShape(5, 0, 0, 1, 1, RED)])], swatches=(Swatch(6, "a", "#000000"),), next_id=7
+    )
+    encoded = copy.deepcopy(encode_document(document))
+    change(encoded)
+    with pytest.raises(P2sError) as error:
+        decode_document(encoded)
+    assert where in str(error.value)
+
+
+def test_swatch_ids_raise_next_id():
+    encoded = encode_document(Document(swatches=(Swatch(40, "a", "#000000"),), next_id=41))
+    encoded["next_id"] = 2
+    assert decode_document(encoded).next_id == 41

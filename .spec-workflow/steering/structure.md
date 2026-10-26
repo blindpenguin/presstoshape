@@ -34,6 +34,7 @@ presstoshape/                   # repo root
     ├── i18n/                   # Qt-free translations: _/ngettext/pgettext/N_, po.py, plural.py, catalog.py, languages.py
     ├── models/                 # plain dataclasses, no logic beyond defaults
     │   ├── app_state.py        # AppState, Document, Layer, Tool
+    │   ├── colours.py          # Swatch, ColourState (active paint, current colour, recent colours, library)
     │   └── shapes.py           # frozen shapes (incl. CompositeShape), Style, path segments, Transform
     ├── geometry/               # pure shape math
     │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
@@ -46,6 +47,7 @@ presstoshape/                   # repo root
     │   ├── path_edit.py        # path structure on anchor/edge subpaths: node types, break, join, close/open, reverse, combine/split
     │   ├── corners.py          # live corners: rounded outline drawn by transforms.outline, widget placement
     │   ├── units.py            # px/mm/cm/in/pt conversions at a DPI
+    │   ├── colours.py          # hex / RGB / HSV conversions, hex input, hue kept on greys
     │   ├── align.py / snapping.py / rulers.py   # align/distribute offsets, snap targets and queries, ruler ticks
     │   └── fitting.py          # freehand strokes → cubic beziers (Schneider fit, corners kept)
     ├── formats/
@@ -56,20 +58,22 @@ presstoshape/                   # repo root
     │   ├── svg_notes.py        # counted import notes (what couldn't be imported), worded for the user
     │   ├── svg_namedview.py    # guides and grid in sodipodi:namedview (read and write)
     │   ├── css.py              # the CSS subset of <style> sheets: simple selectors, cascade, !important
+    │   ├── svg_swatches.py     # document swatches as Inkscape swatches (inkscape:swatch, osb:paint)
+    │   ├── gpl.py / swatch_library.py   # GIMP palettes; the personal swatch library file (JSON)
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
     │   └── p2s_migrations.py   # upgrades older .p2s format versions
-    ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay, guides (+ grid)
+    ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay, guides (+ grid), sample (colour under a point)
     ├── editing/
     │   ├── session.py          # Session: AppState, labelled undo history, notify, edit()
     │   ├── registry.py         # Operation table: id, menu label, can_run
     │   ├── queries.py          # read-only questions about state
     │   ├── containers.py       # active container (layer, or the entered group/Composite chain via edit_path)
-    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, align, guides, arrange, paths, node_editing, style, layers, documents
+    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, align, guides, arrange, paths, node_editing, style, colours, swatches, layers, documents
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox
     │   ├── snapper.py          # per-gesture snap targets (visible area) and queries
-    │   └── select.py / node.py / pen.py / pencil.py / shapes.py / text.py
+    │   └── select.py / node.py / pen.py / pencil.py / shapes.py / text.py / eyedropper.py
     └── views/                  # Qt widgets only
         ├── main_window.py      # assembles panels, fans out refresh(), window commands (dialogs)
         ├── keymap.py           # shortcuts, icons, menu/toolbar layouts per command id
@@ -82,6 +86,8 @@ presstoshape/                   # repo root
         ├── cursors.py          # CursorType -> QCursor (custom SVG rotate / node-insert cursors)
         ├── skia_surface.py     # GL / raster Skia surface widgets
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
+        ├── colour_panel.py     # Colour dock: paint pair above tabs (picker + recent, document swatches, library); drag preview
+        ├── colour_picker.py / paint_pair.py / swatch_grid.py   # colour widgets
         ├── style_editor.py / widgets.py   # reusable widgets
         ├── theme.py            # palette, colors, stylesheet
         └── icon_engine.py      # SvgIconEngine (vector icons, currentColor recoloring)

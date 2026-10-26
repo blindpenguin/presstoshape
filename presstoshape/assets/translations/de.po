@@ -308,6 +308,54 @@ msgstr[1] "{count} Objekte dupliziert"
 msgid "Dup&licate"
 msgstr "D&uplizieren"
 
+#: presstoshape/editing/operations/colours.py
+#: presstoshape/editing/operations/style.py
+msgid "Change fill"
+msgstr "Füllung ändern"
+
+#: presstoshape/editing/operations/colours.py
+#: presstoshape/editing/operations/style.py
+msgid "Change stroke"
+msgstr "Kontur ändern"
+
+#: presstoshape/editing/operations/colours.py
+msgid "Edit Fill or &Stroke"
+msgstr "Füllung oder Kontur &bearbeiten"
+
+#: presstoshape/editing/operations/colours.py
+#: presstoshape/editing/operations/style.py
+msgid "Change fill opacity"
+msgstr "Deckkraft der Füllung ändern"
+
+#: presstoshape/editing/operations/colours.py
+#: presstoshape/editing/operations/style.py
+msgid "Change stroke opacity"
+msgstr "Deckkraft der Kontur ändern"
+
+#: presstoshape/editing/operations/colours.py
+msgid "&No Paint"
+msgstr "&Keine Farbe"
+
+#: presstoshape/editing/operations/colours.py
+msgid "S&wap Fill and Stroke"
+msgstr "Füllung und Kontur &tauschen"
+
+#: presstoshape/editing/operations/colours.py
+msgid "Swap fill and stroke"
+msgstr "Füllung und Kontur tauschen"
+
+#: presstoshape/editing/operations/colours.py
+msgid "&Default Fill and Stroke"
+msgstr "&Standardfüllung und -kontur"
+
+#: presstoshape/editing/operations/colours.py
+msgid "Default fill and stroke"
+msgstr "Standardfüllung und -kontur"
+
+#: presstoshape/editing/operations/colours.py
+msgid "Pick up style"
+msgstr "Stil aufnehmen"
+
 #: presstoshape/editing/operations/composites.py
 msgctxt "part mode"
 msgid "Add"
@@ -1211,28 +1259,12 @@ msgid "Change text alignment"
 msgstr "Textausrichtung ändern"
 
 #: presstoshape/editing/operations/style.py
-msgid "Change fill"
-msgstr "Füllung ändern"
-
-#: presstoshape/editing/operations/style.py
-msgid "Change stroke"
-msgstr "Kontur ändern"
-
-#: presstoshape/editing/operations/style.py
 msgid "Change stroke width"
 msgstr "Konturstärke ändern"
 
 #: presstoshape/editing/operations/style.py
 msgid "Change opacity"
 msgstr "Deckkraft ändern"
-
-#: presstoshape/editing/operations/style.py
-msgid "Change fill opacity"
-msgstr "Deckkraft der Füllung ändern"
-
-#: presstoshape/editing/operations/style.py
-msgid "Change stroke opacity"
-msgstr "Deckkraft der Kontur ändern"
 
 #: presstoshape/editing/operations/style.py
 msgid "Change fill rule"
@@ -1261,6 +1293,38 @@ msgstr "Strichversatz ändern"
 #: presstoshape/editing/operations/style.py
 msgid "Change style"
 msgstr "Stil ändern"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Add swatch"
+msgstr "Farbfeld hinzufügen"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Rename swatch"
+msgstr "Farbfeld umbenennen"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Replace swatch"
+msgstr "Farbfeld ersetzen"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Delete swatch"
+msgstr "Farbfeld löschen"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Delete all swatches"
+msgstr "Alle Farbfelder löschen"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Move swatch"
+msgstr "Farbfeld verschieben"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Import palette"
+msgstr "Palette importieren"
+
+#: presstoshape/editing/operations/swatches.py
+msgid "Add document colours"
+msgstr "Dokumentfarben hinzufügen"
 
 #: presstoshape/editing/operations/transform.py
 msgid "Transform {count} object"
@@ -1346,6 +1410,11 @@ msgstr "Ellipse"
 msgctxt "tool"
 msgid "Text"
 msgstr "Text"
+
+#: presstoshape/editing/operations/view.py
+msgctxt "tool"
+msgid "Eyedropper"
+msgstr "Pipette"
 
 #: presstoshape/editing/operations/view.py
 msgid "Tool: {name}"
@@ -1664,6 +1733,10 @@ msgid "uses a shape id twice"
 msgstr "verwendet eine Form-ID doppelt"
 
 #: presstoshape/formats/p2s.py
+msgid "should be a colour like #3b82f6"
+msgstr "sollte eine Farbe wie #3b82f6 sein"
+
+#: presstoshape/formats/p2s.py
 msgid "should have 2 numbers"
 msgstr "sollte 2 Zahlen enthalten"
 
@@ -1814,6 +1887,12 @@ msgid "{count} viewport would clip its content; it is shown unclipped"
 msgid_plural "{count} viewports would clip their content; it is shown unclipped"
 msgstr[0] "{count} Ansichtsbereich würde seinen Inhalt beschneiden; er wird unbeschnitten gezeigt"
 msgstr[1] "{count} Ansichtsbereiche würden ihren Inhalt beschneiden; er wird unbeschnitten gezeigt"
+
+#: presstoshape/formats/svg_notes.py
+msgid "{count} gradient swatch was left out of the palette"
+msgid_plural "{count} gradient swatches were left out of the palette"
+msgstr[0] "{count} Verlaufs-Farbfeld wurde nicht in die Palette übernommen"
+msgstr[1] "{count} Verlaufs-Farbfelder wurden nicht in die Palette übernommen"
 
 #: presstoshape/formats/svg_notes.py
 msgid "{count} other element was left out"
@@ -2029,6 +2108,10 @@ msgstr "&Ellipse"
 msgid "&Text"
 msgstr "&Text"
 
+#: presstoshape/tools/registry.py
+msgid "E&yedropper"
+msgstr "&Pipette"
+
 #: presstoshape/tools/select.py
 msgid "Rotate {angle:.1f}°"
 msgstr "Drehen {angle:.1f}°"
@@ -2053,6 +2136,165 @@ msgstr "Ein einzelnes Objekt wird immer an der Zeichenfläche ausgerichtet"
 #: presstoshape/views/canvas_view.py
 msgid "Text:"
 msgstr "Text:"
+
+#: presstoshape/views/colour_panel.py
+msgid "GIMP palette (*.gpl)"
+msgstr "GIMP-Palette (*.gpl)"
+
+#: presstoshape/views/colour_panel.py
+#: presstoshape/views/selection_view.py
+msgid "H"
+msgstr "H"
+
+#: presstoshape/views/colour_panel.py
+msgid "S"
+msgstr "S"
+
+#: presstoshape/views/colour_panel.py
+msgid "V"
+msgstr "V"
+
+#: presstoshape/views/colour_panel.py
+msgid "R"
+msgstr "R"
+
+#: presstoshape/views/colour_panel.py
+msgid "G"
+msgstr "G"
+
+#: presstoshape/views/colour_panel.py
+msgid "B"
+msgstr "B"
+
+#: presstoshape/views/colour_panel.py
+#: presstoshape/views/main_window.py
+msgid "Colour"
+msgstr "Farbe"
+
+#: presstoshape/views/colour_panel.py
+msgid "Document"
+msgstr "Dokument"
+
+#: presstoshape/views/colour_panel.py
+msgid "Library"
+msgstr "Bibliothek"
+
+#: presstoshape/views/colour_panel.py
+msgid "Gradient: picking a colour replaces it"
+msgstr "Verlauf: Eine gewählte Farbe ersetzt ihn"
+
+#: presstoshape/views/colour_panel.py
+msgid "Switch between HSV and RGB numbers"
+msgstr "Zwischen HSV- und RGB-Werten wechseln"
+
+#: presstoshape/views/colour_panel.py
+msgid "Hex"
+msgstr "Hex"
+
+#: presstoshape/views/colour_panel.py
+msgid "None"
+msgstr "Keine"
+
+#: presstoshape/views/colour_panel.py
+msgid "#rrggbb, #rgb or a colour name"
+msgstr "#rrggbb, #rgb oder ein Farbname"
+
+#: presstoshape/views/colour_panel.py
+msgid "Alpha"
+msgstr "Alpha"
+
+#: presstoshape/views/colour_panel.py
+msgid "Recent"
+msgstr "Zuletzt verwendet"
+
+#: presstoshape/views/colour_panel.py
+msgid "Add the current colour"
+msgstr "Aktuelle Farbe hinzufügen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Palette actions"
+msgstr "Palettenaktionen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Click to apply, right-click for more"
+msgstr "Klick wendet an, Rechtsklick für mehr"
+
+#: presstoshape/views/colour_panel.py
+msgid "Clear Recent Colours"
+msgstr "Zuletzt verwendete Farben leeren"
+
+#: presstoshape/views/colour_panel.py
+msgid "Rename…"
+msgstr "Umbenennen …"
+
+#: presstoshape/views/colour_panel.py
+msgid "Replace with Current Colour"
+msgstr "Durch aktuelle Farbe ersetzen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Move Left"
+msgstr "Nach links"
+
+#: presstoshape/views/colour_panel.py
+msgid "Move Right"
+msgstr "Nach rechts"
+
+#: presstoshape/views/colour_panel.py
+msgid "Add to Library"
+msgstr "Zur Bibliothek hinzufügen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Add to Document"
+msgstr "Zum Dokument hinzufügen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Delete"
+msgstr "Löschen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Rename Swatch"
+msgstr "Farbfeld umbenennen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Name:"
+msgstr "Name:"
+
+#: presstoshape/views/colour_panel.py
+msgid "Add Current Colour"
+msgstr "Aktuelle Farbe hinzufügen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Add Colours Used in Document"
+msgstr "Im Dokument verwendete Farben hinzufügen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Import Palette…"
+msgstr "Palette importieren …"
+
+#: presstoshape/views/colour_panel.py
+msgid "Export Palette…"
+msgstr "Palette exportieren …"
+
+#: presstoshape/views/colour_panel.py
+msgid "Delete All Swatches"
+msgstr "Alle Farbfelder löschen"
+
+#: presstoshape/views/colour_panel.py
+msgid "Import Palette"
+msgstr "Palette importieren"
+
+#: presstoshape/views/colour_panel.py
+msgid "{name} is not a palette file PressToShape can read."
+msgstr "{name} ist keine Palettendatei, die PressToShape lesen kann."
+
+#: presstoshape/views/colour_panel.py
+msgid "Export Palette"
+msgstr "Palette exportieren"
+
+#: presstoshape/views/colour_panel.py
+#: presstoshape/views/main_window.py
+msgid "{name}: {error}"
+msgstr "{name}: {error}"
 
 #: presstoshape/views/corner_dialog.py
 msgctxt "corner"
@@ -2283,6 +2525,10 @@ msgid "&Picture"
 msgstr "&Bild"
 
 #: presstoshape/views/keymap.py
+msgid "&Fill and Stroke"
+msgstr "&Füllung und Kontur"
+
+#: presstoshape/views/keymap.py
 msgid "&Align"
 msgstr "&Ausrichten"
 
@@ -2343,6 +2589,18 @@ msgid "{name} (recovered)"
 msgstr "{name} (wiederhergestellt)"
 
 #: presstoshape/views/main_window.py
+msgid "The swatch library could not be read; it starts empty"
+msgstr "Die Farbfeld-Bibliothek konnte nicht gelesen werden; sie beginnt leer"
+
+#: presstoshape/views/main_window.py
+msgid "Swatch Library"
+msgstr "Farbfeld-Bibliothek"
+
+#: presstoshape/views/main_window.py
+msgid "The swatch library could not be saved: {error}"
+msgstr "Die Farbfeld-Bibliothek konnte nicht gespeichert werden: {error}"
+
+#: presstoshape/views/main_window.py
 msgid "Open"
 msgstr "Öffnen"
 
@@ -2382,10 +2640,6 @@ msgstr "Als Referenz platzieren"
 #: presstoshape/views/main_window.py
 msgid "Place Image"
 msgstr "Bild platzieren"
-
-#: presstoshape/views/main_window.py
-msgid "{name}: {error}"
-msgstr "{name}: {error}"
 
 #: presstoshape/views/main_window.py
 msgid "Images not placed"
@@ -2463,6 +2717,16 @@ msgstr "Öffnen…"
 msgid "Show this dialog at startup"
 msgstr "Diesen Dialog beim Start anzeigen"
 
+#: presstoshape/views/paint_pair.py
+#: presstoshape/views/style_editor.py
+msgid "Fill"
+msgstr "Füllung"
+
+#: presstoshape/views/paint_pair.py
+#: presstoshape/views/style_editor.py
+msgid "Stroke"
+msgstr "Kontur"
+
 #: presstoshape/views/recover_dialog.py
 msgid "{name} (damaged, can't be recovered)"
 msgstr "{name} (beschädigt, nicht wiederherstellbar)"
@@ -2502,10 +2766,6 @@ msgstr "Die ungespeicherten Änderungen an {name} endgültig verwerfen?"
 #: presstoshape/views/selection_view.py
 msgid "W"
 msgstr "B"
-
-#: presstoshape/views/selection_view.py
-msgid "H"
-msgstr "H"
 
 #: presstoshape/views/selection_view.py
 msgid "Centre X"
@@ -2757,14 +3017,6 @@ msgid "Opacity of this paint"
 msgstr "Deckkraft dieser Farbe"
 
 #: presstoshape/views/style_editor.py
-msgid "Fill"
-msgstr "Füllung"
-
-#: presstoshape/views/style_editor.py
-msgid "Stroke"
-msgstr "Kontur"
-
-#: presstoshape/views/style_editor.py
 msgctxt "stroke"
 msgid "Width"
 msgstr "Stärke"
@@ -2863,6 +3115,10 @@ msgstr "Strichelung"
 msgid "Dash offset"
 msgstr "Strichversatz"
 
+#: presstoshape/views/swatch_grid.py
+msgid "({percent} % opaque)"
+msgstr "({percent} % deckend)"
+
 #: presstoshape/views/tool_options_view.py
 msgid "Click a path to edit its nodes. Drag nodes or their handles; Shift+click or drag a box to select several. Alt+drag a handle to break a smooth node, or to pull a handle out of its node. Double-click a segment to add a node, Delete removes selected nodes. Corner nodes are diamonds, smooth ones squares; the larger node marks where each path starts."
 msgstr "Einen Pfad anklicken, um seine Knoten zu bearbeiten. Knoten oder ihre Anfasser ziehen; Umschalt+Klick oder ein Rahmen wählt mehrere aus. Alt+Ziehen an einem Anfasser macht aus einem glatten Knoten eine Ecke oder zieht einen Anfasser aus seinem Knoten heraus. Doppelklick auf ein Segment fügt einen Knoten ein, Entf löscht die ausgewählten Knoten. Eckknoten sind Rauten, glatte Knoten Quadrate; der größere Knoten zeigt, wo ein Pfad beginnt."
@@ -2886,6 +3142,10 @@ msgstr "Ziehen zum Zeichnen. Glättung: wie ruhig die Linie wird, von eng an der
 #: presstoshape/views/tool_options_view.py
 msgid "Click on the canvas to place text."
 msgstr "Auf die Arbeitsfläche klicken, um Text zu platzieren."
+
+#: presstoshape/views/tool_options_view.py
+msgid "Click a shape to give the selected shapes its style. With nothing selected, its colours go to the Colour panel. Shift+click, or click a picture, to pick the colour under the pointer for the active fill or stroke."
+msgstr "Eine Form anklicken, um ihren Stil auf die ausgewählten Formen zu übertragen. Ist nichts ausgewählt, gehen ihre Farben ins Farbe-Bedienfeld. Umschalt+Klick oder ein Klick auf ein Bild nimmt die Farbe unter dem Zeiger für die aktive Füllung oder Kontur auf."
 
 #: presstoshape/views/tool_options_view.py
 msgid "Node tool"
@@ -2912,6 +3172,10 @@ msgid "Text tool"
 msgstr "Textwerkzeug"
 
 #: presstoshape/views/tool_options_view.py
+msgid "Eyedropper"
+msgstr "Pipette"
+
+#: presstoshape/views/tool_options_view.py
 msgid "New part"
 msgstr "Neuer Teil"
 
@@ -2924,5 +3188,9 @@ msgid "Main toolbar"
 msgstr "Hauptwerkzeugleiste"
 
 #: presstoshape/views/widgets.py
-msgid "Gradient: pick a colour to replace it"
-msgstr "Verlauf: Farbe wählen, um ihn zu ersetzen"
+msgid "Edit in the Colour panel"
+msgstr "Im Farbe-Bedienfeld bearbeiten"
+
+#: presstoshape/views/widgets.py
+msgid "Gradient: picking a colour in the Colour panel replaces it"
+msgstr "Verlauf: Eine im Farbe-Bedienfeld gewählte Farbe ersetzt ihn"

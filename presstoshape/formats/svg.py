@@ -28,6 +28,7 @@ from presstoshape.formats.svg_page import number_text as _num
 from presstoshape.formats.svg_page import page_attributes
 from presstoshape.formats.svg_paint import PaintDefs
 from presstoshape.formats.svg_reader import read_shapes_svg, read_svg, read_svg_with_notes
+from presstoshape.formats.svg_swatches import add_swatches
 from presstoshape.geometry import corners
 from presstoshape.geometry.affine import Affine, as_rotation, is_identity
 from presstoshape.geometry.aspect import DEFAULT
@@ -132,6 +133,7 @@ def write_svg(doc: Document) -> str:
         group = ET.SubElement(root, q("g"), attrs)
         for shape in _without_references(layer.shapes):
             group.append(_shape_element(shape, defs))
+    add_swatches(doc.swatches, defs)
     _insert_defs(root, defs, defs_slot)
     return _serialize(root)
 

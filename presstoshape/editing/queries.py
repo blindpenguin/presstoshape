@@ -1,19 +1,25 @@
 """Read-only questions about an AppState, shared by operations, tools and views."""
 
 from collections.abc import Iterator
+from typing import Literal
 
 from presstoshape.editing import containers
 from presstoshape.geometry import corners, transforms
-from presstoshape.models.app_state import AppState, Layer
+from presstoshape.models.app_state import AppState, Document, Layer
 from presstoshape.models.shapes import (
     CompositeShape,
     EllipseShape,
+    GroupShape,
     ImageShape,
+    LinearGradient,
+    Paint,
     PathShape,
+    RadialGradient,
     RectShape,
     Shape,
     TextShape,
     children_of,
+    content_children,
 )
 
 
@@ -125,3 +131,41 @@ def _any_flagged(content: tuple[tuple[Shape, ...], ...], flag: str) -> bool:
 # Whether any shape (inside containers too, in any layer) is hidden / locked.
 any_hidden = _FlagMemo("hidden")
 any_locked = _FlagMemo("locked")
+
+
+ColourTarget = Literal["selection", "tool", "current", "disabled"]
+
+
+def colour_target(state: AppState) -> ColourTarget:
+    """What the colour panel edits: the selection; else the active drawing tool's style for new shapes; else the
+    panel's own current colour. A selection of only images has no paint to edit."""
+    if state.selection:
+        selected = selected_shapes(state)
+        return "selection" if any(not isinstance(shape, ImageShape) for shape in selected) else "disabled"
+    if state.active_tool in state.tool_styles:
+        return "tool"
+    return "current"
+
+
+def _paint_colors(paint: Paint) -> Iterator[str]:
+    if isinstance(paint, str):
+        yield paint
+    elif isinstance(paint, (LinearGradient, RadialGradient)):
+        yield from (stop.color for stop in paint.stops)
+
+
+def document_colours(document: Document) -> list[str]:
+    """Distinct colours the visible shapes paint with (gradient stops included), in paint order. Mask objects and
+    Composite parts are left out: they shape what is drawn, but aren't drawn in their own colours."""
+    found: dict[str, None] = {}
+    pending = [shape for layer in document.layers if layer.visible for shape in reversed(layer.shapes)]
+    while pending:
+        shape = pending.pop()
+        if shape.hidden:
+            continue
+        if isinstance(shape, GroupShape):
+            pending.extend(reversed(content_children(shape)))
+        elif not isinstance(shape, ImageShape):
+            for color in (*_paint_colors(shape.style.fill), *_paint_colors(shape.style.stroke)):
+                found.setdefault(color.lower())
+    return list(found)

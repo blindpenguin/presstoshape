@@ -56,10 +56,15 @@ def _show_value(widget: QSpinBox | QDoubleSpinBox | QSlider, value: float) -> No
 
 
 class _PaintRow(QWidget):
-    """Checkbox (paint on/off) + swatch + paint opacity. Calls `on_color(hex | None)` and
-    `on_opacity(0..1)`."""
+    """Checkbox (paint on/off) + swatch + paint opacity. Calls `on_color(hex | None)`, `on_opacity(0..1)` and,
+    when the swatch is clicked, `on_activate()`."""
 
-    def __init__(self, on_color: Callable[[str | None], None], on_opacity: Callable[[float], None]) -> None:
+    def __init__(
+        self,
+        on_color: Callable[[str | None], None],
+        on_opacity: Callable[[float], None],
+        on_activate: Callable[[], None],
+    ) -> None:
         super().__init__()
         self.check, self.button, self.opacity = QCheckBox(), ColorButton(), _percent_box()
         self.button.setMinimumWidth(24)
@@ -70,7 +75,7 @@ class _PaintRow(QWidget):
         layout.addWidget(self.button, 1)
         layout.addWidget(self.opacity)
         self.check.toggled.connect(lambda on: on_color(self.button.color if on else None))
-        self.button.color_picked.connect(on_color)
+        self.button.clicked.connect(lambda: on_activate())
         self.opacity.valueChanged.connect(lambda value: on_opacity(value / 100))
 
     def set_paint(self, paint: Paint, opacity: float) -> None:
@@ -124,9 +129,12 @@ class _ChoiceBox(QComboBox):
 
 
 class StyleEditor(QWidget):
-    """Form for a subset of Style fields. Edits call `on_change({field: value})`; refresh(style) never does."""
+    """Form for a subset of Style fields. Edits call `on_change({field: value})`; refresh(style) never does. A
+    click on the fill or stroke swatch calls `on_activate("fill" | "stroke")` (the Colour panel edits it)."""
 
-    def __init__(self, fields: Sequence[str], on_change: OnChange) -> None:
+    def __init__(
+        self, fields: Sequence[str], on_change: OnChange, on_activate: Callable[[str], None] = lambda slot: None
+    ) -> None:
         super().__init__()
         self._on_change = on_change
         self._unit: Unit = "px"
@@ -142,10 +150,14 @@ class StyleEditor(QWidget):
         self._dash_offset: LengthSpinBox | None = None
         for field in fields:
             if field == FILL:
-                self._fill = _PaintRow(self._emitter("fill"), self._emitter("fill_opacity"))
+                self._fill = _PaintRow(
+                    self._emitter("fill"), self._emitter("fill_opacity"), lambda: on_activate("fill")
+                )
                 self.form.addRow(_("Fill"), self._fill)
             elif field == STROKE:
-                self._stroke = _PaintRow(self._emitter("stroke"), self._emitter("stroke_opacity"))
+                self._stroke = _PaintRow(
+                    self._emitter("stroke"), self._emitter("stroke_opacity"), lambda: on_activate("stroke")
+                )
                 self.form.addRow(_("Stroke"), self._stroke)
             elif field == WIDTH:
                 self._width = LengthSpinBox(0, 200, fine=True)

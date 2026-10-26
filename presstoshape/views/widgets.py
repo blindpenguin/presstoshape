@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QColorDialog, QComboBox, QPushButton
+from PySide6.QtWidgets import QComboBox, QPushButton
 
 from presstoshape.editing.operations.composites import PART_MODES, mode_label
 from presstoshape.i18n import _
@@ -13,26 +13,24 @@ def _rgba(stop: GradientStop) -> str:
 
 
 class ColorButton(QPushButton):
-    """Swatch button that opens a color dialog. Emits `color_picked(hex)`; `set_color` doesn't emit."""
-
-    color_picked = Signal(str)
+    """Swatch button showing a paint; a click is for the caller to handle (`clicked`). The colour itself is
+    chosen in the Colour panel."""
 
     def __init__(self, color: str = "#000000") -> None:
         super().__init__()
         self.setFixedHeight(24)
         self.color = color
         self.set_color(color)
-        self.clicked.connect(self._pick)
 
     def set_color(self, color: str) -> None:
         self.color = color
-        self.setToolTip("")
+        self.setToolTip(_("Edit in the Colour panel"))
         self._set_background(color)
 
     def set_gradient(self, gradient: Gradient) -> None:
         """Shows the gradient's stops as a strip; `color` becomes its first stop, where a colour pick starts."""
         self.color = flat_color(gradient) or self.color
-        self.setToolTip(_("Gradient: pick a colour to replace it"))
+        self.setToolTip(_("Gradient: picking a colour in the Colour panel replaces it"))
         stops = ", ".join(f"stop:{stop.offset:.3f} {_rgba(stop)}" for stop in gradient.stops)
         self._set_background(f"qlineargradient(x1:0, y1:0, x2:1, y2:0, {stops})")
 
@@ -41,12 +39,6 @@ class ColorButton(QPushButton):
             f"QPushButton {{ background: {background}; border: 1px solid #52525b; border-radius: 3px; }}"
             "QPushButton:disabled { background: #3f3f46; }"
         )
-
-    def _pick(self) -> None:
-        picked = QColorDialog.getColor(QColor(self.color), self.window())
-        if picked.isValid():
-            self.set_color(picked.name())
-            self.color_picked.emit(picked.name())
 
 
 class PartModeBox(QComboBox):

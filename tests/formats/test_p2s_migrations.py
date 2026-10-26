@@ -5,6 +5,7 @@ from pathlib import Path
 from presstoshape.formats.p2s import SavedState, read_p2s
 from presstoshape.formats.p2s_migrations import CURRENT_VERSION, MIGRATIONS, upgrade
 from presstoshape.models.app_state import Document, Layer, Tool
+from presstoshape.models.colours import Swatch
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     Aspect,
@@ -383,3 +384,23 @@ def test_v12_sample_opens_to_the_expected_document():
 
 def test_v11_sample_opens_in_version_12_without_live_corners():
     assert read_p2s((SAMPLES / "v11.p2s").read_bytes()) == expected_v11()
+
+
+def expected_v13() -> tuple[Document, SavedState]:
+    """What tests/formats/samples/v13.p2s holds: a rectangle and two document swatches, one half transparent."""
+    document = Document(
+        width=100.0,
+        height=100.0,
+        layers=[Layer("Layer 1", True, [RectShape(1, 10.0, 10.0, 40.0, 30.0, Style(fill="#e11d48"))])],
+        next_id=4,
+        swatches=(Swatch(2, "Rose", "#e11d48"), Swatch(3, "", "#0ea5e9", 0.5)),
+    )
+    return document, SavedState(zoom_percent=100)
+
+
+def test_v13_sample_opens_to_the_expected_document():
+    assert read_p2s((SAMPLES / "v13.p2s").read_bytes()) == expected_v13()
+
+
+def test_v12_sample_opens_in_version_13_without_swatches():
+    assert read_p2s((SAMPLES / "v12.p2s").read_bytes()) == expected_v12()

@@ -10,6 +10,7 @@ from presstoshape import i18n
 from presstoshape.editing.operations import clipboard as clipboard_ops
 from presstoshape.editing.operations import documents, guides, images, recovery, view
 from presstoshape.editing.session import Session
+from presstoshape.formats.swatch_library import read_library, write_library
 from presstoshape.geometry import units
 from presstoshape.i18n import N_, _
 from presstoshape.version import app_version
@@ -17,6 +18,7 @@ from presstoshape.views import app_settings, clipboard, menu_bar_view, window_pl
 from presstoshape.views.actions import AppActions
 from presstoshape.views.align_panel import AlignPanel
 from presstoshape.views.canvas_view import CanvasView
+from presstoshape.views.colour_panel import ColourPanel
 from presstoshape.views.edit_bar_view import EditBar
 from presstoshape.views.export_dialog import ExportPngDialog
 from presstoshape.views.grid_dialog import GridDialog
@@ -46,10 +48,15 @@ class MainWindow(QMainWindow):
     """Top view: assembles the panels and re-renders all of them from state after every session change."""
 
     def __init__(
-        self, session: Session, settings: QSettings | None = None, recovery_folder: Path | None = None
+        self,
+        session: Session,
+        settings: QSettings | None = None,
+        recovery_folder: Path | None = None,
+        library_path: Path | None = None,
     ) -> None:
         """`settings` stores the window placement; None (screenshots, self-test) leaves the user's untouched and
-        turns crash recovery off. `recovery_folder` overrides where recovery snapshots go (tests)."""
+        turns crash recovery and the swatch library file off. `recovery_folder` and `library_path` override where
+        recovery snapshots and the swatch library go (tests)."""
         super().__init__()
         self._settings = settings
         self._state = session.state
@@ -85,17 +92,29 @@ class MainWindow(QMainWindow):
         # Left dock area sits inside the left toolbar area, so this lands between tool strip and canvas.
         self._tool_dock = self._add_dock("tool", _("Tool"), self._tool_options, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._tool_dock.setFixedWidth(_TOOL_DOCK_WIDTH)
+        self._colour = ColourPanel(session, self._actions)
+        self._colour.preview_changed.connect(self.canvas.set_style_preview)
+        colour_dock = self._add_dock("colour", _("Colour"), self._colour)
         self._layers = LayersPanel(session)
         layers_dock = self._add_dock("layers", _("Layers"), self._layers)
         self._align = AlignPanel(session, self._actions)
         align_dock = self._add_dock("align", _("Align"), self._align)
+        self.splitDockWidget(colour_dock, layers_dock, Qt.Orientation.Vertical)
         self.splitDockWidget(layers_dock, align_dock, Qt.Orientation.Vertical)
-        # Layers keep most of the height; the split the user makes is restored with the window.
-        self.resizeDocks([layers_dock, align_dock], [3, 1], Qt.Orientation.Vertical)
+        # The Colour panel gets most of the height, Layers a smaller share; the split the user makes is restored
+        # with the window.
+        self.resizeDocks([colour_dock, layers_dock, align_dock], [4, 2, 1], Qt.Orientation.Vertical)
         if settings is not None:
             session.state.view = replace(session.state.view, show_rulers=app_settings.show_rulers(settings))
             session.state.snapping = app_settings.snap_settings(settings)
         self._saved_view = (session.state.view.show_rulers, session.state.snapping)
+        self._library_path = library_path or app_settings.swatch_library_path()
+        # A library file that couldn't be read is kept as a backup when the library is first saved over it.
+        self._library_unreadable = False
+        if settings is not None:
+            self._load_colours(settings)
+        self._saved_colours = (session.state.colours.recent, session.state.colours.numbers)
+        self._saved_library = session.state.colours.library
 
         self._status = StatusBar()
         self.setStatusBar(self._status)
@@ -133,6 +152,7 @@ class MainWindow(QMainWindow):
             self._edit_bar,
             self.canvas,
             self._tool_options,
+            self._colour,
             self._layers,
             self._align,
             self._status,
@@ -143,9 +163,47 @@ class MainWindow(QMainWindow):
             self._actions.set_enabled(command_id, bool(state.selection))
         self._update_paste_actions()
         self._remember_view()
+        self._remember_colours()
         # Screenshots and the self-test run without user settings, so there is nothing to change.
         self._actions.set_enabled("edit.settings", self._settings is not None)
         self._actions.set_enabled("image.replace", len(images.selected_images(state)) == 1)
+
+    def _load_colours(self, settings: QSettings) -> None:
+        state = self._state
+        state.colours.recent = app_settings.recent_colours(settings)
+        state.colours.numbers = app_settings.colour_numbers(settings)
+        if not self._library_path.is_file():
+            return
+        try:
+            state.colours.library = read_library(self._library_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, ValueError):
+            self._library_unreadable = True
+            state.status_message = _("The swatch library could not be read; it starts empty")
+
+    def _remember_colours(self) -> None:
+        """Recent colours and the number mode go to the settings, the library to its file, when they change."""
+        if self._settings is None:
+            return
+        colours = self._state.colours
+        current = (colours.recent, colours.numbers)
+        if current != self._saved_colours:
+            self._saved_colours = current
+            app_settings.set_recent_colours(self._settings, colours.recent)
+            app_settings.set_colour_numbers(self._settings, colours.numbers)
+        if colours.library is not self._saved_library:
+            self._saved_library = colours.library
+            try:
+                self._library_path.parent.mkdir(parents=True, exist_ok=True)
+                documents.write_atomically(
+                    self._library_path, write_library(colours.library).encode("utf-8"), self._library_unreadable
+                )
+                self._library_unreadable = False
+            except OSError as error:
+                QMessageBox.warning(
+                    self,
+                    _("Swatch Library"),
+                    _("The swatch library could not be saved: {error}").format(error=error.strerror or error),
+                )
 
     def _remember_view(self) -> None:
         """Rulers and snapping are app preferences: kept for the next start when they change."""

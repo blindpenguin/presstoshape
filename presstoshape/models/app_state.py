@@ -3,6 +3,7 @@ from enum import Enum, auto
 from typing import Literal
 
 from presstoshape.i18n import _
+from presstoshape.models.colours import ColourState, Swatch
 from presstoshape.models.layout import AlignReference, GridSettings, Guide, SnapSettings, ViewOptions
 from presstoshape.models.shapes import PartMode, Shape, Style
 
@@ -15,6 +16,7 @@ class Tool(Enum):
     RECTANGLE = auto()
     ELLIPSE = auto()
     TEXT = auto()
+    EYEDROPPER = auto()
 
 
 @dataclass
@@ -47,6 +49,8 @@ class Document:
     guides: tuple[Guide, ...] = ()
     # None: the default grid for the unit (geometry.units.grid_of).
     grid: GridSettings | None = None
+    # The document's palette, in display order.
+    swatches: tuple[Swatch, ...] = ()
 
 
 @dataclass
@@ -110,3 +114,4 @@ class AppState:
     view: ViewOptions = ViewOptions()
     snapping: SnapSettings = SnapSettings()
     align_reference: AlignReference = "selection"
+    colours: ColourState = field(default_factory=ColourState)

@@ -2,11 +2,13 @@
 
 import importlib.util
 import math
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from presstoshape.models.app_state import Document, Layer
+from presstoshape.models.colours import Swatch
 from presstoshape.models.shapes import (
     Aspect,
     Close,
@@ -328,6 +330,11 @@ DOCUMENTS = {
             ),
             Layer("Hidden", visible=False, shapes=[EllipseShape(3, 200, 220, 120, 60, FILL)]),
         ],
+    ),
+    "swatches": replace(
+        _doc(RectShape(1, 20, 20, 160, 120, FILL)),
+        swatches=(Swatch(2, "Red", "#ff0000"), Swatch(3, "", "#00ff00", 0.5)),
+        next_id=4,
     ),
 }
 

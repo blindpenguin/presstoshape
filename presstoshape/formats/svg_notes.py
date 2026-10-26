@@ -35,6 +35,7 @@ class Note(Enum):
     CONDITIONAL = auto()
     UNEVEN_STROKE = auto()
     TEXT_SKEW = auto()
+    SWATCH_GRADIENT = auto()
 
 
 def _message(note: Note, count: int) -> str:
@@ -137,6 +138,12 @@ def _message(note: Note, count: int) -> str:
             text = ngettext(
                 "{count} viewport would clip its content; it is shown unclipped",
                 "{count} viewports would clip their content; it is shown unclipped",
+                count,
+            )
+        case Note.SWATCH_GRADIENT:
+            text = ngettext(
+                "{count} gradient swatch was left out of the palette",
+                "{count} gradient swatches were left out of the palette",
                 count,
             )
         case Note.UNKNOWN_ELEMENT:

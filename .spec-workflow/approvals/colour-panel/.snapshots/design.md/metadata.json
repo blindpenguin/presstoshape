@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/colour-panel/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-26T16:04:17.921Z",
+      "trigger": "initial",
+      "approvalId": "approval_1793030657911_50g9296dc",
+      "approvalTitle": "Colour panel, swatches and eyedropper: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-26T16:05:03.328Z",
+      "trigger": "approved",
+      "approvalId": "approval_1793030657911_50g9296dc",
+      "approvalTitle": "Colour panel, swatches and eyedropper: design"
+    }
+  ]
+}

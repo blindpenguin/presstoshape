@@ -1,4 +1,4 @@
-"""CursorType -> QCursor. Rotate, node-insert, corner and the Pen's are vector cursors: a pointer arrow (the hotspot)
+"""CursorType -> QCursor. Rotate, node-insert, corner, eyedropper and the Pen's are vector cursors: a pointer arrow (the hotspot)
 with the action's Tabler icon as a badge."""
 
 from functools import cache
@@ -47,6 +47,7 @@ _CUSTOM = {
     CursorType.PEN_CLOSE: icons.CURSOR_PEN_CLOSE,
     CursorType.PEN_CONTINUE: icons.CURSOR_PEN_CONTINUE,
     CursorType.CORNER: icons.CURSOR_CORNER,
+    CursorType.EYEDROPPER: icons.CURSOR_EYEDROPPER,
 }
 
 

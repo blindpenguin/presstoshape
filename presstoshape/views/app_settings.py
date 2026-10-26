@@ -1,6 +1,7 @@
 """Where user settings live: the platform's usual place (registry on Windows, ~/.config on Linux), or, for the
 portable Windows build, an INI file next to the executable so nothing is written outside its folder."""
 
+import re
 import sys
 from dataclasses import fields
 from pathlib import Path
@@ -8,6 +9,8 @@ from pathlib import Path
 from PySide6.QtCore import QSettings, QStandardPaths
 
 from presstoshape.editing.operations.documents import DocumentSetup, setup_problem
+from presstoshape.models.colours import RECENT_LIMIT as RECENT_COLOURS_LIMIT
+from presstoshape.models.colours import NumberMode
 from presstoshape.models.layout import SnapSettings
 
 # Shipped only in the portable ZIP; its presence switches a packaged build to settings beside the executable.
@@ -206,3 +209,37 @@ def snap_settings(settings: QSettings) -> SnapSettings:
 def set_snap_settings(settings: QSettings, snapping: SnapSettings) -> None:
     for field in fields(SnapSettings):
         settings.setValue(f"{_SNAP_GROUP}/{field.name}", getattr(snapping, field.name))
+
+
+# --- colours ----------------------------------------------------------------------------------------
+
+_RECENT_COLOURS_KEY = "colours/recent"
+_COLOUR_NUMBERS_KEY = "colours/numbers"
+_HEX_COLOUR = re.compile(r"#[0-9a-f]{6}")
+
+
+def recent_colours(settings: QSettings) -> tuple[str, ...]:
+    value = settings.value(_RECENT_COLOURS_KEY)
+    entries = [value] if isinstance(value, str) else value if isinstance(value, list) else []
+    colors = [entry.lower() for entry in entries if isinstance(entry, str) and _HEX_COLOUR.fullmatch(entry.lower())]
+    return tuple(dict.fromkeys(colors))[:RECENT_COLOURS_LIMIT]
+
+
+def set_recent_colours(settings: QSettings, colors: tuple[str, ...]) -> None:
+    if colors:
+        settings.setValue(_RECENT_COLOURS_KEY, list(colors))
+    else:
+        settings.remove(_RECENT_COLOURS_KEY)
+
+
+def colour_numbers(settings: QSettings) -> NumberMode:
+    return "rgb" if settings.value(_COLOUR_NUMBERS_KEY) == "rgb" else "hsv"
+
+
+def set_colour_numbers(settings: QSettings, mode: NumberMode) -> None:
+    settings.setValue(_COLOUR_NUMBERS_KEY, mode)
+
+
+def swatch_library_path(executable: str = sys.executable, frozen: bool = getattr(sys, "frozen", False)) -> Path:
+    """The personal swatch library file; the folder may not exist yet."""
+    return _data_folder("swatches.json", executable, frozen)

@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/colour-panel/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-26T16:06:08.126Z",
+      "trigger": "initial",
+      "approvalId": "approval_1793030768120_9n02pe32r",
+      "approvalTitle": "Colour panel, swatches and eyedropper: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-26T16:06:18.550Z",
+      "trigger": "approved",
+      "approvalId": "approval_1793030768120_9n02pe32r",
+      "approvalTitle": "Colour panel, swatches and eyedropper: tasks"
+    }
+  ]
+}

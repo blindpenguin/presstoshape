@@ -7,15 +7,16 @@ from PySide6.QtCore import QEvent, QPoint, QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractScrollArea, QDialog, QInputDialog, QWidget
 
-from presstoshape.editing import containers
+from presstoshape.editing import containers, queries
 from presstoshape.editing.operations import corners as corner_ops
-from presstoshape.editing.operations import guides, view
+from presstoshape.editing.operations import guides, style, view
 from presstoshape.editing.session import Session
 from presstoshape.geometry import units
 from presstoshape.i18n import _
 from presstoshape.models.app_state import AppState
 from presstoshape.models.layout import Guide
 from presstoshape.models.shapes import Shape, children_of
+from presstoshape.render import sample
 from presstoshape.render.guides import draw_grid, draw_guides
 from presstoshape.render.overlay import CanvasColors
 from presstoshape.render.paths import PathCache
@@ -82,6 +83,7 @@ class CanvasView(QAbstractScrollArea):
                 self._ask_text,
                 edit_guide=self._edit_guide,
                 edit_corners=self._edit_corners,
+                sample_color=self._sample_color,
             )
         )
         self._vp = Viewport()
@@ -90,6 +92,8 @@ class CanvasView(QAbstractScrollArea):
         self._doc_size: tuple[float, float] | None = None
 
         self._pan_from = None
+        # Selected shapes restyled while a colour is dragged in the Colour panel, drawn instead of the originals.
+        self._style_preview: tuple[Shape, ...] = ()
         self._hover_pos: QPointF | None = None
         self._cursor_type: CursorType | None = None
         self._hint: str | None = None
@@ -222,6 +226,10 @@ class CanvasView(QAbstractScrollArea):
             return
         canvas.setMatrix(self._vp.matrix(dpr))
         overlay = self._toolbox.active.overlay
+        if self._style_preview and not self._toolbox.active.active:
+            overlay = replace(
+                overlay, moving=frozenset(shape.id for shape in self._style_preview), live=self._style_preview
+            )
         if self._new_guide is not None:
             overlay = replace(overlay, guide_preview=self._new_guide, snap=self._guide_snapper.hits)
         chain = containers.edit_chain(state)
@@ -342,6 +350,25 @@ class CanvasView(QAbstractScrollArea):
         dialog = CornerDialog(kind or "round", radius or 0.0, state.document.unit, state.document.dpi, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             corner_ops.set_corners(self._session, refs, dialog.kind, dialog.radius)
+
+    def set_style_preview(self, changes: dict | None) -> None:
+        """Draws the selected shapes with style `changes` until called with None; the document is unchanged."""
+        state = self._state
+        if not changes or state is None:
+            self._style_preview = ()
+        else:
+            self._style_preview = tuple(
+                style.restyle_shape(shape, **changes) for shape in queries.selected_shapes(state)
+            )
+        self._repaint()
+
+    def _sample_color(self, point: tuple[float, float]) -> str | None:
+        state = self._state
+        if state is None:
+            return None
+        return sample.color_at(
+            state.document, self._cache, point, self._vp.zoom, state.view.show_references, _COLORS.artboard
+        )
 
     # --- view navigation ----------------------------------------------------
 

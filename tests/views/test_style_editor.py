@@ -190,15 +190,26 @@ def test_a_gradient_shows_as_a_gradient_and_refresh_stays_silent(editor):
         assert "qlineargradient" in row.button.styleSheet() and "rgba(0, 0, 255, 128)" in row.button.styleSheet()
         assert row.button.color == "#ff0000" and row.button.toolTip()
     widget.refresh(Style(fill="#00ff00"))
-    assert "qlineargradient" not in widget._fill.button.styleSheet() and widget._fill.button.toolTip() == ""
+    assert "qlineargradient" not in widget._fill.button.styleSheet()
+    assert widget._fill.button.toolTip() == "Edit in the Colour panel"
     assert changes == []
 
 
-def test_picking_a_colour_on_a_gradient_swatch_reports_the_flat_colour(editor):
+def test_clicking_a_swatch_activates_its_paint_and_opens_no_dialog():
+    QApplication.instance() or QApplication([])
+    activated = []
+    widget = StyleEditor(ALL_FIELDS, lambda changes: None, activated.append)
+    widget._stroke.button.click()
+    widget._fill.button.click()
+    assert activated == ["stroke", "fill"]
+    assert QApplication.activeModalWidget() is None
+
+
+def test_turning_a_gradient_off_and_on_again_uses_its_first_stop(editor):
     from presstoshape.models.shapes import GradientStop, LinearGradient
 
     widget, changes = editor
     widget.refresh(Style(fill=LinearGradient(0, 0, 1, 0, (GradientStop(0, "#ff0000"), GradientStop(1, "#0000ff")))))
-    widget._fill.button.color_picked.emit("#123456")
     widget._fill.check.setChecked(False)
-    assert changes == [{"fill": "#123456"}, {"fill": None}]
+    widget._fill.check.setChecked(True)
+    assert changes == [{"fill": None}, {"fill": "#ff0000"}]

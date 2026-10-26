@@ -72,6 +72,21 @@ def shape_at(shapes: Sequence[Shape], cache: PathCache, point: tuple[float, floa
     return None
 
 
+def leaf_at(shapes: Sequence[Shape], cache: PathCache, point: tuple[float, float], tolerance: float) -> Shape | None:
+    """The deepest shape drawn at `point`: inside groups (mask objects left out), not inside Composites, whose parts
+    don't draw. Locked shapes count, hidden ones don't (the eyedropper reads what is visible)."""
+    x, y = point
+    for shape in reversed(shapes):
+        if shape.hidden or not _contains(shape, cache, x, y, tolerance):
+            continue
+        if not isinstance(shape, GroupShape):
+            return shape
+        leaf = leaf_at(content_children(shape), cache, point, tolerance)
+        if leaf is not None:
+            return leaf
+    return None
+
+
 def shapes_in_rect(shapes: Sequence[Shape], cache: PathCache, rect: Rect) -> set[int]:
     """Those of `shapes` whose pickable area intersects `rect` (x, y, w, h in doc units)."""
     band = skia.Rect.MakeXYWH(*rect)

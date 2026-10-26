@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from presstoshape.editing import containers
-from presstoshape.editing.operations import composites, view
+from presstoshape.editing.operations import colours, composites, view
 from presstoshape.editing.operations import corners as corner_ops
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
@@ -61,6 +61,11 @@ _HINTS = {
         "curves with few nodes. End near the start to close the shape."
     ),
     Tool.TEXT: N_("Click on the canvas to place text."),
+    Tool.EYEDROPPER: N_(
+        "Click a shape to give the selected shapes its style. With nothing selected, its colours go to the "
+        "Colour panel. Shift+click, or click a picture, to pick the colour under the pointer for the active "
+        "fill or stroke."
+    ),
 }
 
 TITLES = {
@@ -71,6 +76,7 @@ TITLES = {
     Tool.RECTANGLE: N_("Rectangle tool"),
     Tool.ELLIPSE: N_("Ellipse tool"),
     Tool.TEXT: N_("Text tool"),
+    Tool.EYEDROPPER: N_("Eyedropper"),
 }
 
 
@@ -89,8 +95,13 @@ class ToolOptionsPanel(QStackedWidget):
         # Drawing tools show the mode new parts get while a Composite is being edited.
         self._part_modes: dict[Tool, tuple[QFormLayout, PartModeBox]] = {}
         self._pages[Tool.NODE] = self._node_page(session, actions)
+        self._pages[Tool.EYEDROPPER] = self._hint_page(Tool.EYEDROPPER)
         for tool, fields in _FIELDS.items():
-            editor = StyleEditor(fields, lambda changes, t=tool: view.set_tool_style(session, t, **changes))
+            editor = StyleEditor(
+                fields,
+                lambda changes, t=tool: view.set_tool_style(session, t, **changes),
+                lambda slot: colours.set_active_paint(session, slot),
+            )
             if tool is not Tool.TEXT:
                 part_mode = PartModeBox()
                 part_mode.mode_picked.connect(partial(composites.set_new_part_mode, session))
@@ -115,6 +126,17 @@ class ToolOptionsPanel(QStackedWidget):
             self.addWidget(page)
             self._pages[tool] = page
             self._editors[tool] = editor
+
+    def _hint_page(self, tool: Tool) -> QWidget:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        hint = QLabel(_(_HINTS[tool]))
+        hint.setWordWrap(True)
+        hint.setEnabled(False)
+        layout.addWidget(hint)
+        layout.addStretch(1)
+        self.addWidget(page)
+        return page
 
     def _smoothing_row(self, session: Session) -> QWidget:
         row = QWidget()
@@ -190,6 +212,8 @@ class ToolOptionsPanel(QStackedWidget):
             return
         if tool is Tool.NODE:
             self._refresh_corners(state)
+            return
+        if tool not in self._editors:
             return
         document = state.document
         self._editors[tool].set_unit(document.unit, document.dpi)

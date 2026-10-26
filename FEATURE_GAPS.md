@@ -13,7 +13,7 @@ Editor priorities:
 - **P2**: core professional depth; needed for real projects.
 - **P3**: advanced, or a later differentiator.
 
-PressToShape today (2026-10-25): align/distribute, rulers, guides, grid, snapping, groups (with opacity), select / node (node types, break/join, combine/split) / pen (continues paths) / pencil / rectangle (rounded corners) / ellipse / text (left/centre/right alignment) tools, transform handles, fill + stroke + width, opacity (object, fill, stroke), fill rule, line caps/joins/dashes, layers, object hide/lock + layer tree, booleans + divide, Composites, raise/lower, undo, clipboard (copy/cut/paste/paste in place/duplicate, Alt+drag), native `.p2s` + SVG open/save (CSS styles, `<use>`/`<symbol>`, tspan lines, import notes dialog), PNG export with DPI, crash recovery + backup on save, New Document dialog with presets, units (px/mm/cm/in/pt) and DPI, recent files, Settings window, English + German UI with user translations, nightlies.
+PressToShape today (2026-10-26): align/distribute, rulers, guides, grid, snapping, groups (with opacity), select / node (node types, break/join, combine/split) / pen (continues paths) / pencil / rectangle (rounded corners) / ellipse / text (left/centre/right alignment) / eyedropper tools, transform handles, Colour panel (HSV picker, hex, recent colours, document swatches, personal swatch library, `.gpl` palettes), fill + stroke + width, opacity (object, fill, stroke), fill rule, line caps/joins/dashes, layers, object hide/lock + layer tree, booleans + divide, Composites, raise/lower, undo, pictures (place, drop, paste, references), clipboard (copy/cut/paste/paste in place/duplicate, Alt+drag), native `.p2s` + SVG open/save (CSS styles, `<use>`/`<symbol>`, tspan lines, import notes dialog), PNG export with DPI, crash recovery + backup on save, New Document dialog with presets, units (px/mm/cm/in/pt) and DPI, recent files, Settings window, English + German UI with user translations, nightlies.
 
 ## SVG conformance
 
@@ -100,8 +100,8 @@ Every level has the same definition of done:
 - [ ] Inverted opacity masks are kept in `.p2s` but saved to SVG without the inversion until filters exist (Level 8).
 - [ ] Keyboard shortcuts for Make/Release Clipping Mask (Illustrator: Ctrl+7) are not bound; ask before adding.
 
-**Level 5 — Images and external references** (also editor P1 "Import images"):
-- [ ] `<image>` embedded (data URI) and linked (relative path), PNG/JPEG, `preserveAspectRatio`; place images in the editor (`struct-image-*`, `struct-symbol-01-b`).
+**Level 5 — Images and external references** (also editor P1 "Import images"; images done, spec `svg-conformance-level5`):
+- [x] `<image>` embedded (data URI) and linked (relative path, embedded on import), PNG/JPEG/WebP/GIF, `preserveAspectRatio`; place images in the editor (`struct-image-*`, `struct-symbol-01-b`).
 - [ ] `<use>` pointing into other files relative to the opened file (`struct-use-06-b`, `struct-use-05-b` partly).
 
 **Level 6 — Markers** (also editor P1 "arrowheads"):
@@ -135,13 +135,13 @@ Every level has the same definition of done:
 - [ ] **Line tool**, polygon and star tool. (Rounded rectangle corners done, one radius for all corners; per-corner radii and on-canvas corner handles still open.)
 - [x] **Pencil / freehand tool** with smoothing (F). Base for tablet pressure and brushes.
 - [x] **Bezier pen** (P): click for corners and straight lines, drag for curves, Alt breaks handles, click the first node to close, Backspace removes the last node, start on an open end to continue a path, click an open end to join (done 2026-10-25, spec `path-structure`). Still open: adding/removing nodes with the pen.
-- [ ] **Eyedropper**: pick fill/stroke from a shape (and color from the canvas).
+- [x] **Eyedropper** (I): click a shape to give the selection its whole style (no selection: its colours go to the Colour panel), Shift+click picks the colour shown on the canvas (done 2026-10-26, spec `colour-panel`).
 - [ ] **Zoom tool and hand tool**, Space+drag to pan from any tool.
 
 ### Style
 - [x] **Opacity** per object and per fill/stroke.
 - [x] **Stroke options**: caps, joins, miter limit, dashes, dash offset. Still open: alignment (inside/center/outside); arrowheads → SVG Level 6.
-- [ ] **Color picker**: proper HSV/HSL/hex panel docked in the UI, recent colors, swatches/palette.
+- [x] **Color picker**: docked Colour panel with fill/stroke pair (X, Shift+X), HSV picker, HSV/RGB numbers, hex and colour names, alpha, recent colours, document swatches (saved in `.p2s` and as Inkscape swatches in SVG) and a personal swatch library with `.gpl` import/export (done 2026-10-26, spec `colour-panel`). Still open: HSL and CMYK modes, gradient stop editing in the panel, dragging swatches onto shapes.
 
 ### Layout and precision
 - [x] **Align and distribute** (to selection or artboard; Align panel). Key object still open.
@@ -154,13 +154,13 @@ Every level has the same definition of done:
 - [x] **New document size**: New Document dialog with presets (A4, Letter, 1080p, …), custom size, unit, DPI, orientation.
 - [ ] **Document properties**: change size/unit/DPI of an existing document, background colour.
 - [x] **Recent files**: File → Open Recent, list in the startup dialog.
-- [ ] **Open by drag and drop** onto the window.
+- [ ] **Open by drag and drop** onto the window: pictures can be dropped (Level 5); `.svg` and `.p2s` files can't yet.
 - [x] **Crash recovery**: snapshots while unsaved (interval setting), Recover dialog after a crash, one backup of the previous version on save. (Autosave into the user's own file deliberately not done.)
 - [x] **Settings window**: categories + pages (General, Language, Canvas).
 - [ ] **More settings**: nudge step, undo depth, theme, default unit.
 - [ ] **Keyboard shortcut overview** (and later customization).
 - [ ] **Export**: PDF, JPEG/WebP, plain/optimized SVG, export selection only, multiple sizes at once. (SVG via Save As and PNG with DPI exist.)
-- [ ] **Import images** → SVG Level 5.
+- [x] **Import images** → SVG Level 5 (done 2026-10-23).
 - [ ] **Print**.
 
 ## Editor features: P2, core professional depth
@@ -170,7 +170,7 @@ Every level has the same definition of done:
 - [ ] **Patterns** → SVG Level 3.
 - [ ] **Blend modes** (CSS `mix-blend-mode`, SVG 2 / Compositing; beyond the 1.1 suite).
 - [ ] **Multiple fills and strokes per object** (appearance stack, Illustrator/Affinity style). SVG export needs a fallback (stacked copies).
-- [ ] **Global/linked colors**: change one swatch, every user updates.
+- [ ] **Global/linked colors**: change one swatch, every user updates. Document swatches have stable ids from the shapes' id range so paints can refer to them later (spec `colour-panel`).
 
 ### Paths
 - [ ] **Stroke to path**, **offset path** (inset/outset), **simplify**. (Reverse direction done 2026-10-25, spec `path-structure`.)

@@ -8,6 +8,8 @@ SVG_NS = "http://www.w3.org/2000/svg"
 INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 SODIPODI_NS = "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+# Open Swatchbook: Inkscape 0.92 marked swatches with osb:paint.
+OSB_NS = "http://www.openswatchbook.org/uri/2009/osb"
 ET.register_namespace("", SVG_NS)
 # Composite definitions live in PRESSTOSHAPE_NS, inside the result path's <metadata>: viewers don't render it
 # and Inkscape keeps it.
@@ -26,6 +28,8 @@ LABEL = f"{{{INKSCAPE_NS}}}label"
 INSENSITIVE = f"{{{SODIPODI_NS}}}insensitive"
 NODETYPES = f"{{{SODIPODI_NS}}}nodetypes"
 XLINK_HREF = f"{{{XLINK_NS}}}href"
+SWATCH = f"{{{INKSCAPE_NS}}}swatch"
+OSB_PAINT = f"{{{OSB_NS}}}paint"
 XML_BASE = "{http://www.w3.org/XML/1998/namespace}base"
 XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
 SVG_PREFIX = f"{{{SVG_NS}}}"

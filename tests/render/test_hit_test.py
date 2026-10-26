@@ -15,7 +15,7 @@ from presstoshape.models.shapes import (
     Style,
     TextShape,
 )
-from presstoshape.render.hit_test import shape_at, shapes_in_rect
+from presstoshape.render.hit_test import leaf_at, shape_at, shapes_in_rect
 from presstoshape.render.paths import PathCache
 from presstoshape.render.scene import visible_shapes
 
@@ -278,3 +278,26 @@ def test_fresh_ids_keep_mask_membership(session):
     copy = with_fresh_ids(session.state, [_masked()])[0]
     assert copy.masking.mask_ids == (copy.children[1].id,)
     assert copy.children[1].id >= 100
+
+
+def test_leaf_at_finds_the_deepest_shape_locked_included():
+    inner = RectShape(1, 0, 0, 10, 10, Style(fill="#ff0000"), locked=True)
+    hidden = RectShape(2, 0, 0, 10, 10, Style(fill="#00ff00"), hidden=True)
+    group = GroupShape(3, (inner, hidden))
+    outer = GroupShape(4, (group,))
+    cache = PathCache()
+    assert leaf_at([outer], cache, (5, 5), 0.0) is inner
+    assert leaf_at([outer], cache, (50, 50), 0.0) is None
+
+
+def test_leaf_at_skips_mask_objects_and_stops_at_composites():
+    content = RectShape(1, 0, 0, 10, 10, Style(fill="#ff0000"))
+    mask = RectShape(2, 0, 0, 20, 20, Style(fill="#ffffff"))
+    masked = GroupShape(3, (mask, content), masking=Masking("luminance", (2,)))
+    composite = CompositeShape(
+        6, (RectShape(4, 30, 0, 10, 10, Style()), RectShape(5, 35, 0, 10, 10, Style())), ("add", "add"), Style()
+    )
+    cache = PathCache()
+    assert leaf_at([masked, composite], cache, (5, 5), 0.0) is content
+    assert leaf_at([masked, composite], cache, (15, 15), 0.0) is None
+    assert leaf_at([masked, composite], cache, (36, 5), 0.0) is composite

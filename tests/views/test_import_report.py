@@ -19,7 +19,7 @@ def window(tmp_path):
 
     QApplication.instance() or QApplication([])
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
-    window = MainWindow(Session(), settings, tmp_path / "recovery")
+    window = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "swatches.json")
     window.reports = []
     window.show_import_report = lambda name, notes: window.reports.append((name, notes))
     yield window

@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from presstoshape import icons
 from presstoshape.editing import containers, queries
 from presstoshape.editing.object_tree import object_label
-from presstoshape.editing.operations import composites, shapes, style, transform
+from presstoshape.editing.operations import colours, composites, shapes, style, transform
 from presstoshape.editing.session import Session
 from presstoshape.geometry import transforms
 from presstoshape.i18n import N_, _, ngettext
@@ -139,7 +139,11 @@ class SelectionOptions(QWidget):
         self._separator.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(self._separator)
 
-        self._style = StyleEditor(ALL_FIELDS, lambda changes: style.set_style(session, **changes))
+        self._style = StyleEditor(
+            ALL_FIELDS,
+            lambda changes: style.set_style(session, **changes),
+            lambda slot: colours.set_active_paint(session, slot),
+        )
         layout.addWidget(self._style)
         # Pictures have an opacity and no other paint.
         self._image_style = StyleEditor((OPACITY,), lambda changes: style.set_style(session, **changes))

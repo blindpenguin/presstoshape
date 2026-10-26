@@ -57,6 +57,7 @@ Optional precision aids on the document:
 |---|---|---|
 | `guides` | list | `{"id": integer, "orientation": "horizontal" or "vertical", "position": number}`. The position is the y of a horizontal guide or the x of a vertical one, in document pixels. Guide ids share the shape ids' range. |
 | `grid` | object | `{"spacing": number > 0, "major_every": integer ≥ 1}`: minor line distance in document pixels and the major line interval. Left out when the document uses the default grid for its unit. |
+| `swatches` | list | The document's colour palette in display order: `{"id": integer, "name": text, "color": "#rrggbb", "opacity": number 0–1 (optional, default 1)}`. Swatch ids share the shape ids' range. Left out when empty. |
 
 ### Shapes
 
@@ -185,6 +186,7 @@ Undo history and the active tool are not stored.
 | 10 | nightlies from October 2026 | Shape type `image` and the `media/` entries holding its pictures. Version 9 files need no change. |
 | 11 | nightlies from October 2026 | Optional `corners` on paths. Version 10 files need no change (no corner nodes). |
 | 12 | nightlies from October 2026 | Optional `roundings` (live corners) on paths. Version 11 files need no change (no live corners). |
+| 13 | nightlies from October 2026 | Optional `document.swatches` (the document's colour palette). Version 12 files need no change (no swatches). |
 
 Rules for changing the format:
 

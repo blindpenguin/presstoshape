@@ -52,6 +52,7 @@ from presstoshape.formats.svg_nodetypes import with_node_types
 from presstoshape.formats.svg_notes import Note, NoteCollector
 from presstoshape.formats.svg_page import Page, read_page
 from presstoshape.formats.svg_properties import normalize
+from presstoshape.formats.svg_swatches import read_swatches
 from presstoshape.formats.svg_values import (
     Whitespace,
     corner_radii,
@@ -261,7 +262,16 @@ def _read_layers(
             loose.shapes.extend(shapes)
 
     guides, grid = read_namedview(root, page, reader.new_id, reader.notes) if page is not None else ((), None)
-    document = Document(layers=layers or [Layer(layer_name(1))], next_id=reader.next_id, guides=guides, grid=grid)
+    swatches = (
+        read_swatches(root, reader.ids, reader.stop_style, reader.new_id, reader.notes) if page is not None else ()
+    )
+    document = Document(
+        layers=layers or [Layer(layer_name(1))],
+        next_id=reader.next_id,
+        guides=guides,
+        grid=grid,
+        swatches=swatches,
+    )
     return document, reader.notes.messages()
 
 
@@ -905,7 +915,7 @@ class _Reader:
     def _gradient(self, element: ET.Element) -> Resolved | None:
         key = (id(element), self.viewport)
         if key not in self._gradients:
-            resolved = resolve_gradient(element, self.ids, self._stop_style, self.viewport)
+            resolved = resolve_gradient(element, self.ids, self.stop_style, self.viewport)
             self._gradients[key] = resolved
             if resolved is not None:
                 self.notes.add(Note.INVALID_VALUE, resolved.invalid)
@@ -926,7 +936,7 @@ class _Reader:
             style = self.style(style, ancestor)
         return style
 
-    def _stop_style(self, stop: ET.Element) -> dict[str, str]:
+    def stop_style(self, stop: ET.Element) -> dict[str, str]:
         return self._element_style(stop)
 
     def _place_gradients(self, shape: Shape, m: Affine, box: Box | None, props: dict[str, str] | None = None) -> Shape:

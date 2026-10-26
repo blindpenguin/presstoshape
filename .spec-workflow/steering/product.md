@@ -15,9 +15,9 @@ Today PressToShape is at an early stage (shapes, bezier pen, text, styling, laye
 
 ## Key Features
 Current:
-1. **Drawing tools**: select, node, bezier pen (click for corners, drag for curves, closing paths), pencil (freehand with smoothing), rectangle, ellipse, text; Shift constraints, keyboard shortcuts.
+1. **Drawing tools**: select, node, bezier pen (click for corners, drag for curves, closing paths), pencil (freehand with smoothing), rectangle, ellipse, text, eyedropper (picks up a shape's style or the colour under the pointer); Shift constraints, keyboard shortcuts.
 2. **Direct manipulation**: scale/rotate handles on the selection, arrow-key nudge, flip, align and distribute, rulers, guides, grid and snapping, path node and bezier handle editing (node types, break, join, delete segment, close/open, reverse, combine/split, continuing paths with the pen), live corners (round, inverted, chamfer), object to path, cursors that show the action.
-3. **Styling**: fill and stroke with their own opacity, stroke width, object opacity, fill rule, line ends, corners and dashes per shape or multi-selection; rounded rectangle corners, text alignment; per-tool default styles in a context-sensitive tool options panel.
+3. **Styling**: fill and stroke with their own opacity, stroke width, object opacity, fill rule, line ends, corners and dashes per shape or multi-selection; rounded rectangle corners, text alignment; per-tool default styles in a context-sensitive tool options panel; a docked Colour panel (fill/stroke pair, HSV picker, hex, alpha, recent colours, document swatches saved as Inkscape swatches, a personal swatch library with GIMP palette import/export).
 4. **Layers and groups**: layers can be added, deleted, renamed, hidden and locked (Inkscape-compatible); single objects can be hidden and locked too, and the Layers panel shows every object in a tree with eye and lock toggles; groups bundle shapes, can be entered to edit inside them and have their own opacity; SVG groups stay groups.
 5. **Boolean operations**: union, difference, intersection, exclude, divide.
 6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
@@ -66,7 +66,7 @@ Not applicable — PressToShape is a local desktop app with no telemetry. User f
 PressToShape grows from its current shape-editor core into a full professional illustration application, pillar by pillar, while its session / operations / tools architecture keeps it maintainable.
 
 ### Potential Enhancements
-- **Pro workflows**: artboards, symbols/components, swatches and color libraries, global colors, styles libraries.
+- **Pro workflows**: artboards, symbols/components, global (linked) colors, styles libraries.
 - **Import**: PDF / AI-compatible import, more SVG features (patterns, filters, markers). Raster pictures (PNG, JPEG, WebP, GIF) can be placed and are embedded in `.p2s` and SVG; SVG files as pictures are not read.
 - **Export**: PNG/JPEG/PDF export with size/DPI and per-artboard/slice export.
 - **Customization**: preferences, customizable shortcuts and workspaces.

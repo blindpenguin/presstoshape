@@ -131,6 +131,11 @@ KEYMAP: dict[str, Binding] = {
     "tool.rectangle": Binding("R", icons.TOOL_RECTANGLE),
     "tool.ellipse": Binding("E", icons.TOOL_ELLIPSE),
     "tool.text": Binding("T", icons.TOOL_TEXT),
+    "tool.eyedropper": Binding("I", icons.TOOL_EYEDROPPER),
+    "colour.toggle_active": Binding("X"),
+    "colour.swap": Binding("Shift+X", icons.COLOUR_SWAP),
+    "colour.none": Binding(icon=icons.COLOUR_NONE),
+    "colour.default": Binding(icon=icons.COLOUR_DEFAULT),
 }
 
 TOOL_IDS = [entry.id for entry in TOOLS]
@@ -177,6 +182,7 @@ DISTRIBUTE_IDS = [
     "object.distribute_centers_x",
     "object.distribute_centers_y",
 ]
+COLOUR_IDS = ["colour.toggle_active", "colour.swap", "colour.none", "colour.default"]
 SNAP_TARGET_IDS = ["view.snap_grid", "view.snap_guides", "view.snap_artboard", "view.snap_objects", "view.snap_nodes"]
 
 # The File menu's recent files submenu; menu_bar_view creates it here and MainWindow fills it when it opens.
@@ -249,6 +255,7 @@ MENUS: list[tuple[str, list[str | None | tuple[str, list[str]]]]] = [
             "object.mask.to_content",
             None,
             (N_("&Picture"), IMAGE_IDS),
+            (N_("&Fill and Stroke"), COLOUR_IDS),
             None,
             "object.hide",
             "object.show_all",

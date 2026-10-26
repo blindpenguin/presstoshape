@@ -22,6 +22,7 @@ def tool_name(tool: Tool) -> str:
         Tool.RECTANGLE: pgettext("tool", "Rectangle"),
         Tool.ELLIPSE: pgettext("tool", "Ellipse"),
         Tool.TEXT: pgettext("tool", "Text"),
+        Tool.EYEDROPPER: pgettext("tool", "Eyedropper"),
     }
     return names[tool]
 

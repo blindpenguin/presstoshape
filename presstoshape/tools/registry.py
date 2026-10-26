@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from presstoshape.i18n import N_
 from presstoshape.models.app_state import Tool
 from presstoshape.tools.base import BaseTool, ToolContext
+from presstoshape.tools.eyedropper import EyedropperTool
 from presstoshape.tools.node import NodeTool
 from presstoshape.tools.pen import PenTool
 from presstoshape.tools.pencil import PencilTool
@@ -31,6 +32,7 @@ TOOLS = (
     ToolEntry(Tool.RECTANGLE, "tool.rectangle", N_("&Rectangle"), RectangleTool),
     ToolEntry(Tool.ELLIPSE, "tool.ellipse", N_("&Ellipse"), EllipseTool),
     ToolEntry(Tool.TEXT, "tool.text", N_("&Text"), TextTool),
+    ToolEntry(Tool.EYEDROPPER, "tool.eyedropper", N_("E&yedropper"), EyedropperTool),
 )
 
 

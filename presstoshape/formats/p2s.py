@@ -17,6 +17,7 @@ from presstoshape.geometry.aspect import DEFAULT, Invalid, parse_aspect
 from presstoshape.geometry.boxes import Point
 from presstoshape.i18n import _
 from presstoshape.models.app_state import Document, Layer, Tool
+from presstoshape.models.colours import Swatch
 from presstoshape.models.layout import GridSettings, Guide
 from presstoshape.models.shapes import (
     CORNER_KINDS,
@@ -72,6 +73,7 @@ _MAX_ENTRIES = 10_000
 _MAX_MEDIA_TOTAL = 1024 * 1024 * 1024
 MEDIA_EXTENSIONS = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
 MISSING_MIME = "application/x-missing"
+_SWATCH_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
 _MEDIA_NAME = re.compile(r"media/([0-9a-f]{64})\.(?:png|jpg|webp|gif)")
 # Fixed entry timestamps, so saving the same drawing twice gives the same bytes.
 _ENTRY_DATE = (1980, 1, 1, 0, 0, 0)
@@ -308,6 +310,15 @@ def encode_document(document: Document) -> dict[str, Any]:
         ]
     if document.grid is not None:
         fields["grid"] = {"spacing": _number(document.grid.spacing), "major_every": document.grid.major_every}
+    if document.swatches:
+        fields["swatches"] = [_encode_swatch(swatch) for swatch in document.swatches]
+    return fields
+
+
+def _encode_swatch(swatch: Swatch) -> dict[str, Any]:
+    fields: dict[str, Any] = {"id": swatch.id, "name": swatch.name, "color": swatch.color}
+    if swatch.opacity != 1.0:
+        fields["opacity"] = _number(swatch.opacity)
     return fields
 
 
@@ -667,7 +678,9 @@ def decode_document(value: Any, where: str = "document", media: MediaTable | Non
     if not layers:
         raise _damaged(f"{where}.layers", _("should have at least one layer"))
     guides = _decode_guides(fields.get("guides", []), f"{where}.guides")
-    ids = [shape_id for layer in layers for shape_id in _all_ids(layer.shapes)] + [guide.id for guide in guides]
+    swatches = _decode_swatches(fields.get("swatches", []), f"{where}.swatches")
+    ids = [shape_id for layer in layers for shape_id in _all_ids(layer.shapes)]
+    ids += [guide.id for guide in guides] + [swatch.id for swatch in swatches]
     if len(ids) != len(set(ids)):
         raise _damaged(where, _("uses a shape id twice"))
     next_id = read_int(_field(fields, "next_id", where), f"{where}.next_id", minimum=0)
@@ -687,7 +700,27 @@ def decode_document(value: Any, where: str = "document", media: MediaTable | Non
         dpi=dpi,
         guides=guides,
         grid=_decode_grid(fields["grid"], f"{where}.grid") if "grid" in fields else None,
+        swatches=swatches,
     )
+
+
+def _decode_swatches(value: Any, where: str) -> tuple[Swatch, ...]:
+    swatches = []
+    for index, item in enumerate(read_list(value, where)):
+        item_where = f"{where}[{index}]"
+        fields = read_object(item, item_where)
+        color = read_string(_field(fields, "color", item_where), f"{item_where}.color", _MAX_COLOR)
+        if not _SWATCH_COLOR.fullmatch(color):
+            raise _damaged(f"{item_where}.color", _("should be a colour like #3b82f6"))
+        swatches.append(
+            Swatch(
+                read_int(_field(fields, "id", item_where), f"{item_where}.id", minimum=0),
+                read_string(_field(fields, "name", item_where), f"{item_where}.name"),
+                color.lower(),
+                _optional_number(fields, "opacity", item_where, 1.0, minimum=0.0, maximum=1.0),
+            )
+        )
+    return tuple(swatches)
 
 
 def _decode_guides(value: Any, where: str) -> tuple[Guide, ...]:

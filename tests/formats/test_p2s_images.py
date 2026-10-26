@@ -6,6 +6,7 @@ import pytest
 
 from presstoshape.formats import p2s
 from presstoshape.formats.p2s import MISSING_MIME, P2sError, SavedState, media_of, read_p2s_with_notes, write_p2s
+from presstoshape.formats.p2s_migrations import CURRENT_VERSION
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import Aspect, GroupShape, ImageShape, Masking, RectShape, Style
 from tests.helpers import TINY_PNG, tiny_image
@@ -179,5 +180,5 @@ def test_an_unknown_alignment_is_damage():
         read_p2s_with_notes(data)
 
 
-def test_current_version_is_twelve():
-    assert json.loads(entries(archive(document_with()))["document.json"][0])["format_version"] == 12
+def test_written_files_have_the_current_version():
+    assert json.loads(entries(archive(document_with()))["document.json"][0])["format_version"] == CURRENT_VERSION
