@@ -22,7 +22,7 @@ def window(settings, tmp_path):
     from presstoshape.views.main_window import MainWindow
 
     QApplication.instance() or QApplication([])
-    window = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "swatches.json")
+    window = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "palettes")
     yield window
     window.close_without_prompt()
 
@@ -53,7 +53,7 @@ def test_a_new_window_starts_with_the_remembered_toggles(settings, tmp_path):
     QApplication.instance() or QApplication([])
     app_settings.set_show_rulers(settings, False)
     app_settings.set_snap_settings(settings, SnapSettings(objects=False))
-    window = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "swatches.json")
+    window = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "palettes")
     assert not window._session.state.view.show_rulers
     assert not window._session.state.snapping.objects
     window.close_without_prompt()

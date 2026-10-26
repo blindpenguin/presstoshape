@@ -16,9 +16,10 @@ from presstoshape.views.settings.canvas_page import CanvasPage
 from presstoshape.views.settings.general_page import GeneralPage
 from presstoshape.views.settings.language_page import LanguagePage
 from presstoshape.views.settings.pages import SettingsContext, SettingsPage
+from presstoshape.views.settings.palettes_page import PalettesPage
 
 # Category order in the list.
-PAGES: list[type[SettingsPage]] = [GeneralPage, LanguagePage, CanvasPage]
+PAGES: list[type[SettingsPage]] = [GeneralPage, LanguagePage, CanvasPage, PalettesPage]
 
 _LIST_WIDTH = 170
 
@@ -48,7 +49,7 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addLayout(body, 1)
         layout.addWidget(buttons)
-        self.resize(680, 440)
+        self.resize(720, 480)
 
     @property
     def page(self) -> int:

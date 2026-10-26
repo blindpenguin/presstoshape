@@ -64,6 +64,7 @@ ICONS = {
     "settings": "settings",
     "settings_language": "language",
     "settings_canvas": "artboard",
+    "settings_palettes": "palette",
     "orientation_portrait": "rectangle-vertical",
     "orientation_landscape": "rectangle",
     "align_start": "align-left",

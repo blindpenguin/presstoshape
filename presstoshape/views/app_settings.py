@@ -240,6 +240,22 @@ def set_colour_numbers(settings: QSettings, mode: NumberMode) -> None:
     settings.setValue(_COLOUR_NUMBERS_KEY, mode)
 
 
-def swatch_library_path(executable: str = sys.executable, frozen: bool = getattr(sys, "frozen", False)) -> Path:
-    """The personal swatch library file; the folder may not exist yet."""
-    return _data_folder("swatches.json", executable, frozen)
+def palettes_folder(executable: str = sys.executable, frozen: bool = getattr(sys, "frozen", False)) -> Path:
+    """Where the stored palettes live (the single library file of earlier versions sits beside it); it may not
+    exist yet."""
+    return _data_folder("palettes", executable, frozen)
+
+
+_CURRENT_PALETTE_KEY = "colours/current_palette"
+
+
+def current_palette_name(settings: QSettings) -> str | None:
+    value = settings.value(_CURRENT_PALETTE_KEY)
+    return value if isinstance(value, str) and value else None
+
+
+def set_current_palette_name(settings: QSettings, name: str | None) -> None:
+    if name:
+        settings.setValue(_CURRENT_PALETTE_KEY, name)
+    else:
+        settings.remove(_CURRENT_PALETTE_KEY)

@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/palette-library/design.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-26T17:39:52.028Z",
+      "trigger": "initial",
+      "approvalId": "approval_1793036392015_gvnpv5cas",
+      "approvalTitle": "Palette library and Settings palettes page: design"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-26T17:40:18.062Z",
+      "trigger": "approved",
+      "approvalId": "approval_1793036392015_gvnpv5cas",
+      "approvalTitle": "Palette library and Settings palettes page: design"
+    }
+  ]
+}

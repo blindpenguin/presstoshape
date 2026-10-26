@@ -1,4 +1,4 @@
-"""Colour picking: swatches (document palette and the personal library) and the colour panel's view state."""
+"""Colour picking: swatches (the document's and those of the stored palettes) and the colour panel's view state."""
 
 from dataclasses import dataclass, field
 from typing import Literal
@@ -13,12 +13,21 @@ RECENT_LIMIT = 16
 @dataclass(frozen=True)
 class Swatch:
     # Document swatches: from Document.next_id, shared with shapes, so paints can refer to them later.
-    # Library swatches: numbered within the library.
+    # Swatches of stored palettes: numbered within their palette.
     id: int
     name: str
     # "#rrggbb"
     color: str
     opacity: float = 1.0
+
+
+@dataclass(frozen=True)
+class Palette:
+    """A stored palette. Ids are numbered per run; on disk a palette is its own file."""
+
+    id: int
+    name: str
+    swatches: tuple[Swatch, ...] = ()
 
 
 @dataclass
@@ -30,6 +39,8 @@ class ColourState:
     current: Style = field(default_factory=Style)
     # Newest first, at most RECENT_LIMIT; kept in app settings.
     recent: tuple[str, ...] = ()
-    # The personal swatch library, kept in the app's data folder.
-    library: tuple[Swatch, ...] = ()
+    # The stored palettes (the library), one file each in the app's data folder, in the user's order.
+    palettes: tuple[Palette, ...] = ()
+    # The palette the Library tab shows and adds to; None only when there are no palettes.
+    current_palette: int | None = None
     numbers: NumberMode = "hsv"

@@ -53,7 +53,7 @@ def _choose_file(monkeypatch, path):
 
 def test_dialog_lists_every_category_and_switches_pages(context):
     dialog = SettingsDialog(context, page=2)
-    assert dialog._categories.count() == len(PAGES) == 3
+    assert dialog._categories.count() == len(PAGES) == 4
     assert [dialog._categories.item(row).text() for row in range(3)] == ["General", "Language", "Canvas"]
     assert dialog.page == 2 and isinstance(dialog._pages.currentWidget(), CanvasPage)
     dialog._categories.setCurrentRow(1)

@@ -56,6 +56,7 @@ LAYER_DELETE = _DIR / "layer_delete.svg"
 SETTINGS = _DIR / "settings.svg"
 SETTINGS_LANGUAGE = _DIR / "settings_language.svg"
 SETTINGS_CANVAS = _DIR / "settings_canvas.svg"
+SETTINGS_PALETTES = _DIR / "settings_palettes.svg"
 ORIENTATION_PORTRAIT = _DIR / "orientation_portrait.svg"
 ORIENTATION_LANDSCAPE = _DIR / "orientation_landscape.svg"
 

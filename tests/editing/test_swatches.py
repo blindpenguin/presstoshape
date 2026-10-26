@@ -1,6 +1,6 @@
 import pytest
 
-from presstoshape.editing.operations import guides, shapes, swatches
+from presstoshape.editing.operations import guides, palettes, shapes, swatches
 from presstoshape.models.app_state import Document, Layer
 from presstoshape.models.shapes import GradientStop, LinearGradient, RectShape, Style
 from tests.helpers import all_shapes
@@ -26,9 +26,12 @@ def test_document_swatches_are_undoable_and_use_document_ids(session):
 def test_library_changes_are_not_undo_steps(session):
     swatches.add_swatch(session, "library", "#00ff00")
     swatches.add_swatch(session, "library", "#0000ff")
-    library = session.state.colours.library
+    library = swatches.palette_swatches(session, "library")
     assert [s.id for s in library] == [1, 2]
     assert not session.can_undo
+    (palette,) = session.state.colours.palettes
+    assert palette.name == "My swatches"
+    assert session.state.colours.current_palette == palette.id
 
 
 @pytest.mark.parametrize("palette", ["document", "library"])
@@ -61,8 +64,8 @@ def test_copy_between_palettes_skips_duplicates(session):
     (swatch,) = session.state.document.swatches
     swatches.copy_swatch(session, "document", swatch.id)
     swatches.copy_swatch(session, "document", swatch.id)
-    assert [(s.name, s.color) for s in session.state.colours.library] == [("Blue-ish", "#123456")]
-    library_id = session.state.colours.library[0].id
+    assert [(s.name, s.color) for s in swatches.palette_swatches(session, "library")] == [("Blue-ish", "#123456")]
+    library_id = swatches.palette_swatches(session, "library")[0].id
     swatches.copy_swatch(session, "library", library_id)
     assert len(session.state.document.swatches) == 1
 
@@ -85,3 +88,18 @@ def test_add_document_colours(session):
     assert swatches.add_document_colours(session) == 2
     assert colors(session, "document") == ["#00ff00", "#ff0000", "#0000ff"]
     assert session.undo_label == "Add document colours"
+
+
+def test_library_operations_reach_a_given_palette(session):
+    first = palettes.new_palette(session, "First")
+    second = palettes.new_palette(session, "Second")
+    swatches.add_swatch(session, "library", "#000001")
+    assert swatches.palette_swatches(session, "library", second)[0].color == "#000001"
+    palettes.set_current_palette(session, first)
+    swatches.add_swatch(session, "library", "#000002")
+    target = swatches.palette_swatches(session, "library", second)[0]
+    swatches.rename_swatch(session, "library", target.id, "Named", palette_id=second)
+    swatches.move_swatch(session, "library", target.id, 1, palette_id=second)
+    swatches.delete_swatch(session, "library", target.id, palette_id=second)
+    assert swatches.palette_swatches(session, "library", second) == ()
+    assert [s.color for s in swatches.palette_swatches(session, "library")] == ["#000002"]

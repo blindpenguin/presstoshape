@@ -34,7 +34,7 @@ presstoshape/                   # repo root
     ├── i18n/                   # Qt-free translations: _/ngettext/pgettext/N_, po.py, plural.py, catalog.py, languages.py
     ├── models/                 # plain dataclasses, no logic beyond defaults
     │   ├── app_state.py        # AppState, Document, Layer, Tool
-    │   ├── colours.py          # Swatch, ColourState (active paint, current colour, recent colours, library)
+    │   ├── colours.py          # Swatch, Palette, ColourState (active paint, current colour, recent colours, stored palettes)
     │   └── shapes.py           # frozen shapes (incl. CompositeShape), Style, path segments, Transform
     ├── geometry/               # pure shape math
     │   ├── affine.py           # 2D affine math on (a, b, c, d, e, f) tuples
@@ -59,7 +59,8 @@ presstoshape/                   # repo root
     │   ├── svg_namedview.py    # guides and grid in sodipodi:namedview (read and write)
     │   ├── css.py              # the CSS subset of <style> sheets: simple selectors, cascade, !important
     │   ├── svg_swatches.py     # document swatches as Inkscape swatches (inkscape:swatch, osb:paint)
-    │   ├── gpl.py / palettes.py / swatch_library.py   # palette files (GIMP, hex, JASC, Paint.NET, palette images); the swatch library (JSON)
+    │   ├── gpl.py / palettes.py   # palette files (GIMP, hex, JASC, Paint.NET, palette images), names stored in them
+    │   ├── palette_files.py / swatch_library.py   # stored palettes on disk (JSON per palette + index); the old single library
     │   ├── p2s.py              # native .p2s read/write (ZIP + JSON)
     │   └── p2s_migrations.py   # upgrades older .p2s format versions
     ├── render/                 # Skia drawing: scene, picture, paths, text, hit_test, handles, viewport, export, overlay, guides (+ grid), sample (colour under a point)
@@ -68,7 +69,7 @@ presstoshape/                   # repo root
     │   ├── registry.py         # Operation table: id, menu label, can_run
     │   ├── queries.py          # read-only questions about state
     │   ├── containers.py       # active container (layer, or the entered group/Composite chain via edit_path)
-    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, align, guides, arrange, paths, node_editing, style, colours, swatches, layers, documents
+    │   └── operations/         # history, view, selection, shapes, transform, booleans, composites, groups, edit_mode, align, guides, arrange, paths, node_editing, style, colours, swatches, palettes, layers, documents
     ├── tools/
     │   ├── base.py             # Mods, CursorType, ToolContext, BaseTool
     │   ├── registry.py         # TOOLS + Toolbox
@@ -79,7 +80,7 @@ presstoshape/                   # repo root
         ├── keymap.py           # shortcuts, icons, menu/toolbar layouts per command id
         ├── actions.py          # QActions built from the registries + keymap
         ├── canvas_view.py      # scroll area + Skia surface: zoom/pan, forwards input to the active tool
-        ├── settings/           # Settings window: dialog.py (PAGES), pages.py, one module per category page
+        ├── settings/           # Settings window: dialog.py (PAGES), pages.py, one module per category page (general, language, canvas, palettes)
         ├── recovery_keeper.py / recover_dialog.py   # crash recovery: run lock + snapshot timer, startup dialog
         ├── import_report_dialog.py   # lists what an opened SVG lost on import
         ├── ruler_view.py / align_panel.py / guide_dialog.py / grid_dialog.py   # precision aids
@@ -88,6 +89,7 @@ presstoshape/                   # repo root
         ├── *_view.py           # one panel/bar per module (layers, tool options, selection, toolbar, …)
         ├── colour_panel.py     # Colour dock: paint pair above tabs (picker + recent, document swatches, library); drag preview
         ├── colour_picker.py / paint_pair.py / swatch_grid.py   # colour widgets
+        ├── palette_store.py / palette_import.py / palette_export.py   # palettes folder, batch import with clash dialog, export
         ├── style_editor.py / widgets.py   # reusable widgets
         ├── theme.py            # palette, colors, stylesheet
         └── icon_engine.py      # SvgIconEngine (vector icons, currentColor recoloring)

@@ -3,10 +3,11 @@ from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
-from presstoshape.editing.operations import selection, shapes, swatches, view
+from presstoshape.editing.operations import palettes, selection, shapes, swatches, view
 from presstoshape.editing.session import Session
-from presstoshape.formats.swatch_library import read_library
+from presstoshape.formats.swatch_library import write_library
 from presstoshape.models.app_state import Tool
+from presstoshape.models.colours import Swatch
 from presstoshape.views import app_settings
 from presstoshape.views.main_window import MainWindow
 from tests.helpers import all_shapes
@@ -21,7 +22,7 @@ def settings(tmp_path):
 def window(tmp_path, settings):
     QApplication.instance() or QApplication([])
     session = Session()
-    window = MainWindow(session, settings, tmp_path / "recovery", tmp_path / "swatches.json")
+    window = MainWindow(session, settings, tmp_path / "recovery", tmp_path / "palettes")
     return window, session
 
 
@@ -116,39 +117,76 @@ def test_recent_colours_and_number_mode_are_remembered(tmp_path, window, setting
     panel._mode.click()
     assert app_settings.recent_colours(settings)[0] == "#123456"
     assert app_settings.colour_numbers(settings) == "rgb"
-    again = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "swatches.json")
+    again = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "palettes")
     assert again._state.colours.recent[0] == "#123456"
     assert again._state.colours.numbers == "rgb"
 
 
-def test_library_is_saved_and_loaded(tmp_path, window, settings):
+def test_palettes_and_current_palette_are_saved_and_loaded(tmp_path, window, settings):
     window_, session = window
     swatches.add_swatch(session, "library", "#abcdef", name="Mine")
-    (saved,) = read_library((tmp_path / "swatches.json").read_text(encoding="utf-8"))
-    assert (saved.name, saved.color) == ("Mine", "#abcdef")
-    again = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "swatches.json")
-    assert [s.color for s in again._state.colours.library] == ["#abcdef"]
+    second = palettes.new_palette(session, "Second")
+    palettes.set_current_palette(session, second)
+    assert (tmp_path / "palettes" / "my-swatches.json").is_file()
+    again = MainWindow(Session(), settings, tmp_path / "recovery", tmp_path / "palettes")
+    loaded = again._state.colours.palettes
+    assert [p.name for p in loaded] == ["My swatches", "Second"]
+    assert [s.color for s in loaded[0].swatches] == ["#abcdef"]
+    assert palettes.current_palette(again._state).name == "Second"
 
 
-def test_unreadable_library_starts_empty_and_is_kept_as_backup(tmp_path, settings):
+def test_old_library_is_migrated(tmp_path, settings):
     QApplication.instance() or QApplication([])
-    library = tmp_path / "swatches.json"
-    library.write_text("{broken", encoding="utf-8")
+    (tmp_path / "swatches.json").write_text(write_library((Swatch(1, "", "#123456"),)), encoding="utf-8")
     session = Session()
-    MainWindow(session, settings, tmp_path / "recovery", library)
-    assert session.state.colours.library == ()
-    assert library.read_text(encoding="utf-8") == "{broken"
+    MainWindow(session, settings, tmp_path / "recovery", tmp_path / "palettes")
+    assert [p.name for p in session.state.colours.palettes] == ["My swatches"]
+    assert (tmp_path / "swatches.migrated.json").is_file()
+
+
+def test_unreadable_palette_files_are_reported_and_kept(tmp_path, settings):
+    QApplication.instance() or QApplication([])
+    folder = tmp_path / "palettes"
+    folder.mkdir()
+    (folder / "bad.json").write_text("{broken", encoding="utf-8")
+    session = Session()
+    MainWindow(session, settings, tmp_path / "recovery", folder)
+    assert session.state.colours.palettes == ()
+    assert "bad.json" in session.state.status_message
     swatches.add_swatch(session, "library", "#000000")
-    assert (tmp_path / "swatches.backup.json").read_text(encoding="utf-8") == "{broken"
-    assert len(read_library(library.read_text(encoding="utf-8"))) == 1
+    assert (folder / "bad.json").read_text(encoding="utf-8") == "{broken"
 
 
-def test_window_without_settings_writes_no_library(tmp_path):
+def test_window_without_settings_writes_no_palettes(tmp_path):
     QApplication.instance() or QApplication([])
     session = Session()
-    MainWindow(session, None, tmp_path / "recovery", tmp_path / "swatches.json")
+    MainWindow(session, None, tmp_path / "recovery", tmp_path / "palettes")
     swatches.add_swatch(session, "library", "#000000")
-    assert not (tmp_path / "swatches.json").exists()
+    assert not (tmp_path / "palettes").exists()
+
+
+def test_library_tab_follows_palettes(window):
+    window_, session = window
+    panel = window_._colour
+    assert panel._library_stack.currentIndex() == 1
+    first = palettes.new_palette(session, "First")
+    palettes.new_palette(session, "Second")
+    assert [panel._palette_box.itemText(i) for i in range(panel._palette_box.count())] == ["First", "Second"]
+    assert panel._palette_box.currentText() == "Second"
+    assert panel._library_stack.currentIndex() == 0
+    panel._palette_box.activated.emit(0)
+    assert session.state.colours.current_palette == first
+
+
+def test_manage_palettes_opens_settings_on_the_palettes_page(window, monkeypatch):
+    from presstoshape.views.settings.dialog import PAGES, SettingsDialog
+    from presstoshape.views.settings.palettes_page import PalettesPage
+
+    window_, _session = window
+    opened = []
+    monkeypatch.setattr(SettingsDialog, "exec", lambda dialog: opened.append(dialog.page) or 0)
+    window_._colour.manage_palettes.emit()
+    assert opened == [PAGES.index(PalettesPage)]
 
 
 def test_document_swatch_click_applies_colour_and_opacity(window):
@@ -159,23 +197,3 @@ def test_document_swatch_click_applies_colour_and_opacity(window):
     window_._colour._apply_swatch("document", swatch.id)
     style = all_shapes(session)[0].style
     assert (style.fill, style.fill_opacity) == ("#ff0000", 0.5)
-
-
-def test_palette_images_and_files_import(tmp_path):
-    from PySide6.QtGui import QColor, QImage
-
-    from presstoshape.views.colour_panel import _read_palette_file
-
-    QApplication.instance() or QApplication([])
-    image = QImage(16, 8, QImage.Format.Format_RGBA8888)
-    image.fill(QColor("#1d2b53"))
-    for x in range(8, 16):
-        for y in range(8):
-            image.setPixelColor(x, y, QColor("#ffccaa"))
-    image.save(str(tmp_path / "palette-8x.png"))
-    assert [color for _n, color, _o in _read_palette_file(tmp_path / "palette-8x.png")] == ["#1d2b53", "#ffccaa"]
-    (tmp_path / "p.hex").write_text("000000\r\n", encoding="utf-8")
-    assert _read_palette_file(tmp_path / "p.hex") == [("", "#000000", 1.0)]
-    (tmp_path / "notes.doc").write_bytes(b"nothing")
-    with pytest.raises(ValueError):
-        _read_palette_file(tmp_path / "notes.doc")

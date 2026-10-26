@@ -17,7 +17,7 @@ Today PressToShape is at an early stage (shapes, bezier pen, text, styling, laye
 Current:
 1. **Drawing tools**: select, node, bezier pen (click for corners, drag for curves, closing paths), pencil (freehand with smoothing), rectangle, ellipse, text, eyedropper (picks up a shape's style or the colour under the pointer); Shift constraints, keyboard shortcuts.
 2. **Direct manipulation**: scale/rotate handles on the selection, arrow-key nudge, flip, align and distribute, rulers, guides, grid and snapping, path node and bezier handle editing (node types, break, join, delete segment, close/open, reverse, combine/split, continuing paths with the pen), live corners (round, inverted, chamfer), object to path, cursors that show the action.
-3. **Styling**: fill and stroke with their own opacity, stroke width, object opacity, fill rule, line ends, corners and dashes per shape or multi-selection; rounded rectangle corners, text alignment; per-tool default styles in a context-sensitive tool options panel; a docked Colour panel (fill/stroke pair, HSV picker, hex, alpha, recent colours, document swatches saved as Inkscape swatches, a personal swatch library with GIMP palette import/export).
+3. **Styling**: fill and stroke with their own opacity, stroke width, object opacity, fill rule, line ends, corners and dashes per shape or multi-selection; rounded rectangle corners, text alignment; per-tool default styles in a context-sensitive tool options panel; a docked Colour panel (fill/stroke pair, HSV picker, hex, alpha, recent colours, document swatches saved as Inkscape swatches, stored palettes managed in Settings, with batch import of palette files incl. Lospec's formats).
 4. **Layers and groups**: layers can be added, deleted, renamed, hidden and locked (Inkscape-compatible); single objects can be hidden and locked too, and the Layers panel shows every object in a tree with eye and lock toggles; groups bundle shapes, can be entered to edit inside them and have their own opacity; SVG groups stay groups.
 5. **Boolean operations**: union, difference, intersection, exclude, divide.
 6. **Canvas navigation**: zoom under cursor, pan (middle-drag, touchpad).
@@ -26,7 +26,7 @@ Current:
 9. **Files**: native `.p2s` format (lossless, with working state) and SVG open/save. SVG import reads CSS class styles, `<use>`/`<symbol>` and multi-line text, and reports what it couldn't import.
 10. **New documents**: New Document dialog with presets and custom sizes in px, mm, cm, in or pt with DPI; recent files; documents keep their unit.
 11. **Crash recovery and backups**: recovery snapshots while there are unsaved changes, offered after a crash; one backup of the previous version on save.
-12. **Languages and settings**: English and German interface, user-provided `.po` translations; a Settings window (language, renderer).
+12. **Languages and settings**: English and German interface, user-provided `.po` translations; a Settings window (language, renderer, palettes).
 
 Core feature pillars (target):
 1. **Freehand & brushes**: pressure-sensitive tablet input, pencil with smoothing, vector brushes, variable-width strokes, width profiles.

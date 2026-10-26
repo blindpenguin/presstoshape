@@ -294,6 +294,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: presstoshape/editing/operations/clipboard.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Duplicate"
 msgstr ""
 
@@ -1038,6 +1039,15 @@ msgstr ""
 msgid "Joined two nodes with a segment"
 msgstr ""
 
+#: presstoshape/editing/operations/palettes.py
+#: presstoshape/views/palette_import.py
+msgid "Palette"
+msgstr ""
+
+#: presstoshape/editing/operations/palettes.py
+msgid "{name} copy"
+msgstr ""
+
 #: presstoshape/editing/operations/paths.py
 msgid "&Object to Path"
 msgstr ""
@@ -1291,6 +1301,11 @@ msgstr ""
 
 #: presstoshape/editing/operations/style.py
 msgid "Change style"
+msgstr ""
+
+#: presstoshape/editing/operations/swatches.py
+#: presstoshape/views/palette_store.py
+msgid "My swatches"
 msgstr ""
 
 #: presstoshape/editing/operations/swatches.py
@@ -2137,30 +2152,6 @@ msgid "Text:"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
-msgid "Palettes (*.gpl *.hex *.pal *.txt *.png)"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
-msgid "GIMP palette (*.gpl)"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
-msgid "Hex palette (*.hex)"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
-msgid "JASC palette (*.pal)"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
-msgid "Paint.NET palette (*.txt)"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
-msgid "Palette image (*.png)"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
 #: presstoshape/views/selection_view.py
 msgid "H"
 msgstr ""
@@ -2235,7 +2226,23 @@ msgid "Palette actions"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+msgid "Palette shown here"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
 msgid "Click to apply, right-click for more"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+msgid "No palettes yet. Make one, or import palette files (Lospec downloads, GIMP palettes, …)."
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+msgid "New Palette…"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+msgid "Import Palettes…"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
@@ -2243,6 +2250,7 @@ msgid "Clear Recent Colours"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Rename…"
 msgstr ""
 
@@ -2251,10 +2259,12 @@ msgid "Replace with Current Colour"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Move Left"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Move Right"
 msgstr ""
 
@@ -2267,15 +2277,22 @@ msgid "Add to Document"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Delete"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Rename Swatch"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Name:"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+msgid "Rename Palette…"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
@@ -2299,6 +2316,25 @@ msgid "Delete All Swatches"
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
+msgid "Manage Palettes…"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
+msgid "New Palette"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
+msgid "Rename Palette"
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
+#: presstoshape/views/settings/palettes_page.py
+msgid "Another palette already has that name, or it is empty."
+msgstr ""
+
+#: presstoshape/views/colour_panel.py
 msgid "Import Palette"
 msgstr ""
 
@@ -2307,12 +2343,7 @@ msgid "{name} is not a palette file PressToShape can read."
 msgstr ""
 
 #: presstoshape/views/colour_panel.py
-msgid "Export Palette"
-msgstr ""
-
-#: presstoshape/views/colour_panel.py
-#: presstoshape/views/main_window.py
-msgid "{name}: {error}"
+msgid "Document swatches"
 msgstr ""
 
 #: presstoshape/views/corner_dialog.py
@@ -2608,15 +2639,18 @@ msgid "{name} (recovered)"
 msgstr ""
 
 #: presstoshape/views/main_window.py
-msgid "The swatch library could not be read; it starts empty"
+msgid "A palette file couldn't be read and was left out: {files}"
+msgid_plural "{count} palette files couldn't be read and were left out: {files}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/main_window.py
+#: presstoshape/views/settings/palettes_page.py
+msgid "Palettes"
 msgstr ""
 
 #: presstoshape/views/main_window.py
-msgid "Swatch Library"
-msgstr ""
-
-#: presstoshape/views/main_window.py
-msgid "The swatch library could not be saved: {error}"
+msgid "The palettes could not be saved: {error}"
 msgstr ""
 
 #: presstoshape/views/main_window.py
@@ -2658,6 +2692,11 @@ msgstr ""
 
 #: presstoshape/views/main_window.py
 msgid "Place Image"
+msgstr ""
+
+#: presstoshape/views/main_window.py
+#: presstoshape/views/palette_export.py
+msgid "{name}: {error}"
 msgstr ""
 
 #: presstoshape/views/main_window.py
@@ -2744,6 +2783,167 @@ msgstr ""
 #: presstoshape/views/paint_pair.py
 #: presstoshape/views/style_editor.py
 msgid "Stroke"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+#: presstoshape/views/palette_import.py
+msgid "GIMP palette (*.gpl)"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+#: presstoshape/views/palette_import.py
+msgid "Hex palette (*.hex)"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+#: presstoshape/views/palette_import.py
+msgid "JASC palette (*.pal)"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+#: presstoshape/views/palette_import.py
+msgid "Paint.NET palette (*.txt)"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+msgid "Export Palette"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+msgid "Export Palettes to Folder"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+msgid "Export Palettes"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+msgid "Format:"
+msgstr ""
+
+#: presstoshape/views/palette_export.py
+msgid "{count} file with this name already exists in the folder. Replace it?"
+msgid_plural "{count} files with these names already exist in the folder. Replace them?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/palette_import.py
+msgid "Palettes (*.gpl *.hex *.pal *.txt *.png)"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Palette image (*.png)"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Keep both"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Replace"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Skip"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Reading palettes…"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Cancel"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "can't be read"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "isn't a palette PressToShape can read"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "has no colours"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "has more than {count} colours"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Palettes Already There"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "A palette with this name already exists. Replacing overwrites its colours."
+msgid_plural "Palettes with these names already exist. Replacing overwrites their colours."
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/palette_import.py
+msgid "File"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Action"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Keep All"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Replace All"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Skip All"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Import"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "{count} palette imported."
+msgid_plural "{count} palettes imported."
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/palette_import.py
+msgid "{count} replaced."
+msgid_plural "{count} replaced."
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/palette_import.py
+msgid "{count} skipped."
+msgid_plural "{count} skipped."
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/palette_import.py
+msgid "This file couldn't be imported:"
+msgid_plural "These files couldn't be imported:"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/palette_import.py
+msgid "{name}: {reason}"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+#: presstoshape/views/settings/palettes_page.py
+msgid "… and {count} more"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "Import Palettes"
+msgstr ""
+
+#: presstoshape/views/palette_import.py
+msgid "That's {count} palette files; PressToShape imports at most {limit} at once."
 msgstr ""
 
 #: presstoshape/views/recover_dialog.py
@@ -2950,6 +3150,7 @@ msgid "Remove"
 msgstr ""
 
 #: presstoshape/views/settings/language_page.py
+#: presstoshape/views/settings/palettes_page.py
 msgid "Import…"
 msgstr ""
 
@@ -3025,6 +3226,52 @@ msgstr ""
 
 #: presstoshape/views/settings/pages.py
 msgid "Takes effect after restarting PressToShape."
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Palettes can be managed when a drawing window is open."
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "New…"
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Delete…"
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Export…"
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Open Palettes Folder"
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "{name} ({count} colour)"
+msgid_plural "{name} ({count} colours)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "{name}: {count} colour"
+msgid_plural "{name}: {count} colours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Select a palette to see its colours."
+msgstr ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Delete this palette? Its file is removed too."
+msgid_plural "Delete these {count} palettes? Their files are removed too."
+msgstr[0] ""
+msgstr[1] ""
+
+#: presstoshape/views/settings/palettes_page.py
+msgid "Delete Palettes"
 msgstr ""
 
 #: presstoshape/views/status_bar_view.py

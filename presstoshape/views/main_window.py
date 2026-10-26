@@ -8,11 +8,10 @@ from PySide6.QtWidgets import QDialog, QDockWidget, QFileDialog, QMainWindow, QM
 
 from presstoshape import i18n
 from presstoshape.editing.operations import clipboard as clipboard_ops
-from presstoshape.editing.operations import documents, guides, images, recovery, view
+from presstoshape.editing.operations import documents, guides, images, palettes, recovery, view
 from presstoshape.editing.session import Session
-from presstoshape.formats.swatch_library import read_library, write_library
 from presstoshape.geometry import units
-from presstoshape.i18n import N_, _
+from presstoshape.i18n import N_, _, ngettext
 from presstoshape.version import app_version
 from presstoshape.views import app_settings, clipboard, menu_bar_view, window_placement
 from presstoshape.views.actions import AppActions
@@ -26,10 +25,12 @@ from presstoshape.views.import_report_dialog import ImportReportDialog
 from presstoshape.views.layers_view import LayersPanel
 from presstoshape.views.left_sidebar_view import ToolPalette
 from presstoshape.views.new_document_dialog import OPEN, NewDocumentDialog, StartChoices
+from presstoshape.views.palette_store import PaletteStore
 from presstoshape.views.recover_dialog import RecoverDialog
 from presstoshape.views.recovery_keeper import RecoveryKeeper
-from presstoshape.views.settings.dialog import SettingsDialog
+from presstoshape.views.settings.dialog import PAGES, SettingsDialog
 from presstoshape.views.settings.pages import SettingsContext
+from presstoshape.views.settings.palettes_page import PalettesPage
 from presstoshape.views.status_bar_view import StatusBar
 from presstoshape.views.tool_options_view import TITLES, ToolOptionsPanel
 from presstoshape.views.toolbar_view import MainToolbar
@@ -52,11 +53,11 @@ class MainWindow(QMainWindow):
         session: Session,
         settings: QSettings | None = None,
         recovery_folder: Path | None = None,
-        library_path: Path | None = None,
+        palettes_folder: Path | None = None,
     ) -> None:
         """`settings` stores the window placement; None (screenshots, self-test) leaves the user's untouched and
-        turns crash recovery and the swatch library file off. `recovery_folder` and `library_path` override where
-        recovery snapshots and the swatch library go (tests)."""
+        turns crash recovery and the stored palettes off. `recovery_folder` and `palettes_folder` override where
+        recovery snapshots and the palettes go (tests)."""
         super().__init__()
         self._settings = settings
         self._state = session.state
@@ -94,6 +95,7 @@ class MainWindow(QMainWindow):
         self._tool_dock.setFixedWidth(_TOOL_DOCK_WIDTH)
         self._colour = ColourPanel(session, self._actions)
         self._colour.preview_changed.connect(self.canvas.set_style_preview)
+        self._colour.manage_palettes.connect(lambda: self.open_settings(PAGES.index(PalettesPage)))
         colour_dock = self._add_dock("colour", _("Colour"), self._colour)
         self._layers = LayersPanel(session)
         layers_dock = self._add_dock("layers", _("Layers"), self._layers)
@@ -108,13 +110,13 @@ class MainWindow(QMainWindow):
             session.state.view = replace(session.state.view, show_rulers=app_settings.show_rulers(settings))
             session.state.snapping = app_settings.snap_settings(settings)
         self._saved_view = (session.state.view.show_rulers, session.state.snapping)
-        self._library_path = library_path or app_settings.swatch_library_path()
-        # A library file that couldn't be read is kept as a backup when the library is first saved over it.
-        self._library_unreadable = False
+        self._palettes_folder = palettes_folder or app_settings.palettes_folder()
+        self._store = PaletteStore(self._palettes_folder) if settings is not None else None
         if settings is not None:
             self._load_colours(settings)
-        self._saved_colours = (session.state.colours.recent, session.state.colours.numbers)
-        self._saved_library = session.state.colours.library
+        colours = session.state.colours
+        self._saved_colours = (colours.recent, colours.numbers, colours.current_palette)
+        self._saved_palettes = colours.palettes
 
         self._status = StatusBar()
         self.setStatusBar(self._status)
@@ -172,38 +174,44 @@ class MainWindow(QMainWindow):
         state = self._state
         state.colours.recent = app_settings.recent_colours(settings)
         state.colours.numbers = app_settings.colour_numbers(settings)
-        if not self._library_path.is_file():
+        if self._store is None:
             return
-        try:
-            state.colours.library = read_library(self._library_path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, ValueError):
-            self._library_unreadable = True
-            state.status_message = _("The swatch library could not be read; it starts empty")
+        loaded = self._store.load()
+        palettes.set_palettes(self._session, loaded.palettes, app_settings.current_palette_name(settings))
+        if loaded.problems:
+            state.status_message = ngettext(
+                "A palette file couldn't be read and was left out: {files}",
+                "{count} palette files couldn't be read and were left out: {files}",
+                len(loaded.problems),
+            ).format(count=len(loaded.problems), files=", ".join(loaded.problems))
 
     def _remember_colours(self) -> None:
-        """Recent colours and the number mode go to the settings, the library to its file, when they change."""
-        if self._settings is None:
+        """Recent colours, the number mode and the current palette go to the settings, changed palettes to their
+        files."""
+        if self._settings is None or self._store is None:
             return
         colours = self._state.colours
-        current = (colours.recent, colours.numbers)
+        current = (colours.recent, colours.numbers, colours.current_palette)
         if current != self._saved_colours:
             self._saved_colours = current
             app_settings.set_recent_colours(self._settings, colours.recent)
             app_settings.set_colour_numbers(self._settings, colours.numbers)
-        if colours.library is not self._saved_library:
-            self._saved_library = colours.library
+            shown = palettes.current_palette(self._state)
+            app_settings.set_current_palette_name(self._settings, shown.name if shown is not None else None)
+        if colours.palettes is not self._saved_palettes:
             try:
-                self._library_path.parent.mkdir(parents=True, exist_ok=True)
-                documents.write_atomically(
-                    self._library_path, write_library(colours.library).encode("utf-8"), self._library_unreadable
-                )
-                self._library_unreadable = False
+                self._store.save(colours.palettes)
             except OSError as error:
                 QMessageBox.warning(
                     self,
-                    _("Swatch Library"),
-                    _("The swatch library could not be saved: {error}").format(error=error.strerror or error),
+                    _("Palettes"),
+                    _("The palettes could not be saved: {error}").format(error=error.strerror or error),
                 )
+                return
+            self._saved_palettes = colours.palettes
+            # A renamed current palette is remembered by its new name.
+            shown = palettes.current_palette(self._state)
+            app_settings.set_current_palette_name(self._settings, shown.name if shown is not None else None)
 
     def _remember_view(self) -> None:
         """Rulers and snapping are app preferences: kept for the next start when they change."""
@@ -526,11 +534,17 @@ class MainWindow(QMainWindow):
             self._state.status_message = _("Only PNG, JPEG, WebP and GIF images can be dropped here")
             self._session.notify()
 
-    def open_settings(self) -> None:
+    def open_settings(self, page: int | None = None) -> None:
         if self._settings is None:
             return
-        context = SettingsContext(self._settings, i18n.active_language(), app_settings.translations_folder())
-        dialog = SettingsDialog(context, self, self._settings_page)
+        context = SettingsContext(
+            self._settings,
+            i18n.active_language(),
+            app_settings.translations_folder(),
+            self._session,
+            self._palettes_folder,
+        )
+        dialog = SettingsDialog(context, self, self._settings_page if page is None else page)
         if self._settings_size is not None:
             dialog.resize(self._settings_size)
         dialog.exec()

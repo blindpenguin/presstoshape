@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/palette-library/requirements.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-26T17:33:06.145Z",
+      "trigger": "initial",
+      "approvalId": "approval_1793035986115_in134afb0",
+      "approvalTitle": "Palette library and Settings palettes page: requirements"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-26T17:38:25.067Z",
+      "trigger": "approved",
+      "approvalId": "approval_1793035986115_in134afb0",
+      "approvalTitle": "Palette library and Settings palettes page: requirements"
+    }
+  ]
+}

@@ -4,8 +4,9 @@ personal library. It edits the active paint of whatever queries.colour_target na
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QInputDialog,
@@ -13,10 +14,12 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMenu,
     QMessageBox,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QSlider,
     QSpinBox,
+    QStackedWidget,
     QTabWidget,
     QToolButton,
     QVBoxLayout,
@@ -25,22 +28,15 @@ from PySide6.QtWidgets import (
 
 from presstoshape import icons
 from presstoshape.editing import queries
-from presstoshape.editing.operations import colours, swatches
-from presstoshape.editing.operations.swatches import Palette
+from presstoshape.editing.operations import colours, palettes, swatches
+from presstoshape.editing.operations.swatches import SwatchSet
 from presstoshape.editing.session import Session
-from presstoshape.formats.palettes import (
-    READ_SUFFIXES,
-    WRITE_SUFFIXES,
-    PaletteColor,
-    colors_from_pixels,
-    read_palette,
-    write_palette,
-)
 from presstoshape.geometry.colours import HSV, hex_to_rgb, hsv_for, hsv_to_hex, parse_hex_input
 from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState
-from presstoshape.models.colours import Swatch
+from presstoshape.models.colours import Palette, Swatch
 from presstoshape.models.shapes import LinearGradient, RadialGradient, Style, flat_color
+from presstoshape.views import palette_export, palette_import
 from presstoshape.views.actions import AppActions
 from presstoshape.views.colour_picker import ColourPicker
 from presstoshape.views.icon_engine import icon
@@ -48,15 +44,6 @@ from presstoshape.views.paint_pair import PaintPair
 from presstoshape.views.swatch_grid import Cell, SwatchGrid, swatch_tooltip
 
 _ICON_SIZE = QSize(18, 18)
-_ALL_PALETTES_FILTER = N_("Palettes (*.gpl *.hex *.pal *.txt *.png)")
-# Export type per suffix, in dialog order.
-_PALETTE_FILTERS = {
-    ".gpl": N_("GIMP palette (*.gpl)"),
-    ".hex": N_("Hex palette (*.hex)"),
-    ".pal": N_("JASC palette (*.pal)"),
-    ".txt": N_("Paint.NET palette (*.txt)"),
-}
-_IMAGE_PALETTE_FILTER = N_("Palette image (*.png)")
 # Number field ranges and labels per mode.
 _NUMBERS = {
     "hsv": ((N_("H"), 360), (N_("S"), 100), (N_("V"), 100)),
@@ -86,6 +73,8 @@ class ColourPanel(QWidget):
     only emits `preview_changed(style changes)` for the canvas and commits one edit on release (None ends it)."""
 
     preview_changed = Signal(object)
+    # "Manage Palettes…": the window opens Settings on the Palettes page.
+    manage_palettes = Signal()
 
     def __init__(self, session: Session, actions: AppActions) -> None:
         super().__init__()
@@ -94,6 +83,7 @@ class ColourPanel(QWidget):
         self._alpha = 1.0
         self._previewing = False
         self._shown: tuple | None = None
+        self._listed_palettes: tuple | None = None
 
         top = QHBoxLayout()
         top.setContentsMargins(4, 4, 4, 0)
@@ -112,7 +102,7 @@ class ColourPanel(QWidget):
         self._tabs.setDocumentMode(True)
         self._colour_page = self._picker_page(session)
         self._tabs.addTab(_scrolled(self._colour_page), _("Colour"))
-        self._grids: dict[Palette, SwatchGrid] = {}
+        self._grids: dict[SwatchSet, SwatchGrid] = {}
         for palette, title in (("document", _("Document")), ("library", _("Library"))):
             self._tabs.addTab(self._swatch_page(palette), title)
 
@@ -191,7 +181,7 @@ class ColourPanel(QWidget):
         layout.addStretch(1)
         return page
 
-    def _swatch_page(self, palette: Palette) -> QWidget:
+    def _swatch_page(self, palette: SwatchSet) -> QWidget:
         """The palette's grid, scrolling inside the tab, with its menu (add, import, export, …) above it."""
         grid = SwatchGrid(_("Add the current colour"))
         grid.picked.connect(lambda swatch_id: self._apply_swatch(palette, swatch_id))
@@ -209,9 +199,19 @@ class ColourPanel(QWidget):
         menu_button.setToolTip(_("Palette actions"))
         header = QHBoxLayout()
         header.setContentsMargins(4, 0, 0, 0)
-        hint = QLabel(_("Click to apply, right-click for more"))
-        hint.setEnabled(False)
-        header.addWidget(hint, 1)
+        if palette == "library":
+            self._palette_box = QComboBox()
+            self._palette_box.setToolTip(_("Palette shown here"))
+            self._palette_box.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            self._palette_box.setMinimumContentsLength(8)
+            self._palette_box.activated.connect(
+                lambda index: palettes.set_current_palette(self._session, self._palette_box.itemData(index))
+            )
+            header.addWidget(self._palette_box, 1)
+        else:
+            hint = QLabel(_("Click to apply, right-click for more"))
+            hint.setEnabled(False)
+            header.addWidget(hint, 1)
         header.addWidget(menu_button)
 
         holder = QWidget()
@@ -224,7 +224,31 @@ class ColourPanel(QWidget):
         layout.setContentsMargins(0, 2, 0, 0)
         layout.setSpacing(2)
         layout.addLayout(header)
-        layout.addWidget(_scrolled(holder), 1)
+        if palette == "library":
+            self._library_stack = QStackedWidget()
+            self._library_stack.addWidget(_scrolled(holder))
+            self._library_stack.addWidget(self._no_palettes())
+            layout.addWidget(self._library_stack, 1)
+        else:
+            layout.addWidget(_scrolled(holder), 1)
+        return page
+
+    def _no_palettes(self) -> QWidget:
+        """What the Library tab shows before there is any palette."""
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        note = QLabel(_("No palettes yet. Make one, or import palette files (Lospec downloads, GIMP palettes, …)."))
+        note.setWordWrap(True)
+        note.setEnabled(False)
+        layout.addWidget(note)
+        for text, slot in (
+            (_("New Palette…"), self._new_palette),
+            (_("Import Palettes…"), lambda: self._import("library")),
+        ):
+            button = QPushButton(text)
+            button.clicked.connect(lambda checked=False, run=slot: run())
+            layout.addWidget(button)
+        layout.addStretch(1)
         return page
 
     def sizeHint(self) -> QSize:
@@ -251,7 +275,25 @@ class ColourPanel(QWidget):
             self._show_target(enabled, style, fill, stroke, slot, state.colours.numbers)
         self._recent.set_cells(tuple(Cell(color, color, 1.0, color) for color in state.colours.recent))
         self._grids["document"].set_cells(self._swatch_cells(state.document.swatches))
-        self._grids["library"].set_cells(self._swatch_cells(state.colours.library))
+        self._refresh_palettes(state)
+        self._grids["library"].set_cells(self._swatch_cells(swatches.palette_swatches(self._session, "library")))
+
+    def _refresh_palettes(self, state: AppState) -> None:
+        listed = tuple((palette.id, palette.name) for palette in state.colours.palettes)
+        if listed != self._listed_palettes:
+            self._listed_palettes = listed
+            self._palette_box.blockSignals(True)
+            self._palette_box.clear()
+            for palette_id, name in listed:
+                self._palette_box.addItem(name, palette_id)
+            self._palette_box.blockSignals(False)
+        index = self._palette_box.findData(state.colours.current_palette)
+        if index != self._palette_box.currentIndex():
+            self._palette_box.blockSignals(True)
+            self._palette_box.setCurrentIndex(index)
+            self._palette_box.blockSignals(False)
+        self._palette_box.setEnabled(bool(listed))
+        self._library_stack.setCurrentIndex(0 if listed else 1)
 
     @staticmethod
     def _swatch_cells(items: tuple[Swatch, ...]) -> tuple[Cell, ...]:
@@ -391,15 +433,15 @@ class ColourPanel(QWidget):
 
     # --- swatches -----------------------------------------------------------------------------------
 
-    def _find(self, palette: Palette, swatch_id: object) -> Swatch | None:
+    def _find(self, palette: SwatchSet, swatch_id: object) -> Swatch | None:
         return next((s for s in swatches.palette_swatches(self._session, palette) if s.id == swatch_id), None)
 
-    def _apply_swatch(self, palette: Palette, swatch_id: object) -> None:
+    def _apply_swatch(self, palette: SwatchSet, swatch_id: object) -> None:
         swatch = self._find(palette, swatch_id)
         if swatch is not None:
             colours.apply_colour(self._session, swatch.color, swatch.opacity)
 
-    def _add_current(self, palette: Palette) -> None:
+    def _add_current(self, palette: SwatchSet) -> None:
         swatches.add_swatch(self._session, palette, hsv_to_hex(self._hsv), self._alpha)
 
     def _recent_menu(self, key: object, position: QPoint) -> None:
@@ -409,7 +451,7 @@ class ColourPanel(QWidget):
         clear.triggered.connect(lambda: colours.clear_recent_colours(self._session))
         menu.exec(position)
 
-    def _swatch_menu(self, palette: Palette, key: object, position: QPoint) -> None:
+    def _swatch_menu(self, palette: SwatchSet, key: object, position: QPoint) -> None:
         session = self._session
         swatch = self._find(palette, key)
         menu = QMenu(self)
@@ -430,31 +472,64 @@ class ColourPanel(QWidget):
         menu.addAction(_("Delete"), lambda: swatches.delete_swatch(session, palette, swatch.id))
         menu.exec(position)
 
-    def _rename(self, palette: Palette, swatch: Swatch) -> None:
+    def _rename(self, palette: SwatchSet, swatch: Swatch) -> None:
         name, accepted = QInputDialog.getText(self, _("Rename Swatch"), _("Name:"), text=swatch.name)
         if accepted:
             swatches.rename_swatch(self._session, palette, swatch.id, name)
 
-    def _palette_menu(self, palette: Palette) -> QMenu:
+    def _palette_menu(self, palette: SwatchSet) -> QMenu:
         session = self._session
         menu = QMenu(self)
+        if palette == "library":
+            menu.addAction(_("New Palette…"), self._new_palette)
+            rename = menu.addAction(_("Rename Palette…"), self._rename_palette)
+            menu.addSeparator()
         menu.addAction(_("Add Current Colour"), lambda: self._add_current(palette))
         if palette == "document":
             menu.addAction(_("Add Colours Used in Document"), lambda: swatches.add_document_colours(session))
         menu.addSeparator()
-        menu.addAction(_("Import Palette…"), lambda: self._import(palette))
-        menu.addAction(_("Export Palette…"), lambda: self._export(palette))
+        menu.addAction(
+            _("Import Palettes…") if palette == "library" else _("Import Palette…"), lambda: self._import(palette)
+        )
+        export = menu.addAction(_("Export Palette…"), lambda: self._export(palette))
         menu.addSeparator()
-        menu.addAction(_("Delete All Swatches"), lambda: swatches.delete_all_swatches(session, palette))
+        clear = menu.addAction(_("Delete All Swatches"), lambda: swatches.delete_all_swatches(session, palette))
+        if palette == "library":
+            menu.addSeparator()
+            menu.addAction(_("Manage Palettes…"), lambda: self.manage_palettes.emit())
+
+            def update() -> None:
+                exists = palettes.current_palette(session.state) is not None
+                for action in (rename, export, clear):
+                    action.setEnabled(exists)
+
+            menu.aboutToShow.connect(update)
         return menu
 
-    def _import(self, palette: Palette) -> None:
-        filters = [_(_ALL_PALETTES_FILTER), *(_(text) for text in _PALETTE_FILTERS.values()), _(_IMAGE_PALETTE_FILTER)]
-        path, _chosen = QFileDialog.getOpenFileName(self, _("Import Palette"), "", ";;".join(filters))
+    def _new_palette(self) -> None:
+        name, accepted = QInputDialog.getText(self, _("New Palette"), _("Name:"))
+        if accepted:
+            palettes.new_palette(self._session, name)
+
+    def _rename_palette(self) -> None:
+        current = palettes.current_palette(self._session.state)
+        if current is None:
+            return
+        name, accepted = QInputDialog.getText(self, _("Rename Palette"), _("Name:"), text=current.name)
+        if accepted and not palettes.rename_palette(self._session, current.id, name):
+            QMessageBox.warning(self, _("Rename Palette"), _("Another palette already has that name, or it is empty."))
+
+    def _import(self, palette: SwatchSet) -> None:
+        if palette == "library":
+            paths = palette_import.ask_paths(self)
+            if paths:
+                palette_import.import_palettes(self, self._session, paths)
+            return
+        path, _chosen = QFileDialog.getOpenFileName(self, _("Import Palette"), "", palette_import.open_filter())
         if not path:
             return
         try:
-            colors = _read_palette_file(Path(path))
+            _name, colors = palette_import.read_file(Path(path))
         except (OSError, ValueError):
             QMessageBox.warning(
                 self,
@@ -464,29 +539,10 @@ class ColourPanel(QWidget):
             return
         swatches.import_swatches(self._session, palette, colors)
 
-    def _export(self, palette: Palette) -> None:
-        filters = {_(text): suffix for suffix, text in _PALETTE_FILTERS.items()}
-        path, chosen = QFileDialog.getSaveFileName(self, _("Export Palette"), "", ";;".join(filters))
-        if not path:
-            return
-        target = Path(path)
-        if target.suffix.lower() not in WRITE_SUFFIXES:
-            target = target.with_name(target.name + filters.get(chosen, ".gpl"))
-        items = [(s.name, s.color, s.opacity) for s in swatches.palette_swatches(self._session, palette)]
-        try:
-            target.write_text(write_palette(target.suffix, target.stem, items), encoding="utf-8")
-        except OSError as error:
-            QMessageBox.warning(
-                self, _("Export Palette"), _("{name}: {error}").format(name=target.name, error=error.strerror or error)
-            )
-
-
-def _read_palette_file(path: Path) -> list[PaletteColor]:
-    """Palette text files by their header or suffix; images (Lospec's PNG palettes) by their pixel colours."""
-    if path.suffix.lower() in READ_SUFFIXES:
-        return read_palette(path.suffix, path.read_text(encoding="utf-8", errors="replace"))
-    image = QImage(str(path))
-    if image.isNull():
-        raise ValueError("not a palette file or image")
-    image = image.convertToFormat(QImage.Format.Format_RGBA8888)
-    return colors_from_pixels(image.width(), image.height(), bytes(image.constBits())[: image.sizeInBytes()])
+    def _export(self, palette: SwatchSet) -> None:
+        if palette == "library":
+            stored = palettes.current_palette(self._session.state)
+        else:
+            stored = Palette(0, _("Document swatches"), self._session.state.document.swatches)
+        if stored is not None:
+            palette_export.export_one(self, stored)

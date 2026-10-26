@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QLabel, QWidget
 
+from presstoshape.editing.session import Session
 from presstoshape.i18n import _
 
 
@@ -16,6 +17,9 @@ class SettingsContext:
     # Language this run uses; a different choice needs a restart.
     running_language: str
     translations_folder: Path
+    # The palettes page edits the session's stored palettes; None where there are none to manage (tests).
+    session: Session | None = None
+    palettes_folder: Path | None = None
 
 
 class SettingsPage(QWidget):

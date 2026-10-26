@@ -72,7 +72,7 @@ def test_a_killed_run_is_offered_and_recovered_exactly(tmp_path):
     assert (session.state.document.unit, session.state.dirty) == ("mm", True)
     keeper.finish()
 
-    window = MainWindow(session, settings, tmp_path / "other-recovery", tmp_path / "swatches.json")
+    window = MainWindow(session, settings, tmp_path / "other-recovery", tmp_path / "palettes")
     window.refresh()
     assert window.windowTitle().startswith("Untitled (recovered)")
     window.close_without_prompt()

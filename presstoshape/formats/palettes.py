@@ -107,6 +107,24 @@ def read_palette(suffix: str, text: str) -> list[PaletteColor]:
     return reader(text)
 
 
+_STORED_NAME = re.compile(r"^(?:name:|#\s*palette name:|;\s*palette name:)\s*(.*)$", re.IGNORECASE)
+
+
+def stored_name(text: str) -> str | None:
+    """The palette name a file holds: GIMP's `Name:` (Lospec writes `#Palette Name:`), Paint.NET's
+    `;Palette Name:`. None when there is none (hex and JASC files never have one)."""
+    for line in _lines(text)[:20]:
+        match = _STORED_NAME.match(line)
+        if match is not None and match.group(1).strip():
+            return " ".join(match.group(1).split())
+    return None
+
+
+def read_named_palette(suffix: str, text: str) -> tuple[str | None, list[PaletteColor]]:
+    """`read_palette` plus the name stored in the file."""
+    return stored_name(text), read_palette(suffix, text)
+
+
 def colors_from_pixels(width: int, height: int, rgba: bytes) -> list[PaletteColor]:
     """Distinct colours of an RGBA image in reading order (a Lospec palette PNG at any scale); fully transparent
     pixels are skipped. Raises ValueError when there are more than MAX_IMAGE_COLORS."""

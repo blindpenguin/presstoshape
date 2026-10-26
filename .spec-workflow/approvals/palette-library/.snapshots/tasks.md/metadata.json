@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/palette-library/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-10-26T17:40:50.481Z",
+      "trigger": "initial",
+      "approvalId": "approval_1793036450472_nbqtjogcy",
+      "approvalTitle": "Palette library and Settings palettes page: tasks"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-10-26T17:41:48.071Z",
+      "trigger": "approved",
+      "approvalId": "approval_1793036450472_nbqtjogcy",
+      "approvalTitle": "Palette library and Settings palettes page: tasks"
+    }
+  ]
+}

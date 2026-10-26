@@ -17,6 +17,7 @@ from presstoshape.editing.operations import (  # noqa: F401
     layers,
     masks,
     node_editing,
+    palettes,
     paths,
     selection,
     shapes,

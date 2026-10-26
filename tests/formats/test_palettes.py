@@ -4,6 +4,7 @@ from presstoshape.formats.palettes import (
     MAX_IMAGE_COLORS,
     WRITE_SUFFIXES,
     colors_from_pixels,
+    read_named_palette,
     read_palette,
     write_palette,
 )
@@ -83,3 +84,19 @@ def test_written_palettes_read_back(suffix):
         assert [opacity for _name, _color, opacity in reread] == [1.0, 0.502]
     if suffix == ".gpl":
         assert reread[0][0] == "Rose"
+
+
+@pytest.mark.parametrize(
+    ("suffix", "text", "name"),
+    [
+        (".gpl", LOSPEC_GPL, "Test"),
+        (".gpl", "GIMP Palette\nName: Bears\nColumns: 4\n#\n1 2 3\tx\n", "Bears"),
+        (".txt", LOSPEC_TXT, "Test"),
+        (".hex", LOSPEC_HEX, None),
+        (".pal", LOSPEC_PAL, None),
+    ],
+)
+def test_stored_names(suffix, text, name):
+    stored, colors = read_named_palette(suffix, text)
+    assert stored == name
+    assert colors

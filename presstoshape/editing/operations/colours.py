@@ -13,7 +13,7 @@ from presstoshape.editing.registry import operation
 from presstoshape.editing.session import Session
 from presstoshape.i18n import N_, _
 from presstoshape.models.app_state import AppState
-from presstoshape.models.colours import RECENT_LIMIT, NumberMode, PaintSlot, Swatch
+from presstoshape.models.colours import RECENT_LIMIT, NumberMode, PaintSlot
 from presstoshape.models.shapes import GroupShape, ImageShape, Paint, Shape, Style, flat_color, sanitized
 
 
@@ -206,10 +206,4 @@ def clear_recent_colours(session: Session) -> None:
 
 def set_number_mode(session: Session, mode: NumberMode) -> None:
     session.state.colours.numbers = mode
-    session.notify()
-
-
-def set_library(session: Session, swatches: tuple[Swatch, ...]) -> None:
-    """The personal library as loaded from its file."""
-    session.state.colours.library = tuple(swatches)
     session.notify()
