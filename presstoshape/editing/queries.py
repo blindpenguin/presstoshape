@@ -66,6 +66,18 @@ def find_shape(state: AppState, shape_id: int) -> Shape | None:
     return None
 
 
+def find_shapes(state: AppState, shape_ids: set[int] | frozenset[int]) -> dict[int, Shape]:
+    """Shapes by id, like `find_shape` for many ids in one pass over the document; missing ids are left out."""
+    found: dict[int, Shape] = {}
+    pending = [shape for layer in state.document.layers for shape in layer.shapes]
+    while pending and len(found) < len(shape_ids):
+        shape = pending.pop()
+        if shape.id in shape_ids:
+            found[shape.id] = shape
+        pending.extend(children_of(shape))
+    return found
+
+
 def combinable_shapes(state: AppState) -> list[Shape]:
     """Selected shapes with a vector outline that booleans and Composites can work on (pictures have none)."""
     return [

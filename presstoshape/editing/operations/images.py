@@ -115,11 +115,11 @@ def place_images(
 
 def selected_images(state: AppState, reference: bool | None = None, locked_too: bool = False) -> list[ImageShape]:
     """Selected pictures; `reference` True or False keeps only those. Locked ones count with `locked_too`."""
-    found = (
-        (queries.find_shape(state, shape_id) for shape_id in sorted(state.selection))
-        if locked_too
-        else containers.active_shapes(state)
-    )
+    if locked_too:
+        by_id = queries.find_shapes(state, state.selection)
+        found = [by_id[shape_id] for shape_id in sorted(by_id)]
+    else:
+        found = containers.active_shapes(state)
     return [
         shape
         for shape in found
