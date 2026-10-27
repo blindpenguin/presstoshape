@@ -15,6 +15,9 @@ _GEOMETRY_KEY = "window/geometry"
 _MAXIMIZED_KEY = "window/maximized"
 # Dock sizes, e.g. how the right sidebar is split between Layers and Align.
 _DOCKS_KEY = "window/docks"
+# Bump when the default dock arrangement changes: a state saved by an older layout is then ignored instead of
+# restored, since Qt keeps the old order and appends docks it didn't know about at the end.
+_DOCKS_VERSION = 1
 
 
 def _overlap(first: Box, second: Box) -> tuple[int, int]:
@@ -71,7 +74,7 @@ def show(window: QMainWindow, settings: QSettings) -> None:
     window.setGeometry(QRect(*fit_on_screens(_saved_box(settings), _screens())))
     state = settings.value(_DOCKS_KEY)
     if state is not None:
-        window.restoreState(state)
+        window.restoreState(state, _DOCKS_VERSION)
     if settings.value(_MAXIMIZED_KEY, False, type=bool):
         window.showMaximized()
     else:
@@ -82,4 +85,4 @@ def save(window: QMainWindow, settings: QSettings) -> None:
     # normalGeometry is the restored size even while maximized, so un-maximizing after a restart works.
     settings.setValue(_GEOMETRY_KEY, list(window.normalGeometry().getRect()))
     settings.setValue(_MAXIMIZED_KEY, window.isMaximized())
-    settings.setValue(_DOCKS_KEY, window.saveState())
+    settings.setValue(_DOCKS_KEY, window.saveState(_DOCKS_VERSION))

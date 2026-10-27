@@ -96,16 +96,16 @@ class MainWindow(QMainWindow):
         self._colour = ColourPanel(session, self._actions)
         self._colour.preview_changed.connect(self.canvas.set_style_preview)
         self._colour.manage_palettes.connect(lambda: self.open_settings(PAGES.index(PalettesPage)))
-        colour_dock = self._add_dock("colour", _("Colour"), self._colour)
         self._layers = LayersPanel(session)
         layers_dock = self._add_dock("layers", _("Layers"), self._layers)
         self._align = AlignPanel(session, self._actions)
         align_dock = self._add_dock("align", _("Align"), self._align)
-        self.splitDockWidget(colour_dock, layers_dock, Qt.Orientation.Vertical)
+        colour_dock = self._add_dock("colour", _("Colour"), self._colour)
         self.splitDockWidget(layers_dock, align_dock, Qt.Orientation.Vertical)
+        self.splitDockWidget(align_dock, colour_dock, Qt.Orientation.Vertical)
         # The Colour panel gets most of the height, Layers a smaller share; the split the user makes is restored
         # with the window.
-        self.resizeDocks([colour_dock, layers_dock, align_dock], [4, 2, 1], Qt.Orientation.Vertical)
+        self.resizeDocks([layers_dock, align_dock, colour_dock], [2, 1, 4], Qt.Orientation.Vertical)
         if settings is not None:
             session.state.view = replace(session.state.view, show_rulers=app_settings.show_rulers(settings))
             session.state.snapping = app_settings.snap_settings(settings)
